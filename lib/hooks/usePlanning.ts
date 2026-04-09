@@ -45,7 +45,7 @@ export function useGantt(projectId: string | null) {
   });
 
   useEffect(() => {
-    if (query.data) {
+    if (query.data && query.data.tasks) {
       console.log('📊 Gantt data loaded:', query.data.tasks.length, 'tasks');
     }
   }, [query.data]);
@@ -65,7 +65,7 @@ export function usePert(projectId: string | null) {
   });
 
   useEffect(() => {
-    if (query.data) {
+    if (query.data && query.data.nodes && query.data.criticalPath) {
       console.log('🔗 PERT data loaded:', query.data.nodes.length, 'nodes,', query.data.criticalPath.length, 'in critical path');
     }
   }, [query.data]);
@@ -92,7 +92,7 @@ export function useBurndown(
   });
 
   useEffect(() => {
-    if (query.data) {
+    if (query.data && query.data.dates) {
       console.log('📈 Burndown data loaded:', query.data.dates.length, 'dates');
     }
   }, [query.data]);
@@ -120,7 +120,7 @@ export function useWorkload(params: {
   });
 
   useEffect(() => {
-    if (query.data) {
+    if (query.data && query.data.entries) {
       console.log('⚙️ Workload data loaded:', query.data.entries.length, 'entries, total:', query.data.totalHours, 'hours');
     }
   }, [query.data]);
@@ -140,7 +140,7 @@ export function useStatusDonut(projectId: string | null) {
   });
 
   useEffect(() => {
-    if (query.data) {
+    if (query.data && typeof query.data.TODO === 'number') {
       console.log('🍩 Status donut loaded: TODO:', query.data.TODO, 'DOING:', query.data.DOING, 'DONE:', query.data.DONE);
     }
   }, [query.data]);
@@ -160,7 +160,7 @@ export function useEisenhower(projectId: string | null) {
   });
 
   useEffect(() => {
-    if (query.data) {
+    if (query.data && query.data.urgent_important) {
       console.log('⚔️ Eisenhower matrix loaded:', query.data.urgent_important.length, 'urgent+important,', query.data.urgent_not_important.length, 'urgent');
     }
   }, [query.data]);

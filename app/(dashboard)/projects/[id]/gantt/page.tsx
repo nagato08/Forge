@@ -27,7 +27,7 @@ export default function GanttPage() {
     );
   }
 
-  if (!ganttData || ganttData.tasks.length === 0) {
+  if (!ganttData || !ganttData.tasks || ganttData.tasks.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="text-4xl mb-4">📊</div>
