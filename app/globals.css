@@ -1,26 +1,123 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Thèmes personnalisés */
+:root[data-theme="light"] {
+  --bg-primary: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-surface-hover: #F1F5F9;
+  --border: #E2E8F0;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-weak: #94A3B8;
+  --primary: #2F81F7;
+  --primary-hover: #1F6FEB;
+  --primary-active: #1A5FCC;
+  --critical: #F85149;
+  --success: #3FB950;
+  --warning: #D29922;
+  --info: #58A6FF;
+  --ai: #A371F7;
+}
+
+:root[data-theme="dark"] {
+  --bg-primary: #0D1117;
+  --bg-surface: #161B22;
+  --bg-surface-hover: #21262D;
+  --border: #30363D;
+  --text-primary: #E6EDF3;
+  --text-secondary: #8B949E;
+  --text-weak: #6E7681;
+  --primary: #58A6FF;
+  --primary-hover: #79C0FF;
+  --primary-active: #A5D6FF;
+  --critical: #F85149;
+  --success: #56D364;
+  --warning: #D29922;
+  --info: #79C0FF;
+  --ai: #BC8CFF;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-surface-hover: var(--bg-surface-hover);
+  --color-border: var(--border);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-weak: var(--text-weak);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-critical: var(--critical);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-ai: var(--ai);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Auth page animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  /* Transition fluide pour le changement de thème */
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Animations de chargement */
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* Animations de bouton */
+  .btn-hover {
+    transition: all 0.2s ease;
+  }
+
+  .btn-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .btn-hover:active {
+    transform: translateY(0);
+  }
+
+  /* Focus visible pour l'accessibilité */
+  .focus-ring {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+  }
+
+  .focus-ring:focus-visible {
+    outline: 2px solid var(--primary);
+  }
 }
