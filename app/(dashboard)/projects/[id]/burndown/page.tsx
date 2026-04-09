@@ -41,7 +41,7 @@ export default function BurndownPage() {
     );
   }
 
-  if (!burndownData || burndownData.dates.length === 0) {
+  if (!burndownData || !burndownData.dates || burndownData.dates.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="text-4xl mb-4">📈</div>
@@ -55,7 +55,9 @@ export default function BurndownPage() {
     );
   }
 
-  const maxValue = Math.max(...burndownData.ideal, ...burndownData.actual) || 100;
+  const idealData = burndownData.ideal || [];
+  const actualData = burndownData.actual || [];
+  const maxValue = Math.max(...idealData, ...actualData) || 100;
   const getY = (value: number) => ((maxValue - value) / maxValue) * 300;
 
   return (
@@ -99,30 +101,34 @@ export default function BurndownPage() {
           <line x1="50" y1="350" x2="800" y2="350" stroke="#94a3b8" strokeWidth="2" />
 
           {/* Ideal line (blue) */}
-          <polyline
-            points={burndownData.ideal.map((val, i) => {
-              const x = 50 + (i / (burndownData.ideal.length - 1)) * 750;
-              const y = 350 - getY(val);
-              return `${x},${y}`;
-            }).join(' ')}
-            fill="none"
-            stroke="#2F81F7"
-            strokeWidth="2"
-            opacity="0.5"
-            strokeDasharray="5,5"
-          />
+          {idealData.length > 0 && (
+            <polyline
+              points={idealData.map((val, i) => {
+                const x = 50 + (i / (idealData.length - 1)) * 750;
+                const y = 350 - getY(val);
+                return `${x},${y}`;
+              }).join(' ')}
+              fill="none"
+              stroke="#2F81F7"
+              strokeWidth="2"
+              opacity="0.5"
+              strokeDasharray="5,5"
+            />
+          )}
 
           {/* Actual line (green) */}
-          <polyline
-            points={burndownData.actual.map((val, i) => {
-              const x = 50 + (i / (burndownData.actual.length - 1)) * 750;
-              const y = 350 - getY(val);
-              return `${x},${y}`;
-            }).join(' ')}
-            fill="none"
-            stroke="#3FB950"
-            strokeWidth="2"
-          />
+          {actualData.length > 0 && (
+            <polyline
+              points={actualData.map((val, i) => {
+                const x = 50 + (i / (actualData.length - 1)) * 750;
+                const y = 350 - getY(val);
+                return `${x},${y}`;
+              }).join(' ')}
+              fill="none"
+              stroke="#3FB950"
+              strokeWidth="2"
+            />
+          )}
 
           {/* Labels */}
           <text x="20" y="360" fontSize="12" fill="#64748b">
@@ -148,11 +154,11 @@ export default function BurndownPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="p-6">
           <p className="text-sm text-text-secondary font-medium mb-2">🎯 Objectif initial</p>
-          <p className="text-3xl font-bold text-primary">{burndownData.ideal[0] || 0}</p>
+          <p className="text-3xl font-bold text-primary">{idealData[0] || 0}</p>
         </Card>
         <Card className="p-6">
           <p className="text-sm text-text-secondary font-medium mb-2">✅ Complétées</p>
-          <p className="text-3xl font-bold text-success">{burndownData.actual[burndownData.actual.length - 1] || 0}</p>
+          <p className="text-3xl font-bold text-success">{actualData[actualData.length - 1] || 0}</p>
         </Card>
       </div>
     </div>

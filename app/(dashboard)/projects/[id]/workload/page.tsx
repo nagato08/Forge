@@ -43,7 +43,7 @@ export default function WorkloadPage() {
     );
   }
 
-  if (!workloadData || workloadData.entries.length === 0) {
+  if (!workloadData || !workloadData.entries || workloadData.entries.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="text-4xl mb-4">⚙️</div>

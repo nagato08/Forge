@@ -25,7 +25,7 @@ export default function PertPage() {
     );
   }
 
-  if (!pertData || pertData.nodes.length === 0) {
+  if (!pertData || !pertData.nodes || pertData.nodes.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="text-4xl mb-4">🔗</div>
@@ -39,8 +39,8 @@ export default function PertPage() {
     );
   }
 
-  const criticalTasks = pertData.nodes.filter((n) =>
-    pertData.criticalPath.includes(n.id)
+  const criticalTasks = (pertData.nodes || []).filter((n) =>
+    pertData.criticalPath?.includes(n.id)
   );
 
   return (
