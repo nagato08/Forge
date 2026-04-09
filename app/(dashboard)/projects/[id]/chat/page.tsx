@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { useMessages, useSendMessage } from '@/lib/hooks/useChat';
 import { useAuthStore } from '@/lib/stores/auth.store';
@@ -41,16 +41,15 @@ export default function ChatPage() {
     };
   }, [projectId]);
 
-  // Écouter les utilisateurs qui tapent
-  useSocketEvent('user:typing', (data) => {
+  // Callbacks mémorisés pour les événements socket
+  const handleUserTyping = useCallback((data: any) => {
     if (data.projectId === projectId && data.userId !== currentUser?.id) {
       console.log('✏️ User typing:', data.userName);
       setTypingUsers((prev) => new Map(prev).set(data.userId, data.userName));
     }
-  });
+  }, [projectId, currentUser?.id]);
 
-  // Écouter les utilisateurs qui ont arrêté de taper
-  useSocketEvent('user:stopped-typing', (data) => {
+  const handleUserStoppedTyping = useCallback((data: any) => {
     if (data.projectId === projectId) {
       console.log('⏹️ User stopped typing:', data.userId);
       setTypingUsers((prev) => {
@@ -59,12 +58,23 @@ export default function ChatPage() {
         return updated;
       });
     }
-  });
+  }, [projectId]);
+
+  // Écouter les événements socket
+  useSocketEvent('user:typing', handleUserTyping);
+  useSocketEvent('user:stopped-typing', handleUserStoppedTyping);
 
   // Auto-scroll vers le bas
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Log quand le chat est chargé
+  useEffect(() => {
+    if (!isLoading && !error && messages) {
+      console.log('💬 Chat loaded for project:', projectId, 'with', messages.length, 'messages');
+    }
+  }, [projectId, messages, isLoading, error]);
 
   if (isLoading) {
     return <Spinner centered size="lg" label="Chargement du chat..." />;
@@ -79,10 +89,6 @@ export default function ChatPage() {
       />
     );
   }
-
-  useEffect(() => {
-    console.log('💬 Chat loaded for project:', projectId, 'with', messages?.length || 0, 'messages');
-  }, [projectId, messages?.length]);
 
   const handleSend = () => {
     const content = inputValue.trim();
