@@ -14,6 +14,11 @@ const eslintConfig = defineConfig([
       "react/no-unescaped-entities": "warn",
       "@next/next/no-img-element": "warn",
       "jsx-a11y/alt-text": "warn",
+      // Règles React Compiler (Next 16 / React 19) — strictes, en warn
+      // le temps de migrer ces patterns. Le code fonctionne au runtime.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/incompatible-library": "warn",
     },
   },
   // Override default ignores of eslint-config-next.
