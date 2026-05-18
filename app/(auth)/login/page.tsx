@@ -10,6 +10,7 @@ import { useLogin } from '@/lib/hooks/useAuth';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { Button, Input, Card, Alert } from '@/components/ui';
 import { getApiError } from '@/lib/utils/api-error';
+import { Eye, EyeOff } from 'lucide-react';
 import { ROLE_ROUTES } from '@/lib/utils/auth-routes';
 
 const loginSchema = z.object({
@@ -35,7 +36,7 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginForm) => {
-    console.log('📝 Form submitted:', data.email);
+    console.log('Form submitted:', data.email);
     setApiError(null);
     loginMutation.mutate(
       { email: data.email, password: data.password },
@@ -43,11 +44,11 @@ export default function LoginPage() {
         onSuccess: () => {
           const userRole = useAuthStore.getState().role;
           const dashboardUrl = userRole ? ROLE_ROUTES[userRole] : '/dashboard';
-          console.log('🎯 Login success, role:', userRole, '→ redirecting to:', dashboardUrl);
+          console.log('Login success, role:', userRole, '→ redirecting to:', dashboardUrl);
           router.push(dashboardUrl);
         },
         onError: (error) => {
-          console.error('❌ Login mutation error callback:', error);
+          console.error('Login mutation error callback:', error);
           setApiError(getApiError(error));
         },
       }
@@ -113,10 +114,14 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1"
                 aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
               >
-                {showPassword ? '👁️' : '👁️‍🗨️'}
+                {showPassword ? (
+                  <Eye className="w-5 h-5" />
+                ) : (
+                  <EyeOff className="w-5 h-5" />
+                )}
               </button>
             </div>
 

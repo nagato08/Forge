@@ -1,15 +1,29 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useMyTasks, useUpdateTaskStatus } from '@/lib/hooks';
+import { tasksApi } from '@/lib/api/tasks.api';
 import { getApiError } from '@/lib/utils/api-error';
 import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
+import {
+  ClipboardList,
+  ListTodo,
+  Play,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
+  ArrowRight,
+  Zap,
+  Filter,
+  X,
+} from 'lucide-react';
 
 export default function MyTasksPage() {
+  const router = useRouter();
   const { data: allTasks, isLoading } = useMyTasks();
   const updateStatusMutation = useUpdateTaskStatus();
 
@@ -18,10 +32,10 @@ export default function MyTasksPage() {
   const [apiError, setApiError] = useState<string | null>(null);
 
   if (isLoading) {
-    return <Spinner centered size="lg" label="Chargement de vos tâches..." />;
+    return <Spinner centered size="lg" label="Chargement de vos taches..." />;
   }
 
-  console.log('📋 My tasks loaded:', allTasks?.length || 0, 'tasks');
+  console.log('My tasks loaded:', allTasks?.length || 0, 'tasks');
 
   // Filter tasks
   let filteredTasks = allTasks || [];
@@ -38,65 +52,100 @@ export default function MyTasksPage() {
     DONE: allTasks?.filter((t) => t.status === 'DONE').length || 0,
   };
 
-  const handleStatusChange = (taskId: string, newStatus: string) => {
-    console.log('📝 Changing task status:', taskId, '→', newStatus);
+  const totalTasks = allTasks?.length || 0;
+  const overdueTasks = allTasks?.filter(
+    (t) => t.deadline && new Date(t.deadline) < new Date() && t.status !== 'DONE'
+  ).length || 0;
+
+  const handleStatusChange = async (taskId: string, newStatus: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setApiError(null);
 
+    // Verifier les dependances en fetching la tache complete
+    if (newStatus !== 'TODO') {
+      try {
+        const fullTask = await tasksApi.getTaskById(taskId);
+        const blockedBy = fullTask.blockedBy || [];
+
+        if (blockedBy.length > 0) {
+          // Verifier si les bloqueurs sont termines
+          const blockerIds = blockedBy
+            .map((dep) => dep.blockingTaskId || dep.taskId)
+            .filter((id): id is string => !!id);
+          const blockerStatuses = await Promise.all(
+            blockerIds.map((id) => tasksApi.getTaskById(id))
+          );
+          const unfinished = blockerStatuses.filter((t) => t.status !== 'DONE');
+
+          if (unfinished.length > 0) {
+            const names = unfinished.map((t) => t.title).join(', ');
+            setApiError(`Impossible : cette tache est bloquee par "${names}" qui n'est pas encore terminee`);
+            return;
+          }
+        }
+      } catch {
+        // Si le fetch echoue, on laisse passer et le backend decidera
+      }
+    }
+
+    console.log('Changing task status:', taskId, '->', newStatus);
     updateStatusMutation.mutate(
       { taskId, status: { status: newStatus } as any },
       {
-        onSuccess: () => {
-          console.log('✅ Task status updated');
-        },
         onError: (err) => {
-          console.error('❌ Status update error:', getApiError(err));
+          console.error('Status update error:', getApiError(err));
           setApiError(getApiError(err));
         },
       }
     );
   };
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityConfig = (priority: string) => {
     switch (priority) {
       case 'CRITICAL':
-        return 'bg-critical/10 text-critical';
+        return { label: 'Critique', color: 'bg-critical/10 text-critical border-critical/20' };
       case 'HIGH':
-        return 'bg-warning/10 text-warning';
+        return { label: 'Haute', color: 'bg-warning/10 text-warning border-warning/20' };
       case 'MEDIUM':
-        return 'bg-primary/10 text-primary';
+        return { label: 'Moyenne', color: 'bg-primary/10 text-primary border-primary/20' };
       case 'LOW':
-        return 'bg-text-weak/10 text-text-secondary';
+        return { label: 'Basse', color: 'bg-text-weak/10 text-text-secondary border-border' };
       default:
-        return 'bg-border';
+        return { label: priority, color: 'bg-border text-text-secondary' };
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case 'TODO':
-        return 'bg-warning/10 text-warning';
+        return { label: 'A faire', color: 'bg-warning/10 text-warning', icon: ListTodo };
       case 'DOING':
-        return 'bg-primary/10 text-primary';
+        return { label: 'En cours', color: 'bg-primary/10 text-primary', icon: Play };
       case 'DONE':
-        return 'bg-success/10 text-success';
+        return { label: 'Terminee', color: 'bg-success/10 text-success', icon: CheckCircle2 };
       default:
-        return 'bg-border';
+        return { label: status, color: 'bg-border', icon: ListTodo };
     }
+  };
+
+  const isOverdue = (deadline: string | undefined, status: string) => {
+    return deadline && new Date(deadline) < new Date() && status !== 'DONE';
   };
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-text-primary">
-          📋 Mes tâches
-        </h1>
-        <p className="text-text-secondary text-sm mt-1">
-          {filteredTasks.length} tâche(s) affichée(s)
-        </p>
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <ClipboardList className="w-7 h-7 text-primary" />
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Mes taches</h1>
+          <p className="text-text-secondary text-sm">
+            {totalTasks} tache{totalTasks !== 1 ? 's' : ''} assignee{totalTasks !== 1 ? 's' : ''}
+          </p>
+        </div>
       </div>
 
-      {/* Error Alert */}
+      {/* Error */}
       {apiError && (
         <Alert
           type="error"
@@ -107,176 +156,224 @@ export default function MyTasksPage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="p-4">
-          <div className="space-y-2">
-            <p className="text-xs text-text-secondary font-medium">À faire</p>
-            <p className="text-2xl font-bold text-warning">{tasksByStatus.TODO}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card
+          className={`p-4 cursor-pointer transition-all ${
+            filterStatus === 'TODO' ? 'ring-2 ring-warning' : 'hover:shadow-md'
+          }`}
+          onClick={() => setFilterStatus(filterStatus === 'TODO' ? null : 'TODO')}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
+              <ListTodo className="w-5 h-5 text-warning" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-warning">{tasksByStatus.TODO}</p>
+              <p className="text-xs text-text-secondary">A faire</p>
+            </div>
+          </div>
+        </Card>
+        <Card
+          className={`p-4 cursor-pointer transition-all ${
+            filterStatus === 'DOING' ? 'ring-2 ring-primary' : 'hover:shadow-md'
+          }`}
+          onClick={() => setFilterStatus(filterStatus === 'DOING' ? null : 'DOING')}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Play className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-primary">{tasksByStatus.DOING}</p>
+              <p className="text-xs text-text-secondary">En cours</p>
+            </div>
+          </div>
+        </Card>
+        <Card
+          className={`p-4 cursor-pointer transition-all ${
+            filterStatus === 'DONE' ? 'ring-2 ring-success' : 'hover:shadow-md'
+          }`}
+          onClick={() => setFilterStatus(filterStatus === 'DONE' ? null : 'DONE')}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-success" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-success">{tasksByStatus.DONE}</p>
+              <p className="text-xs text-text-secondary">Terminees</p>
+            </div>
           </div>
         </Card>
         <Card className="p-4">
-          <div className="space-y-2">
-            <p className="text-xs text-text-secondary font-medium">En cours</p>
-            <p className="text-2xl font-bold text-primary">{tasksByStatus.DOING}</p>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="space-y-2">
-            <p className="text-xs text-text-secondary font-medium">Complétées</p>
-            <p className="text-2xl font-bold text-success">{tasksByStatus.DONE}</p>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${overdueTasks > 0 ? 'bg-critical/10' : 'bg-bg-surface-hover'}`}>
+              <AlertCircle className={`w-5 h-5 ${overdueTasks > 0 ? 'text-critical' : 'text-text-weak'}`} />
+            </div>
+            <div>
+              <p className={`text-2xl font-bold ${overdueTasks > 0 ? 'text-critical' : 'text-text-weak'}`}>{overdueTasks}</p>
+              <p className="text-xs text-text-secondary">En retard</p>
+            </div>
           </div>
         </Card>
       </div>
 
       {/* Filters */}
       <Card className="p-4">
-        <div className="flex flex-wrap gap-3">
-          <div className="flex gap-2">
-            <Button
-              variant={filterStatus === null ? 'primary' : 'secondary'}
-              size="sm"
-              onClick={() => setFilterStatus(null)}
-            >
-              Tous
-            </Button>
-            <Button
-              variant={filterStatus === 'TODO' ? 'primary' : 'secondary'}
-              size="sm"
-              onClick={() => setFilterStatus('TODO')}
-            >
-              À faire ({tasksByStatus.TODO})
-            </Button>
-            <Button
-              variant={filterStatus === 'DOING' ? 'primary' : 'secondary'}
-              size="sm"
-              onClick={() => setFilterStatus('DOING')}
-            >
-              En cours ({tasksByStatus.DOING})
-            </Button>
-            <Button
-              variant={filterStatus === 'DONE' ? 'primary' : 'secondary'}
-              size="sm"
-              onClick={() => setFilterStatus('DONE')}
-            >
-              Complétées ({tasksByStatus.DONE})
-            </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 text-sm text-text-secondary">
+            <Filter className="w-4 h-4" />
+            <span>Priorite :</span>
           </div>
-
-          {filterPriority && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setFilterPriority(null)}
+          <div className="flex gap-2">
+            {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((p) => {
+              const config = getPriorityConfig(p);
+              return (
+                <button
+                  key={p}
+                  onClick={() => setFilterPriority(filterPriority === p ? null : p)}
+                  className={`text-xs px-3 py-1.5 rounded-full font-medium border transition-all ${
+                    filterPriority === p
+                      ? config.color + ' ring-1 ring-current'
+                      : 'bg-bg-surface-hover text-text-secondary border-border hover:bg-bg-surface'
+                  }`}
+                >
+                  {config.label}
+                </button>
+              );
+            })}
+          </div>
+          {(filterStatus || filterPriority) && (
+            <button
+              onClick={() => {
+                setFilterStatus(null);
+                setFilterPriority(null);
+              }}
+              className="text-xs text-text-secondary hover:text-text-primary flex items-center gap-1 ml-auto"
             >
-              ✕ Réinitialiser priorité
-            </Button>
+              <X className="w-3 h-3" />
+              Reinitialiser
+            </button>
           )}
         </div>
       </Card>
 
       {/* Tasks List */}
-      <Card className="space-y-0 overflow-hidden">
-        {filteredTasks.length === 0 ? (
-          <div className="p-12 text-center">
+      {filteredTasks.length === 0 ? (
+        <Card className="p-12">
+          <div className="text-center">
+            <ClipboardList className="w-12 h-12 text-text-weak mx-auto mb-4" />
             <p className="text-text-secondary">
-              {filterStatus
-                ? `Aucune tâche avec le statut "${filterStatus}"`
-                : 'Aucune tâche assignée'}
+              {filterStatus || filterPriority
+                ? 'Aucune tache ne correspond aux filtres'
+                : 'Aucune tache assignee'}
             </p>
           </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {filteredTasks.map((task) => (
-              <div
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {filteredTasks.map((task) => {
+            const statusConfig = getStatusConfig(task.status);
+            const priorityConfig = getPriorityConfig(task.priority);
+            const overdue = isOverdue(task.deadline, task.status);
+            const StatusIcon = statusConfig.icon;
+
+            return (
+              <Card
                 key={task.id}
-                className="p-4 hover:bg-bg-surface-hover transition-colors"
+                className="p-4 hover:shadow-md transition-all cursor-pointer group"
+                onClick={() => router.push(`/projects/${task.projectId}/tasks/${task.id}`)}
               >
-                <div className="flex items-start justify-between gap-4">
-                  {/* Task Info */}
-                  <div className="flex-1">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-text-primary">
+                <div className="flex items-start gap-4">
+                  {/* Status icon */}
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${statusConfig.color}`}>
+                    <StatusIcon className="w-5 h-5" />
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-text-primary group-hover:text-primary transition-colors truncate">
                           {task.title}
                         </h3>
-                        <p className="text-xs text-text-weak mt-1">
-                          ID projet : {task.projectId}
-                        </p>
+                        {task.description && (
+                          <p className="text-xs text-text-secondary mt-1 line-clamp-1">
+                            {task.description}
+                          </p>
+                        )}
                       </div>
+                      <ArrowRight className="w-4 h-4 text-text-weak group-hover:text-primary transition-colors shrink-0 mt-1" />
                     </div>
 
-                    {/* Badges */}
+                    {/* Metadata row */}
                     <div className="flex items-center gap-2 mt-3 flex-wrap">
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(
-                          task.status
-                        )}`}
-                      >
-                        {task.status === 'TODO'
-                          ? 'À faire'
-                          : task.status === 'DOING'
-                            ? 'En cours'
-                            : 'Complétée'}
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusConfig.color}`}>
+                        {statusConfig.label}
                       </span>
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full font-medium ${getPriorityColor(
-                          task.priority
-                        )}`}
-                      >
-                        {task.priority === 'CRITICAL'
-                          ? 'Critique'
-                          : task.priority === 'HIGH'
-                            ? 'Haute'
-                            : task.priority === 'MEDIUM'
-                              ? 'Moyenne'
-                              : 'Basse'}
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${priorityConfig.color}`}>
+                        {priorityConfig.label}
                       </span>
+                      {task.storyPoints && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-info/10 text-info font-medium flex items-center gap-1">
+                          <Zap className="w-3 h-3" />
+                          {task.storyPoints} pts
+                        </span>
+                      )}
                       {task.deadline && (
-                        <span className="text-xs text-text-secondary">
-                          📅{' '}
-                          {new Date(task.deadline).toLocaleDateString(
-                            'fr-FR'
-                          )}
+                        <span className={`text-xs flex items-center gap-1 ${
+                          overdue ? 'text-critical font-medium' : 'text-text-secondary'
+                        }`}>
+                          <Calendar className="w-3 h-3" />
+                          {new Date(task.deadline).toLocaleDateString('fr-FR', {
+                            day: 'numeric',
+                            month: 'short',
+                          })}
+                          {overdue && ' (en retard)'}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Status Buttons */}
-                  <div className="flex gap-2">
-                    {task.status !== 'DONE' && (
+                  {/* Action button */}
+                  <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                    {task.status === 'TODO' && (
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => {
-                          const nextStatus =
-                            task.status === 'TODO' ? 'DOING' : 'DONE';
-                          handleStatusChange(task.id, nextStatus);
-                        }}
+                        onClick={(e) => handleStatusChange(task.id, 'DOING', e as any)}
                         isLoading={updateStatusMutation.isPending}
+                        className="flex items-center gap-1.5 text-primary border-primary/30 hover:bg-primary/10"
                       >
-                        {task.status === 'TODO' ? '▶️ Commencer' : '✓ Terminer'}
+                        <Play className="w-3 h-3" />
+                        Commencer
+                      </Button>
+                    )}
+                    {task.status === 'DOING' && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={(e) => handleStatusChange(task.id, 'DONE', e as any)}
+                        isLoading={updateStatusMutation.isPending}
+                        className="flex items-center gap-1.5 text-success border-success/30 hover:bg-success/10"
+                      >
+                        <CheckCircle2 className="w-3 h-3" />
+                        Terminer
                       </Button>
                     )}
                     {task.status === 'DONE' && (
-                      <span className="text-sm text-success font-semibold px-2 py-1">
-                        ✓ Complétée
+                      <span className="text-xs text-success font-medium flex items-center gap-1 px-3 py-1.5">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Terminee
                       </span>
                     )}
                   </div>
                 </div>
-
-                {/* Description */}
-                {task.description && (
-                  <p className="text-xs text-text-secondary mt-3 line-clamp-2">
-                    {task.description}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

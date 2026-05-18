@@ -50,12 +50,12 @@ export default function NotificationsSettingsPage() {
       },
       {
         onSuccess: () => {
-          console.log('✅ Paramètres de notification mis à jour');
+          console.log(' Paramètres de notification mis à jour');
           setSuccessMessage('Paramètres mis à jour avec succès');
           setTimeout(() => setSuccessMessage(null), 3000);
         },
         onError: (err) => {
-          console.error('❌ Erreur mise à jour settings:', getApiError(err));
+          console.error(' Erreur mise à jour settings:', getApiError(err));
           setApiError(getApiError(err));
         },
       }
@@ -71,7 +71,7 @@ export default function NotificationsSettingsPage() {
       {/* Page Title */}
       <div>
         <h1 className="text-2xl font-bold text-text-primary">
-          🔔 Notifications
+           Notifications
         </h1>
         <p className="text-text-secondary text-sm mt-1">
           Contrôlez comment vous recevez les notifications

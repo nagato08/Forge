@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { planningApi } from '@/lib/api/planning.api';
 import {
-  GanttData,
+  GanttTask,
   PertData,
   BurndownData,
   WorkloadData,
@@ -45,8 +45,8 @@ export function useGantt(projectId: string | null) {
   });
 
   useEffect(() => {
-    if (query.data && query.data.tasks) {
-      console.log('📊 Gantt data loaded:', query.data.tasks.length, 'tasks');
+    if (query.data) {
+      console.log('Gantt data loaded:', query.data.length, 'tasks');
     }
   }, [query.data]);
 

@@ -1,0 +1,22 @@
+node_modules
+.next
+.git
+.gitignore
+Dockerfile
+.dockerignore
+docker-compose*.yml
+.github
+
+# Env (NEXT_PUBLIC_* passé via build-arg, pas via fichier)
+.env*
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+
+# Docs / divers
+*.md
+RAPPORT_COMPLET.pdf
+tsconfig.tsbuildinfo
+coverage

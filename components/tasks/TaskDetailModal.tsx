@@ -7,6 +7,7 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Alert from '@/components/ui/Alert';
 import Spinner from '@/components/ui/Spinner';
+import { MessageSquare } from 'lucide-react';
 
 interface TaskDetailModalProps {
   taskId: string | null;
@@ -47,20 +48,20 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
     );
   }
 
-  console.log('📊 TaskDetail opened:', taskId);
+  console.log('TaskDetail opened:', taskId);
 
   const handleEditField = (field: string, value: string) => {
     if (field === 'title') {
-      console.log('📡 Updating task field: title =', value);
+      console.log('Updating task field: title =', value);
       updateMutation.mutate(
         { taskId, data: { title: value } },
         {
           onSuccess: () => {
-            console.log('✅ Task updated:', taskId);
+            console.log('Task updated:', taskId);
             setEditingField(null);
           },
           onError: (error) => {
-            console.error('❌ Update failed:', getApiError(error));
+            console.error('Update failed:', getApiError(error));
             setApiError(getApiError(error));
           },
         }
@@ -69,14 +70,14 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
   };
 
   const handleDelete = () => {
-    console.log('🗑️ Delete confirmed for task:', taskId);
+    console.log('Delete confirmed for task:', taskId);
     deleteMutation.mutate(taskId, {
       onSuccess: () => {
-        console.log('✅ Task deleted successfully');
+        console.log('Task deleted successfully');
         onClose();
       },
       onError: (error) => {
-        console.error('❌ Delete failed:', getApiError(error));
+        console.error('Delete failed:', getApiError(error));
         setApiError(getApiError(error));
       },
     });
@@ -84,16 +85,16 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
 
   const handleAddComment = () => {
     if (!commentText.trim()) return;
-    console.log('💬 Adding comment to task:', taskId);
+    console.log('Adding comment to task:', taskId);
     addCommentMutation.mutate(
       { taskId, content: commentText },
       {
         onSuccess: () => {
-          console.log('✅ Comment added');
+          console.log('Comment added');
           setCommentText('');
         },
         onError: (error) => {
-          console.error('❌ Comment failed:', getApiError(error));
+          console.error('Comment failed:', getApiError(error));
           setApiError(getApiError(error));
         },
       }
@@ -133,7 +134,7 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
                 size="sm"
                 onClick={() => setShowDeleteConfirm(true)}
               >
-                🗑️ Supprimer
+                 Supprimer
               </Button>
               <Button variant="secondary" size="sm" onClick={onClose}>
                 Fermer
@@ -195,11 +196,11 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
               </p>
             </div>
           )}
-          {task.assignedUsers.length > 0 && (
+          {(task.assignedUsers?.length || 0) > 0 && (
             <div>
               <p className="text-[var(--text-secondary)] text-xs">Assignés</p>
               <p className="text-[var(--text-primary)] font-medium text-xs">
-                {task.assignedUsers
+                {(task.assignedUsers || [])
                   .map((u) => `${u.firstName} ${u.lastName}`)
                   .join(', ')}
               </p>
@@ -223,10 +224,10 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
 
           {/* Comment list */}
           <div className="space-y-3 mb-4 max-h-[200px] overflow-y-auto">
-            {task.comments.length === 0 ? (
+            {(task.comments?.length || 0) === 0 ? (
               <p className="text-sm text-[var(--text-weak)]">Aucun commentaire</p>
             ) : (
-              task.comments.map((comment) => (
+              (task.comments || []).map((comment) => (
                 <div key={comment.id} className="text-sm">
                   <p className="text-[var(--text-secondary)] text-xs">
                     {comment.user.firstName} {comment.user.lastName} •{' '}
@@ -254,8 +255,10 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
               size="sm"
               onClick={handleAddComment}
               isLoading={addCommentMutation.isPending}
+              className="flex items-center gap-1.5"
             >
-              💬
+              <MessageSquare className="w-4 h-4" />
+              Commenter
             </Button>
           </div>
         </div>

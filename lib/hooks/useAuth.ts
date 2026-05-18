@@ -121,15 +121,15 @@ export function useProfile() {
 }
 
 /**
- * Hook pour récupérer tous les utilisateurs (ADMIN seulement)
+ * Hook pour récupérer tous les utilisateurs (ADMIN seulement, mais tentative pour tous)
  */
 export function useUsers() {
-  const role = useAuthStore((state) => state.role);
+  const token = useAuthStore((state) => state.token);
 
   return useQuery({
     queryKey: CACHE_KEYS.users,
     queryFn: () => authApi.getAllUsers(),
-    enabled: role === 'ADMIN',
+    enabled: !!token, // Essayer si connecté
     staleTime: 5 * 60 * 1000, // 5 min
   });
 }
@@ -215,5 +215,38 @@ export function useCreateUser() {
       // Invalider la liste des utilisateurs
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.users });
     },
+  });
+}
+
+/**
+ * Hook pour uploader un avatar
+ */
+export function useUploadAvatar() {
+  const queryClient = useQueryClient();
+  const { setUser } = useAuthStore();
+
+  return useMutation({
+    mutationFn: (file: File) => authApi.uploadAvatar(file),
+    onSuccess: (updatedUser) => {
+      // Mettre à jour le store auth
+      setUser(updatedUser);
+      // Invalider le profil
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.profile });
+      console.log('✅ Avatar uploaded successfully');
+    },
+    onError: (error) => {
+      console.error('❌ Avatar upload error:', getApiError(error));
+    },
+  });
+}
+
+/**
+ * Hook pour récupérer les enums des départements
+ */
+export function useGetDepartmentEnums() {
+  return useQuery({
+    queryKey: ['auth', 'enums', 'departments'],
+    queryFn: () => authApi.getDepartmentEnums(),
+    staleTime: Infinity, // Les enums ne changent pas
   });
 }

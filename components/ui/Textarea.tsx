@@ -32,7 +32,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         />
         {error && (
           <p className="text-xs text-[var(--critical)] mt-1.5 flex items-center gap-1">
-            <span>⚠</span>
+            <span></span>
             {error}
           </p>
         )}

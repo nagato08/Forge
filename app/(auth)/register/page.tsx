@@ -7,11 +7,13 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRegister } from '@/lib/hooks/useAuth';
+import { useGetDepartmentEnums } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { Button, Input, Select, Card, Alert } from '@/components/ui';
 import { getApiError } from '@/lib/utils/api-error';
 import { Role, Department } from '@/lib/types/user.types';
 import { ROLE_ROUTES } from '@/lib/utils/auth-routes';
+import { Eye, EyeOff } from 'lucide-react';
 
 const registerSchema = z
   .object({
@@ -37,22 +39,18 @@ const roleOptions = [
   // ADMIN ne peut pas s'inscrire (backend retourne 403)
 ];
 
-const departmentOptions = [
-  { value: Department.ENGINEERING, label: 'Ingénierie' },
-  { value: Department.DESIGN, label: 'Design' },
-  { value: Department.MARKETING, label: 'Marketing' },
-  { value: Department.SALES, label: 'Ventes' },
-  { value: Department.HR, label: 'Ressources Humaines' },
-  { value: Department.FINANCE, label: 'Finance' },
-  { value: Department.OPERATIONS, label: 'Opérations' },
-];
-
 export default function RegisterPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const registerMutation = useRegister();
+  const { data: departments, isLoading: deptLoading } = useGetDepartmentEnums();
+
+  const departmentOptions = departments?.map((dept) => ({
+    value: dept,
+    label: dept,
+  })) || [];
 
   const {
     register,
@@ -63,7 +61,7 @@ export default function RegisterPage() {
   });
 
   const onSubmit = async (data: RegisterForm) => {
-    console.log('📝 Register form submitted:', data.email, 'role:', data.role);
+    console.log('Register form submitted:', data.email, 'role:', data.role);
     setApiError(null);
     registerMutation.mutate(
       {
@@ -79,11 +77,11 @@ export default function RegisterPage() {
         onSuccess: () => {
           const userRole = useAuthStore.getState().role;
           const dashboardUrl = userRole ? ROLE_ROUTES[userRole] : '/dashboard';
-          console.log('✅ Registration successful, role:', userRole, '→ redirecting to:', dashboardUrl);
+          console.log('Registration successful, role:', userRole, '→ redirecting to:', dashboardUrl);
           router.push(dashboardUrl);
         },
         onError: (error) => {
-          console.error('❌ Registration error:', getApiError(error));
+          console.error('Registration error:', getApiError(error));
           setApiError(getApiError(error));
         },
       }
@@ -166,9 +164,13 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1"
               >
-                {showPassword ? '👁️' : '👁️‍🗨️'}
+                {showPassword ? (
+                  <Eye className="w-5 h-5" />
+                ) : (
+                  <EyeOff className="w-5 h-5" />
+                )}
               </button>
             </div>
 
@@ -185,9 +187,13 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1"
               >
-                {showConfirm ? '👁️' : '👁️‍🗨️'}
+                {showConfirm ? (
+                  <Eye className="w-5 h-5" />
+                ) : (
+                  <EyeOff className="w-5 h-5" />
+                )}
               </button>
             </div>
 

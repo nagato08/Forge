@@ -15,7 +15,7 @@ export default function ProjectManagerDashboardPage() {
     return <Spinner centered size="lg" label="Chargement du tableau de bord..." />;
   }
 
-  console.log('📊 Project manager dashboard loaded:', {
+  console.log(' Project manager dashboard loaded:', {
     projects: projects?.length || 0,
     tasks: myTasks?.length || 0,
   });
@@ -33,7 +33,7 @@ export default function ProjectManagerDashboardPage() {
       {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold text-text-primary">
-          📊 Tableau de bord Manager
+           Tableau de bord Manager
         </h1>
         <p className="text-text-secondary text-sm mt-1">
           Vue d&apos;ensemble de vos projets et tâches assignées
@@ -239,13 +239,13 @@ export default function ProjectManagerDashboardPage() {
           </Link>
         </Card>
         <Card className="p-4">
-          <p className="text-sm font-medium text-text-primary mb-3">📊 Suivi</p>
-          <Button variant="secondary" size="sm" className="w-full" onClick={() => console.log('📊 View reports clicked')}>
+          <p className="text-sm font-medium text-text-primary mb-3"> Suivi</p>
+          <Button variant="secondary" size="sm" className="w-full" onClick={() => console.log(' View reports clicked')}>
             Voir rapports
           </Button>
         </Card>
         <Card className="p-4">
-          <p className="text-sm font-medium text-text-primary mb-3">⏲️ Temps</p>
+          <p className="text-sm font-medium text-text-primary mb-3">⏲ Temps</p>
           <Link href="/time-tracking" onClick={() => console.log('🔗 Navigating to time tracking')}>
             <Button variant="secondary" size="sm" className="w-full">
               Suivi du temps

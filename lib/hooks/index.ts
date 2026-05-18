@@ -11,10 +11,12 @@ export {
   useUsers,
   useDeleteUser,
   useUpdateProfile,
+  useUploadAvatar,
   useCreateUser,
   useRequestPasswordReset,
   useVerifyResetToken,
   useResetPassword,
+  useGetDepartmentEnums,
 } from './useAuth';
 
 export {

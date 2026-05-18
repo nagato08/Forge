@@ -108,4 +108,32 @@ export const authApi = {
     const response = await api.patch<User>(`${BASE_URL}/profile`, data);
     return response.data;
   },
+
+  /**
+   * Uploader un avatar
+   * POST /auth/profile/avatar (JWT requis)
+   */
+  uploadAvatar: async (file: File): Promise<User> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post<User>(
+      `${BASE_URL}/profile/avatar`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * Récupérer les valeurs enum des départements
+   * GET /auth/enums/departments
+   */
+  getDepartmentEnums: async (): Promise<string[]> => {
+    const response = await api.get<string[]>(`${BASE_URL}/enums/departments`);
+    return response.data;
+  },
 };

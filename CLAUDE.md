@@ -6,10 +6,18 @@ App de gestion de projets. Frontend web de l'API backend NestJS (port 4000).
 
 ---
 
+## Règles icônes
+
+- **JAMAIS d'emojis** dans le code (ni dans le JSX, ni dans les textes)
+- Utiliser **lucide-react** pour toutes les icônes (ex: `<FileText />`, `<Users />`, `<Clock />`)
+- Si lucide-react n'a pas l'icône nécessaire, utiliser un **SVG inline**
+- Cela s'applique partout : pages, composants, badges, boutons, placeholders, titres
+
 ## Stack
 
 - **Framework** : Next.js 15, App Router, TypeScript
 - **UI** :Tailwind CSS (pas shadcn) utilise le plugin frontend-design@claude-plugins-official  et le marketplace GitHub: anthropics/claude-code
+- **Icônes** : lucide-react (pas d'emojis)
 - **State serveur** : TanStack Query v5
 - **State client** : Zustand (auth, UI globale)
 - **Formulaires** : React Hook Form + Zod

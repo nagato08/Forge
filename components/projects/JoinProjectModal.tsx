@@ -58,12 +58,12 @@ export default function JoinProjectModal({
     console.log('🔗 Joining project by code:', data.projectCode);
     joinByCodeMutation.mutate(data, {
       onSuccess: () => {
-        console.log('✅ Joined project by code successfully');
+        console.log(' Joined project by code successfully');
         resetCode();
         onClose();
       },
       onError: (err) => {
-        console.error('❌ Join by code error:', err);
+        console.error(' Join by code error:', err);
       },
     });
   };
@@ -72,12 +72,12 @@ export default function JoinProjectModal({
     console.log('🔗 Joining project by token');
     joinByTokenMutation.mutate(data, {
       onSuccess: () => {
-        console.log('✅ Joined project by token successfully');
+        console.log(' Joined project by token successfully');
         resetToken();
         onClose();
       },
       onError: (err) => {
-        console.error('❌ Join by token error:', err);
+        console.error(' Join by token error:', err);
       },
     });
   };

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -9,6 +10,7 @@ import {
   useMyTimeStats,
   useAddManualEntry,
   useDeleteTimeEntry,
+  useMyTasks,
 } from '@/lib/hooks';
 import { getApiError } from '@/lib/utils/api-error';
 import Spinner from '@/components/ui/Spinner';
@@ -17,8 +19,20 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import Card from '@/components/ui/Card';
+import {
+  Clock,
+  Play,
+  Pause,
+  Trash2,
+  Plus,
+  BarChart3,
+  TrendingUp,
+  FolderOpen,
+} from 'lucide-react';
 
-const formatDuration = (minutes: number): string => {
+const formatDuration = (minutes: number | undefined | null): string => {
+  if (!minutes || minutes === 0) return '0m';
+  if (isNaN(minutes)) return '0m';
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
   if (hours > 0) return `${hours}h ${mins}m`;
@@ -40,6 +54,7 @@ export default function TimeTrackingPage() {
   const { data: activeTimer, isLoading: isLoadingTimer } = useActiveTimer();
   const { data: entries, isLoading: isLoadingEntries } = useMyEntries();
   const { data: stats } = useMyTimeStats();
+  const { data: myTasks } = useMyTasks();
 
   const startMutation = useStartTimer();
   const stopMutation = useStopTimer();
@@ -58,55 +73,61 @@ export default function TimeTrackingPage() {
     duration: '',
   });
 
+  const timerStartTime = activeTimer?.startTime;
+  const timerId = activeTimer?.id;
+
   // Update elapsed time for active timer
   useEffect(() => {
-    if (activeTimer && activeTimer.startTime) {
+    if (timerStartTime) {
       timerIntervalRef.current = setInterval(() => {
         const elapsed = Math.floor(
-          (Date.now() - new Date(activeTimer.startTime).getTime()) / 1000
+          (Date.now() - new Date(timerStartTime).getTime()) / 1000
         );
         setElapsedSeconds(elapsed);
       }, 1000);
-    } else {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-      setElapsedSeconds(0);
+    } else if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
     }
 
     return () => {
-      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
     };
-  }, [activeTimer]);
+  }, [timerId, timerStartTime]);
 
   const handleStartTimer = () => {
     if (!manualForm.taskId.trim()) {
       setApiError('Veuillez sélectionner une tâche');
       return;
     }
-    console.log('⏱️ Starting timer for task:', manualForm.taskId);
+    console.log('Starting timer for task:', manualForm.taskId);
     setApiError(null);
 
     startMutation.mutate(manualForm.taskId, {
       onSuccess: (timer) => {
-        console.log('✅ Timer started:', timer.id);
+        console.log(' Timer started:', timer.id);
         setManualForm({ ...manualForm, taskId: '' });
       },
       onError: (err) => {
-        console.error('❌ Start timer error:', getApiError(err));
+        console.error(' Start timer error:', getApiError(err));
         setApiError(getApiError(err));
       },
     });
   };
 
   const handleStopTimer = () => {
-    console.log('⏱️ Stopping active timer');
+    console.log('Stopping active timer');
     setApiError(null);
 
     stopMutation.mutate(undefined, {
       onSuccess: (entry) => {
-        console.log('✅ Timer stopped:', entry.id);
+        console.log(' Timer stopped:', entry.id);
       },
       onError: (err) => {
-        console.error('❌ Stop timer error:', getApiError(err));
+        console.error(' Stop timer error:', getApiError(err));
         setApiError(getApiError(err));
       },
     });
@@ -122,7 +143,7 @@ export default function TimeTrackingPage() {
       return;
     }
 
-    console.log('📝 Adding manual time entry:', manualForm.taskId);
+    console.log('Adding manual time entry:', manualForm.taskId);
     setApiError(null);
 
     const data: any = {
@@ -138,27 +159,27 @@ export default function TimeTrackingPage() {
 
     addManualMutation.mutate(data, {
       onSuccess: () => {
-        console.log('✅ Manual entry added');
+        console.log(' Manual entry added');
         setManualForm({ taskId: '', startTime: '', endTime: '', duration: '' });
         setShowManualModal(false);
       },
       onError: (err) => {
-        console.error('❌ Add manual entry error:', getApiError(err));
+        console.error(' Add manual entry error:', getApiError(err));
         setApiError(getApiError(err));
       },
     });
   };
 
   const handleDeleteEntry = (entryId: string) => {
-    console.log('🗑️ Deleting time entry:', entryId);
+    console.log('Deleting time entry:', entryId);
     setApiError(null);
 
     deleteMutation.mutate(entryId, {
       onSuccess: () => {
-        console.log('✅ Entry deleted');
+        console.log(' Entry deleted');
       },
       onError: (err) => {
-        console.error('❌ Delete entry error:', getApiError(err));
+        console.error(' Delete entry error:', getApiError(err));
         setApiError(getApiError(err));
       },
     });
@@ -168,7 +189,7 @@ export default function TimeTrackingPage() {
     return <Spinner centered size="lg" label="Chargement du suivi du temps..." />;
   }
 
-  console.log('⏱️ Time tracking loaded:', entries?.length || 0, 'entries');
+  console.log('Time tracking loaded:', entries?.length || 0, 'entries');
 
   const hours = Math.floor(elapsedSeconds / 3600);
   const minutes = Math.floor((elapsedSeconds % 3600) / 60);
@@ -176,12 +197,22 @@ export default function TimeTrackingPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Clock className="w-7 h-7 text-primary" />
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Suivi du temps</h1>
+          <p className="text-text-secondary text-sm">Gérez votre temps de travail</p>
+        </div>
+      </div>
+
       {/* Active Timer Card */}
       <Card className="p-6 bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-text-primary">
-              ⏱️ Chronomètre actif
+            <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Chronomètre actif
             </h2>
             {activeTimer && (
               <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/20 text-primary">
@@ -218,9 +249,10 @@ export default function TimeTrackingPage() {
                 size="lg"
                 onClick={handleStopTimer}
                 isLoading={stopMutation.isPending}
-                className="w-full"
+                className="w-full flex items-center justify-center gap-2"
               >
-                ⏸️ Arrêter
+                <Pause className="w-5 h-5" />
+                Arrêter
               </Button>
             </div>
           ) : (
@@ -229,22 +261,33 @@ export default function TimeTrackingPage() {
                 Aucun chronomètre actif
               </p>
               <div className="space-y-2">
-                <Input
-                  label="ID de tâche"
-                  placeholder="ex: task-123"
+                <label className="text-sm font-medium text-text-primary">
+                  Sélectionner une tâche
+                </label>
+                <select
                   value={manualForm.taskId}
                   onChange={(e) =>
                     setManualForm({ ...manualForm, taskId: e.target.value })
                   }
-                />
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Choisir une tâche...</option>
+                  {myTasks?.map((task) => (
+                    <option key={task.id} value={task.id}>
+                      {task.title}
+                    </option>
+                  ))}
+                </select>
                 <Button
                   variant="primary"
                   size="lg"
                   onClick={handleStartTimer}
                   isLoading={startMutation.isPending}
-                  className="w-full"
+                  className="w-full flex items-center justify-center gap-2"
+                  disabled={!manualForm.taskId}
                 >
-                  ▶️ Démarrer
+                  <Play className="w-5 h-5" />
+                  Démarrer
                 </Button>
               </div>
             </div>
@@ -266,26 +309,36 @@ export default function TimeTrackingPage() {
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Total time */}
-          <Card className="p-4">
-            <p className="text-xs text-text-secondary font-medium mb-1">
-              Temps total
-            </p>
-            <p className="text-2xl font-bold text-primary">
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-primary" />
+              </div>
+              <p className="text-sm text-text-secondary font-medium">
+                Temps total
+              </p>
+            </div>
+            <p className="text-3xl font-bold text-primary">
               {formatDuration(stats.totalMinutes)}
             </p>
           </Card>
 
           {/* By task */}
-          <Card className="p-4">
-            <p className="text-xs text-text-secondary font-medium mb-2">
-              Top tâche
-            </p>
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center">
+                <BarChart3 className="w-5 h-5 text-info" />
+              </div>
+              <p className="text-sm text-text-secondary font-medium">
+                Tâche principale
+              </p>
+            </div>
             {stats.byTask.length > 0 ? (
               <div>
                 <p className="text-sm font-medium text-text-primary truncate">
                   {stats.byTask[0].taskTitle}
                 </p>
-                <p className="text-lg font-bold text-text-secondary">
+                <p className="text-2xl font-bold text-info">
                   {formatDuration(stats.byTask[0].totalMinutes)}
                 </p>
               </div>
@@ -295,16 +348,21 @@ export default function TimeTrackingPage() {
           </Card>
 
           {/* By project */}
-          <Card className="p-4">
-            <p className="text-xs text-text-secondary font-medium mb-2">
-              Top projet
-            </p>
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
+                <FolderOpen className="w-5 h-5 text-success" />
+              </div>
+              <p className="text-sm text-text-secondary font-medium">
+                Projet principal
+              </p>
+            </div>
             {stats.byProject.length > 0 ? (
               <div>
                 <p className="text-sm font-medium text-text-primary truncate">
                   {stats.byProject[0].projectName}
                 </p>
-                <p className="text-lg font-bold text-text-secondary">
+                <p className="text-2xl font-bold text-success">
                   {formatDuration(stats.byProject[0].totalMinutes)}
                 </p>
               </div>
@@ -317,16 +375,19 @@ export default function TimeTrackingPage() {
 
       {/* Time Entries Section */}
       <Card className="space-y-4">
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h3 className="text-lg font-semibold text-text-primary">
-            📋 Historique du temps
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+            <BarChart3 className="w-5 h-5" />
+            Historique du temps
           </h3>
           <Button
             variant="primary"
             size="sm"
             onClick={() => setShowManualModal(true)}
+            className="flex items-center gap-1"
           >
-            + Saisie manuelle
+            <Plus className="w-4 h-4" />
+            Saisie manuelle
           </Button>
         </div>
 
@@ -368,7 +429,7 @@ export default function TimeTrackingPage() {
                     onClick={() => handleDeleteEntry(entry.id)}
                     isLoading={deleteMutation.isPending}
                   >
-                    🗑️
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
@@ -426,14 +487,25 @@ export default function TimeTrackingPage() {
         )}
 
         <div className="space-y-4">
-          <Input
-            label="ID de tâche"
-            placeholder="ex: task-123"
-            value={manualForm.taskId}
-            onChange={(e) =>
-              setManualForm({ ...manualForm, taskId: e.target.value })
-            }
-          />
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-text-primary">
+              Sélectionner une tâche
+            </label>
+            <select
+              value={manualForm.taskId}
+              onChange={(e) =>
+                setManualForm({ ...manualForm, taskId: e.target.value })
+              }
+              className="w-full px-3 py-2 border border-border rounded-lg bg-bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Choisir une tâche...</option>
+              {myTasks?.map((task) => (
+                <option key={task.id} value={task.id}>
+                  {task.title}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <Input
             label="Heure de début"
@@ -468,7 +540,7 @@ export default function TimeTrackingPage() {
               />
             </div>
             <p className="text-xs text-text-weak">
-              Spécifiez soit l'heure de fin, soit la durée
+              Spécifiez soit l&apos;heure de fin, soit la durée
             </p>
           </div>
         </div>

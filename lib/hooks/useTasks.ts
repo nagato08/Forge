@@ -112,9 +112,9 @@ export function useUpdateTask() {
     }) => tasksApi.updateTask(taskId, data),
     onSuccess: (task, { taskId }) => {
       console.log('✅ Task updated successfully:', taskId);
-      // Invalider la tâche
-      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(taskId) });
-      // Invalider liste du projet
+      // Mettre à jour immédiatement le cache
+      queryClient.setQueryData(CACHE_KEYS.byId(taskId), task);
+      // Invalider aussi les listes pour se rafraîchir
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.projectTasks(task.projectId),
       });
@@ -164,9 +164,9 @@ export function useUpdateTaskStatus() {
     }) => tasksApi.updateTaskStatus(taskId, status),
     onSuccess: (task, { taskId, status }) => {
       console.log('✅ Status updated successfully:', taskId, '→', status.status);
-      // Invalider la tâche
-      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(taskId) });
-      // Invalider liste du projet
+      // Mettre à jour immédiatement le cache
+      queryClient.setQueryData(CACHE_KEYS.byId(taskId), task);
+      // Invalider aussi les listes pour se rafraîchir
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.projectTasks(task.projectId),
       });
@@ -192,11 +192,11 @@ export function useAssignTask() {
       taskId: string;
       userIds: string[];
     }) => tasksApi.assignTask(taskId, { userIds }),
-    onSuccess: (task, { taskId }) => {
+    onSuccess: async (task, { taskId }) => {
       console.log('✅ Users assigned successfully:', taskId);
-      // Invalider la tâche
-      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(taskId) });
-      // Invalider liste du projet
+      console.log('📦 Assign response assignedUsers:', JSON.stringify(task.assignedUsers));
+      // Forcer un refetch complet pour obtenir les relations
+      await queryClient.refetchQueries({ queryKey: CACHE_KEYS.byId(taskId) });
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.projectTasks(task.projectId),
       });
@@ -222,11 +222,10 @@ export function useUnassignTask() {
       taskId: string;
       userId: string;
     }) => tasksApi.unassignTask(taskId, userId),
-    onSuccess: (task, { taskId }) => {
+    onSuccess: async (task, { taskId }) => {
       console.log('✅ User removed successfully:', taskId);
-      // Invalider la tâche
-      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(taskId) });
-      // Invalider liste du projet
+      // Forcer un refetch complet pour obtenir les relations
+      await queryClient.refetchQueries({ queryKey: CACHE_KEYS.byId(taskId) });
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.projectTasks(task.projectId),
       });
@@ -255,8 +254,8 @@ export function useAddTaskDependency() {
       tasksApi.addDependency(taskId, { blockedTaskId }),
     onSuccess: (task, { taskId, blockedTaskId }) => {
       console.log('✅ Dependency added:', taskId, '→', blockedTaskId);
-      // Invalider la tâche
-      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(taskId) });
+      // Mettre à jour immédiatement le cache de la tâche
+      queryClient.setQueryData(CACHE_KEYS.byId(taskId), task);
       // Invalider la tâche bloquée
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.byId(blockedTaskId),
@@ -282,10 +281,10 @@ export function useRemoveTaskDependency() {
       taskId: string;
       blockedTaskId: string;
     }) => tasksApi.removeDependency(taskId, blockedTaskId),
-    onSuccess: (_, { taskId, blockedTaskId }) => {
+    onSuccess: (task, { taskId, blockedTaskId }) => {
       console.log('✅ Dependency removed:', taskId, '↛', blockedTaskId);
-      // Invalider la tâche
-      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(taskId) });
+      // Mettre à jour immédiatement le cache de la tâche
+      queryClient.setQueryData(CACHE_KEYS.byId(taskId), task);
       // Invalider la tâche bloquée
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(blockedTaskId) });
     },
@@ -313,7 +312,7 @@ export function useAddTaskComment() {
     }) => tasksApi.addComment(taskId, { content, mentions }),
     onSuccess: (_, { taskId }) => {
       console.log('✅ Comment added:', taskId);
-      // Invalider la tâche (commentaires inclus)
+      // Invalider la tâche pour rafraîchir les commentaires
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(taskId) });
     },
     onError: (error) => {

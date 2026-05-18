@@ -19,6 +19,20 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import Card from '@/components/ui/Card';
+import {
+  FileText,
+  Plus,
+  Upload,
+  Download,
+  Edit2,
+  Check,
+  X,
+  Trash2,
+  MessageSquare,
+  Send,
+  Clock,
+  Layers,
+} from 'lucide-react';
 
 const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return `${bytes} o`;
@@ -35,9 +49,6 @@ export default function DocumentsPage() {
   const projectId = params.id as string;
 
   const { data: documents, isLoading, error } = useProjectDocuments(projectId);
-  const { data: selectedDoc } = useDocumentById(
-    useState<string | null>(null)[0]
-  );
 
   const createMutation = useCreateDocument();
   const updateMutation = useUpdateDocument();
@@ -57,7 +68,6 @@ export default function DocumentsPage() {
   const [apiError, setApiError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Refetch selected doc when selection changes
   const selectedDocQuery = useDocumentById(selectedDocId);
   const doc = selectedDocQuery.data;
 
@@ -75,23 +85,23 @@ export default function DocumentsPage() {
     );
   }
 
-  console.log('📄 Documents loaded:', documents?.length || 0, 'for project:', projectId);
+  console.log('Documents loaded:', documents?.length || 0, 'for project:', projectId);
 
   const handleCreateDocument = () => {
     if (!newDocName.trim()) return;
-    console.log('📡 Creating document:', newDocName);
+    console.log('Creating document:', newDocName);
     setApiError(null);
 
     createMutation.mutate(
       { projectId, name: newDocName },
       {
         onSuccess: (createdDoc) => {
-          console.log('✅ Document created:', createdDoc.id);
+          console.log('Document created:', createdDoc.id);
           setNewDocName('');
           setShowCreateModal(false);
         },
         onError: (err) => {
-          console.error('❌ Create document error:', getApiError(err));
+          console.error('Create document error:', getApiError(err));
           setApiError(getApiError(err));
         },
       }
@@ -99,7 +109,7 @@ export default function DocumentsPage() {
   };
 
   const handleSelectDocument = (docId: string) => {
-    console.log('📄 Document selected:', docId);
+    console.log('Document selected:', docId);
     setSelectedDocId(docId);
     setShowDetailModal(true);
     setApiError(null);
@@ -107,19 +117,19 @@ export default function DocumentsPage() {
 
   const handleRenameDocument = () => {
     if (!doc || !renameName.trim()) return;
-    console.log('📝 Renaming document:', doc.id, '→', renameName);
+    console.log('Renaming document:', doc.id, '->', renameName);
     setApiError(null);
 
     updateMutation.mutate(
       { documentId: doc.id, name: renameName },
       {
         onSuccess: () => {
-          console.log('✅ Document renamed');
+          console.log('Document renamed');
           setRenaming(false);
           setRenameName('');
         },
         onError: (err) => {
-          console.error('❌ Rename error:', getApiError(err));
+          console.error('Rename error:', getApiError(err));
           setApiError(getApiError(err));
         },
       }
@@ -128,18 +138,18 @@ export default function DocumentsPage() {
 
   const handleUploadVersion = (file: File) => {
     if (!doc) return;
-    console.log('📎 Uploading version for doc:', doc.id, file.name);
+    console.log('Uploading version for doc:', doc.id, file.name);
     setApiError(null);
 
     uploadMutation.mutate(
       { documentId: doc.id, file },
       {
         onSuccess: () => {
-          console.log('✅ Version uploaded');
+          console.log('Version uploaded');
           if (fileInputRef.current) fileInputRef.current.value = '';
         },
         onError: (err) => {
-          console.error('❌ Upload error:', getApiError(err));
+          console.error('Upload error:', getApiError(err));
           setApiError(getApiError(err));
         },
       }
@@ -148,18 +158,18 @@ export default function DocumentsPage() {
 
   const handleAddComment = () => {
     if (!doc || !commentText.trim()) return;
-    console.log('💬 Adding comment to doc:', doc.id);
+    console.log('Adding comment to doc:', doc.id);
     setApiError(null);
 
     addCommentMutation.mutate(
       { documentId: doc.id, content: commentText },
       {
         onSuccess: () => {
-          console.log('✅ Comment added');
+          console.log('Comment added');
           setCommentText('');
         },
         onError: (err) => {
-          console.error('❌ Add comment error:', getApiError(err));
+          console.error('Add comment error:', getApiError(err));
           setApiError(getApiError(err));
         },
       }
@@ -168,65 +178,85 @@ export default function DocumentsPage() {
 
   const handleDeleteDocument = () => {
     if (!doc) return;
-    console.log('🗑️ Deleting document:', doc.id);
+    console.log('Deleting document:', doc.id);
     setApiError(null);
 
     deleteMutation.mutate(doc.id, {
       onSuccess: () => {
-        console.log('✅ Document deleted');
+        console.log('Document deleted');
         setShowDetailModal(false);
         setSelectedDocId(null);
         setConfirmDelete(false);
       },
       onError: (err) => {
-        console.error('❌ Delete error:', getApiError(err));
+        console.error('Delete error:', getApiError(err));
         setApiError(getApiError(err));
       },
     });
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header with create button */}
+    <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-text-primary">
-          📄 Documents du projet
-        </h2>
+        <div className="flex items-center gap-3">
+          <FileText className="w-7 h-7 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold text-text-primary">Documents</h1>
+            <p className="text-text-secondary text-sm">Gestion des documents du projet</p>
+          </div>
+        </div>
         <Button
           variant="primary"
           size="sm"
           onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2"
         >
-          + Nouveau document
+          <Plus className="w-4 h-4" />
+          Nouveau document
         </Button>
       </div>
 
       {/* Documents list */}
-      <Card className="space-y-2">
-        {!documents || documents.length === 0 ? (
-          <p className="text-center py-12 text-text-secondary">
-            Aucun document pour le moment. Crée le premier !
-          </p>
-        ) : (
-          documents.map((doc) => (
+      {!documents || documents.length === 0 ? (
+        <Card className="p-12">
+          <div className="text-center">
+            <FileText className="w-12 h-12 text-text-weak mx-auto mb-4" />
+            <p className="text-text-secondary">
+              Aucun document pour le moment. Creez le premier !
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <Card>
+          {documents.map((doc, index) => (
             <div
               key={doc.id}
-              className="flex items-center justify-between p-4 border-b border-border hover:bg-bg-surface-hover cursor-pointer transition-colors"
+              className={`flex items-center justify-between p-4 hover:bg-bg-surface-hover cursor-pointer transition-colors ${
+                index < documents.length - 1 ? 'border-b border-border' : ''
+              }`}
               onClick={() => handleSelectDocument(doc.id)}
             >
-              <div className="flex-1">
-                <p className="font-medium text-text-primary">📄 {doc.name}</p>
-                <p className="text-xs text-text-weak">
-                  {doc.versions.length} version(s) • {formatDate(doc.createdAt)}
-                </p>
-              </div>
-              <div className="text-xs text-text-secondary">
-                {doc.versions.length} version{doc.versions.length !== 1 ? 's' : ''}
+              <div className="flex items-center gap-3 flex-1">
+                <FileText className="w-5 h-5 text-primary shrink-0" />
+                <div>
+                  <p className="font-medium text-text-primary">{doc.name}</p>
+                  <div className="flex items-center gap-3 text-xs text-text-weak mt-0.5">
+                    <span className="flex items-center gap-1">
+                      <Layers className="w-3 h-3" />
+                      {doc.versions.length} version{doc.versions.length !== 1 ? 's' : ''}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {formatDate(doc.createdAt)}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
-          ))
-        )}
-      </Card>
+          ))}
+        </Card>
+      )}
 
       {/* Create Document Modal */}
       <Modal
@@ -236,7 +266,7 @@ export default function DocumentsPage() {
           setNewDocName('');
           setApiError(null);
         }}
-        title="Créer un document"
+        title="Creer un document"
         size="sm"
         footer={
           <div className="flex justify-end gap-2">
@@ -257,7 +287,7 @@ export default function DocumentsPage() {
               onClick={handleCreateDocument}
               isLoading={createMutation.isPending}
             >
-              Créer
+              Creer
             </Button>
           </div>
         }
@@ -290,7 +320,7 @@ export default function DocumentsPage() {
           setCommentText('');
           setApiError(null);
         }}
-        title={doc ? `📄 ${doc.name}` : ''}
+        title={doc ? doc.name : ''}
         size="lg"
         footer={
           <div className="flex justify-between items-center">
@@ -323,8 +353,10 @@ export default function DocumentsPage() {
                   variant="danger"
                   size="sm"
                   onClick={() => setConfirmDelete(true)}
+                  className="flex items-center gap-1"
                 >
-                  🗑️ Supprimer
+                  <Trash2 className="w-3 h-3" />
+                  Supprimer
                 </Button>
                 <Button
                   variant="secondary"
@@ -368,19 +400,20 @@ export default function DocumentsPage() {
                     onClick={handleRenameDocument}
                     isLoading={updateMutation.isPending}
                   >
-                    ✓
+                    <Check className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => setRenaming(false)}
                   >
-                    ✕
+                    <X className="w-4 h-4" />
                   </Button>
                 </div>
               ) : (
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-text-primary">
+                  <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary" />
                     {doc.name}
                   </h3>
                   <Button
@@ -391,7 +424,7 @@ export default function DocumentsPage() {
                       setRenameName(doc.name);
                     }}
                   >
-                    ✎
+                    <Edit2 className="w-4 h-4" />
                   </Button>
                 </div>
               )}
@@ -399,28 +432,32 @@ export default function DocumentsPage() {
 
             {/* Versions section */}
             <div className="space-y-3 border-t border-border pt-4">
-              <h4 className="font-semibold text-text-primary">Versions</h4>
+              <h4 className="font-semibold text-text-primary flex items-center gap-2">
+                <Layers className="w-4 h-4 text-primary" />
+                Versions
+              </h4>
               <div className="space-y-2 max-h-[200px] overflow-y-auto">
                 {doc.versions.map((version) => (
                   <div
                     key={version.id}
-                    className="flex items-center justify-between p-3 bg-bg-surface-hover rounded text-sm"
+                    className="flex items-center justify-between p-3 bg-bg-surface-hover rounded-lg text-sm"
                   >
                     <div>
                       <p className="font-medium text-text-primary">
                         v{version.versionNumber}
                       </p>
-                      <p className="text-xs text-text-weak">
-                        {formatFileSize(version.fileSize)} •{' '}
-                        {formatDate(version.uploadedAt)}
+                      <p className="text-xs text-text-weak flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatFileSize(version.fileSize)} - {formatDate(version.uploadedAt)}
                       </p>
                     </div>
                     <a
                       href={version.fileUrl}
                       download
-                      className="text-primary hover:underline text-xs font-medium"
+                      className="text-primary hover:underline text-xs font-medium flex items-center gap-1"
                     >
-                      Télécharger
+                      <Download className="w-3 h-3" />
+                      Telecharger
                     </a>
                   </div>
                 ))}
@@ -442,28 +479,33 @@ export default function DocumentsPage() {
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
                   isLoading={uploadMutation.isPending}
+                  className="flex items-center gap-2"
                 >
-                  📎 Uploader nouvelle version
+                  <Upload className="w-4 h-4" />
+                  Uploader nouvelle version
                 </Button>
               </div>
             </div>
 
             {/* Comments section */}
             <div className="space-y-3 border-t border-border pt-4">
-              <h4 className="font-semibold text-text-primary">Commentaires</h4>
+              <h4 className="font-semibold text-text-primary flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-primary" />
+                Commentaires
+              </h4>
               <div className="space-y-2 max-h-[150px] overflow-y-auto">
                 {doc.comments && doc.comments.length > 0 ? (
                   doc.comments.map((comment) => (
-                    <div key={comment.id} className="p-2 bg-bg-surface-hover rounded text-sm">
-                      <p className="font-medium text-text-primary">
-                        {comment.user.firstName} {comment.user.lastName}
-                      </p>
-                      <p className="text-text-secondary text-xs">
-                        {formatDate(comment.createdAt)}
-                      </p>
-                      <p className="text-text-primary mt-1">
-                        {comment.content}
-                      </p>
+                    <div key={comment.id} className="p-3 bg-bg-surface-hover rounded-lg text-sm space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-text-primary">
+                          {comment.user.firstName} {comment.user.lastName}
+                        </p>
+                        <p className="text-text-weak text-xs">
+                          {formatDate(comment.createdAt)}
+                        </p>
+                      </div>
+                      <p className="text-text-primary">{comment.content}</p>
                     </div>
                   ))
                 ) : (
@@ -481,7 +523,7 @@ export default function DocumentsPage() {
                     if (e.key === 'Enter') handleAddComment();
                   }}
                   placeholder="Ajouter un commentaire..."
-                  className="flex-1 px-3 py-2 border border-border rounded text-sm bg-bg-surface text-text-primary placeholder-text-weak focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="flex-1 px-3 py-2 border border-border rounded-lg text-sm bg-bg-surface text-text-primary placeholder-text-weak focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 <Button
                   variant="primary"
@@ -489,7 +531,7 @@ export default function DocumentsPage() {
                   onClick={handleAddComment}
                   isLoading={addCommentMutation.isPending}
                 >
-                  💬
+                  <Send className="w-4 h-4" />
                 </Button>
               </div>
             </div>

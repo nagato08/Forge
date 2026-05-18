@@ -1,0 +1,20 @@
+services:
+  web:
+    image: ${WEB_IMAGE:-ghcr.io/nagato08/forge:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://api.forge.tadjo.dev
+    container_name: forge-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

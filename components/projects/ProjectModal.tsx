@@ -80,12 +80,12 @@ export default function ProjectModal({
         { projectId: project.id, data },
         {
           onSuccess: () => {
-            console.log('✅ Project updated:', project.id);
+            console.log(' Project updated:', project.id);
             reset();
             onClose();
           },
           onError: (err) => {
-            console.error('❌ Update project error:', err);
+            console.error(' Update project error:', err);
           },
         }
       );
@@ -93,12 +93,12 @@ export default function ProjectModal({
       console.log('➕ Creating project:', data.name, 'priority:', data.priority);
       createMutation.mutate(data, {
         onSuccess: () => {
-          console.log('✅ Project created successfully');
+          console.log(' Project created successfully');
           reset();
           onClose();
         },
         onError: (err) => {
-          console.error('❌ Create project error:', err);
+          console.error(' Create project error:', err);
         },
       });
     }

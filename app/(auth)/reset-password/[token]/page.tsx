@@ -54,11 +54,11 @@ export default function ResetPasswordTokenPage() {
       console.log('🔑 Verifying reset token:', token.substring(0, 8) + '...');
       verifyMutation.mutate(token, {
         onSuccess: (data) => {
-          console.log('✅ Token verification result:', data.valid);
+          console.log(' Token verification result:', data.valid);
           setTokenValid(data.valid);
         },
         onError: (err) => {
-          console.error('❌ Token verification failed:', getApiError(err));
+          console.error(' Token verification failed:', getApiError(err));
           setTokenValid(false);
         },
       });
@@ -73,11 +73,11 @@ export default function ResetPasswordTokenPage() {
       { token, password: data.password },
       {
         onSuccess: () => {
-          console.log('✅ Password reset successful');
+          console.log(' Password reset successful');
           setSuccess(true);
         },
         onError: (error) => {
-          console.error('❌ Password reset error:', getApiError(error));
+          console.error(' Password reset error:', getApiError(error));
           setApiError(getApiError(error));
         },
       }
@@ -229,7 +229,7 @@ export default function ResetPasswordTokenPage() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               >
-                {showPassword ? '👁️' : '👁️‍🗨️'}
+                {showPassword ? '👁' : '👁‍🗨'}
               </button>
             </div>
 
@@ -248,7 +248,7 @@ export default function ResetPasswordTokenPage() {
                 onClick={() => setShowConfirm(!showConfirm)}
                 className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               >
-                {showConfirm ? '👁️' : '👁️‍🗨️'}
+                {showConfirm ? '👁' : '👁‍🗨'}
               </button>
             </div>
 

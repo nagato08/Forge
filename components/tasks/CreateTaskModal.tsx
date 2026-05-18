@@ -58,7 +58,7 @@ export default function CreateTaskModal({
   });
 
   const onSubmit = (data: CreateTaskForm) => {
-    console.log('📡 Creating task:', data.title, 'priority:', data.priority, 'status:', initialStatus);
+    console.log(' Creating task:', data.title, 'priority:', data.priority, 'status:', initialStatus);
     setApiError(null);
 
     createMutation.mutate(
@@ -77,12 +77,12 @@ export default function CreateTaskModal({
       },
       {
         onSuccess: (task) => {
-          console.log('✅ Task created successfully:', task.id);
+          console.log(' Task created successfully:', task.id);
           reset();
           onClose();
         },
         onError: (error) => {
-          console.error('❌ Task creation failed:', getApiError(error));
+          console.error(' Task creation failed:', getApiError(error));
           setApiError(getApiError(error));
         },
       }
@@ -138,10 +138,10 @@ export default function CreateTaskModal({
         <Select
           label="Priorité"
           options={[
-            { value: Priority.LOW, label: '🟢 Basse' },
-            { value: Priority.MEDIUM, label: '🟡 Moyenne' },
-            { value: Priority.HIGH, label: '🔴 Haute' },
-            { value: Priority.CRITICAL, label: '⚫ Critique' },
+            { value: Priority.LOW, label: 'Basse' },
+            { value: Priority.MEDIUM, label: 'Moyenne' },
+            { value: Priority.HIGH, label: 'Haute' },
+            { value: Priority.CRITICAL, label: 'Critique' },
           ]}
           error={errors.priority?.message}
           {...register('priority')}

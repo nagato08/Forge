@@ -47,7 +47,7 @@ export default function AIAssistantPage() {
       },
       {
         onSuccess: (response) => {
-          console.log('✅ AI interpretation:', response);
+          console.log(' AI interpretation:', response);
           setConversationHistory([
             ...conversationHistory,
             { role: 'user', message: inputMessage, timestamp: new Date() },
@@ -55,7 +55,7 @@ export default function AIAssistantPage() {
           setSuggestedAction(response);
         },
         onError: (err) => {
-          console.error('❌ Interpretation error:', getApiError(err));
+          console.error(' Interpretation error:', getApiError(err));
           setApiError(getApiError(err));
         },
       }
@@ -77,7 +77,7 @@ export default function AIAssistantPage() {
       },
       {
         onSuccess: (result) => {
-          console.log('✅ Action executed:', result);
+          console.log(' Action executed:', result);
           setSuccessMessage('Action exécutée avec succès !');
           setConversationHistory([
             ...conversationHistory,
@@ -92,7 +92,7 @@ export default function AIAssistantPage() {
           setTimeout(() => setSuccessMessage(null), 3000);
         },
         onError: (err) => {
-          console.error('❌ Execution error:', getApiError(err));
+          console.error(' Execution error:', getApiError(err));
           setApiError(getApiError(err));
         },
       }
@@ -116,7 +116,7 @@ export default function AIAssistantPage() {
       },
       {
         onSuccess: (response) => {
-          console.log('✅ AI Act result:', response);
+          console.log(' AI Act result:', response);
           setConversationHistory([
             ...conversationHistory,
             { role: 'user', message: inputMessage, timestamp: new Date() },
@@ -132,7 +132,7 @@ export default function AIAssistantPage() {
           setTimeout(() => setSuccessMessage(null), 3000);
         },
         onError: (err) => {
-          console.error('❌ Act error:', getApiError(err));
+          console.error(' Act error:', getApiError(err));
           setApiError(getApiError(err));
         },
       }
@@ -145,18 +145,18 @@ export default function AIAssistantPage() {
       return;
     }
 
-    console.log('📊 Analyzing Gantt:', projectId);
+    console.log(' Analyzing Gantt:', projectId);
     setApiError(null);
 
     analyzeGanttMutation.mutate(undefined, {
       onSuccess: (response) => {
-        console.log('✅ Gantt analysis:', response);
+        console.log(' Gantt analysis:', response);
         setAnalysisResults({ ...analysisResults, gantt: response.analysis });
         setSuccessMessage('Analyse Gantt terminée!');
         setTimeout(() => setSuccessMessage(null), 3000);
       },
       onError: (err) => {
-        console.error('❌ Gantt analysis error:', getApiError(err));
+        console.error(' Gantt analysis error:', getApiError(err));
         setApiError(getApiError(err));
       },
     });
@@ -173,13 +173,13 @@ export default function AIAssistantPage() {
 
     analyzePertMutation.mutate(undefined, {
       onSuccess: (response) => {
-        console.log('✅ PERT analysis:', response);
+        console.log(' PERT analysis:', response);
         setAnalysisResults({ ...analysisResults, pert: response.analysis });
         setSuccessMessage('Analyse PERT terminée!');
         setTimeout(() => setSuccessMessage(null), 3000);
       },
       onError: (err) => {
-        console.error('❌ PERT analysis error:', getApiError(err));
+        console.error(' PERT analysis error:', getApiError(err));
         setApiError(getApiError(err));
       },
     });
@@ -191,18 +191,18 @@ export default function AIAssistantPage() {
       return;
     }
 
-    console.log('⏰ Analyzing delays:', projectId);
+    console.log(' Analyzing delays:', projectId);
     setApiError(null);
 
     analyzeDelaysMutation.mutate(undefined, {
       onSuccess: (response) => {
-        console.log('✅ Delays analysis:', response);
+        console.log(' Delays analysis:', response);
         setAnalysisResults({ ...analysisResults, delays: response.analysis });
         setSuccessMessage('Analyse des retards terminée!');
         setTimeout(() => setSuccessMessage(null), 3000);
       },
       onError: (err) => {
-        console.error('❌ Delays analysis error:', getApiError(err));
+        console.error(' Delays analysis error:', getApiError(err));
         setApiError(getApiError(err));
       },
     });
@@ -238,7 +238,7 @@ export default function AIAssistantPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 space-y-4">
           <div className="p-6 border-b border-border">
-            <h2 className="text-lg font-semibold text-text-primary">💬 Conversation</h2>
+            <h2 className="text-lg font-semibold text-text-primary"> Conversation</h2>
           </div>
 
           <div className="h-96 overflow-y-auto p-6 space-y-4">
@@ -294,7 +294,7 @@ export default function AIAssistantPage() {
                 isLoading={interpretMutation.isPending}
                 className="flex-1"
               >
-                📊 Suggestions
+                 Suggestions
               </Button>
               <Button
                 variant="primary"
@@ -358,7 +358,7 @@ export default function AIAssistantPage() {
             isLoading={analyzeGanttMutation.isPending}
             className="w-full"
           >
-            📊 Analyser Gantt
+             Analyser Gantt
           </Button>
           <Button
             onClick={handleAnalyzePert}
@@ -372,16 +372,16 @@ export default function AIAssistantPage() {
             isLoading={analyzeDelaysMutation.isPending}
             className="w-full"
           >
-            ⏰ Risques de retard
+             Risques de retard
           </Button>
         </div>
 
         {Object.entries(analysisResults).map(([type, analysis]) => (
           <div key={type} className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
             <h3 className="font-semibold text-text-primary mb-2">
-              {type === 'gantt' && '📊 Analyse Gantt'}
+              {type === 'gantt' && ' Analyse Gantt'}
               {type === 'pert' && '🔗 Analyse PERT'}
-              {type === 'delays' && '⏰ Risques de retard'}
+              {type === 'delays' && ' Risques de retard'}
             </h3>
             <p className="text-sm text-text-secondary whitespace-pre-wrap">{analysis}</p>
           </div>
@@ -389,7 +389,7 @@ export default function AIAssistantPage() {
       </Card>
 
       <Card className="p-6 bg-primary/5 border-primary/20">
-        <h3 className="font-semibold text-text-primary mb-3">ℹ️ Conseils</h3>
+        <h3 className="font-semibold text-text-primary mb-3">ℹ Conseils</h3>
         <ul className="text-sm text-text-secondary space-y-2">
           <li>• <span className="font-medium">Suggestions</span>: Voir ce que l'IA propose</li>
           <li>• <span className="font-medium">Exécuter</span>: Interpréter et exécuter en une action</li>

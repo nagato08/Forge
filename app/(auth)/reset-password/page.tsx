@@ -36,11 +36,11 @@ export default function ResetPasswordPage() {
     setApiError(null);
     resetMutation.mutate(data, {
       onSuccess: () => {
-        console.log('✅ Password reset email sent to:', data.email);
+        console.log(' Password reset email sent to:', data.email);
         setSubmitted(true);
       },
       onError: (error) => {
-        console.error('❌ Password reset request error:', getApiError(error));
+        console.error(' Password reset request error:', getApiError(error));
         setApiError(getApiError(error));
       },
     });

@@ -25,7 +25,7 @@ const typeClasses: Record<AlertType, { bg: string; border: string; icon: string 
   warning: {
     bg: 'bg-[var(--warning)]/10',
     border: 'border-[var(--warning)]/30',
-    icon: '⚠',
+    icon: '',
   },
   error: {
     bg: 'bg-[var(--critical)]/10',

@@ -73,13 +73,13 @@ export default function ProjectMessagesPage() {
       },
       {
         onSuccess: () => {
-          console.log('✅ Message sent successfully');
+          console.log(' Message sent successfully');
           setInputValue('');
           setSuccessMessage('Message envoyé');
           setTimeout(() => setSuccessMessage(null), 2000);
         },
         onError: (error) => {
-          console.error('❌ Send message error:', getApiError(error));
+          console.error(' Send message error:', getApiError(error));
           setApiError(getApiError(error));
         },
       }
@@ -89,15 +89,15 @@ export default function ProjectMessagesPage() {
   const handleDelete = (messageId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce message?')) return;
 
-    console.log('🗑️ Deleting message:', messageId);
+    console.log(' Deleting message:', messageId);
     deleteMutation.mutate(messageId, {
       onSuccess: () => {
-        console.log('✅ Message deleted');
+        console.log(' Message deleted');
         setSuccessMessage('Message supprimé');
         setTimeout(() => setSuccessMessage(null), 2000);
       },
       onError: (error) => {
-        console.error('❌ Delete message error:', getApiError(error));
+        console.error(' Delete message error:', getApiError(error));
         setApiError(getApiError(error));
       },
     });
@@ -163,7 +163,7 @@ export default function ProjectMessagesPage() {
                       <p className="text-sm break-words">{message.content}</p>
                       {message.mentions && message.mentions.length > 0 && (
                         <p className="text-xs text-text-secondary mt-1">
-                          🔔 @{message.mentions.join(', @')}
+                           @{message.mentions.join(', @')}
                         </p>
                       )}
                     </div>

@@ -47,7 +47,7 @@ export default function CompanySettingsPage() {
   }
 
   const handleChange = (field: string, value: string) => {
-    console.log(`✏️ Field changed: ${field} =`, value);
+    console.log(` Field changed: ${field} =`, value);
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -64,13 +64,13 @@ export default function CompanySettingsPage() {
       },
       {
         onSuccess: () => {
-          console.log('✅ Paramètres de l\'entreprise mis à jour');
+          console.log(' Paramètres de l\'entreprise mis à jour');
           setSuccessMessage('Paramètres mis à jour avec succès');
           setEditMode(false);
           setTimeout(() => setSuccessMessage(null), 3000);
         },
         onError: (err) => {
-          console.error('❌ Erreur mise à jour company settings:', getApiError(err));
+          console.error(' Erreur mise à jour company settings:', getApiError(err));
           setApiError(getApiError(err));
         },
       }
@@ -135,7 +135,7 @@ export default function CompanySettingsPage() {
                 alt="Company logo"
                 className="max-h-full max-w-full"
                 onError={() =>
-                  console.error('❌ Failed to load logo:', formData.logoUrl)
+                  console.error(' Failed to load logo:', formData.logoUrl)
                 }
               />
             </div>

@@ -86,6 +86,44 @@ export default function ProjectsPage() {
         />
       )}
 
+      {/* Filter tabs */}
+      {!isLoading && projects && projects.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6">
+          <button
+            onClick={() => {
+              console.log('🔍 Filter: All projects');
+              setStatusFilter(null);
+            }}
+            className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
+              statusFilter === null
+                ? 'bg-[var(--primary)] text-white'
+                : 'bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            Tous ({projects?.length || 0})
+          </button>
+          {Object.entries(statusLabels).map(([status, label]) => {
+            const count = projects?.filter((p) => p.status === status).length || 0;
+            return (
+              <button
+                key={status}
+                onClick={() => {
+                  console.log('🔍 Filter: status =', status);
+                  setStatusFilter(status);
+                }}
+                className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
+                  statusFilter === status
+                    ? 'bg-[var(--primary)] text-white'
+                    : 'bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {label} ({count})
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Loading state */}
       {isLoading ? (
         <Spinner centered size="lg" label="Chargement des projets..." />
@@ -98,7 +136,7 @@ export default function ProjectsPage() {
           </h2>
           <p className="text-[var(--text-secondary)] mb-6">
             {statusFilter
-              ? 'Aucun projet avec ce statut'
+              ? `Aucun projet ${statusLabels[statusFilter]?.toLowerCase()} pour le moment`
               : 'Créez un nouveau projet pour commencer'}
           </p>
           <div className="flex gap-3 justify-center">
@@ -135,50 +173,11 @@ export default function ProjectsPage() {
         </div>
       ) : (
         /* Projects list */
-        <>
-          {/* Filter tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6">
-            <button
-              onClick={() => {
-                console.log('🔍 Filter: All projects');
-                setStatusFilter(null);
-              }}
-              className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
-                statusFilter === null
-                  ? 'bg-[var(--primary)] text-white'
-                  : 'bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Tous ({projects?.length || 0})
-            </button>
-            {Object.entries(statusLabels).map(([status, label]) => {
-              const count = projects?.filter((p) => p.status === status).length || 0;
-              return (
-                <button
-                  key={status}
-                  onClick={() => {
-                    console.log('🔍 Filter: status =', status);
-                    setStatusFilter(status);
-                  }}
-                  className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
-                    statusFilter === status
-                      ? 'bg-[var(--primary)] text-white'
-                      : 'bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {label} ({count})
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredProjects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
-          </div>
-        </>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredProjects.map((project) => (
+            <ProjectCard key={project.id} project={project} />
+          ))}
+        </div>
       )}
     </div>
   );

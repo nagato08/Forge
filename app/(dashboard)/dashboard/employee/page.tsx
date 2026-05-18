@@ -93,7 +93,7 @@ export default function EmployeeDashboardPage() {
         {/* Time Tracked */}
         <Card className="p-6">
           <div className="space-y-3">
-            <p className="text-sm text-text-secondary font-medium">⏱️ Temps suivi</p>
+            <p className="text-sm text-text-secondary font-medium">⏱ Temps suivi</p>
             <p className="text-3xl font-bold text-primary">
               {timeStats ? formatDuration(timeStats.totalMinutes) : '—'}
             </p>
@@ -108,7 +108,7 @@ export default function EmployeeDashboardPage() {
       <Card className="space-y-4">
         <div className="p-6 border-b border-border">
           <h2 className="text-lg font-semibold text-text-primary">
-            📊 État de mes tâches
+             État de mes tâches
           </h2>
         </div>
 
@@ -235,7 +235,7 @@ export default function EmployeeDashboardPage() {
         <Card className="space-y-4">
           <div className="p-6 border-b border-border">
             <h2 className="text-lg font-semibold text-text-primary">
-              ⏱️ Temps suivi par projet
+              ⏱ Temps suivi par projet
             </h2>
           </div>
 
@@ -276,7 +276,7 @@ export default function EmployeeDashboardPage() {
           </Link>
         </Card>
         <Card className="p-4">
-          <p className="text-sm font-medium text-text-primary mb-3">⏱️ Temps</p>
+          <p className="text-sm font-medium text-text-primary mb-3">⏱ Temps</p>
           <Link href="/time-tracking" onClick={() => console.log('🔗 Navigating to time tracking (quick action)')}>
             <Button variant="secondary" size="sm" className="w-full">
               Suivi du temps
@@ -284,7 +284,7 @@ export default function EmployeeDashboardPage() {
           </Link>
         </Card>
         <Card className="p-4">
-          <p className="text-sm font-medium text-text-primary mb-3">⚙️ Profil</p>
+          <p className="text-sm font-medium text-text-primary mb-3">⚙ Profil</p>
           <Link href="/settings/profile" onClick={() => console.log('🔗 Navigating to profile settings')}>
             <Button variant="secondary" size="sm" className="w-full">
               Paramètres

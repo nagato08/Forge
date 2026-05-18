@@ -1,60 +1,112 @@
 'use client';
 
-import { useState } from 'react';
-import { useProfile, useUpdateProfile } from '@/lib/hooks';
+import { useEffect, useState, useRef } from 'react';
+import { useProfile, useUpdateProfile, useUploadAvatar } from '@/lib/hooks';
 import { getApiError } from '@/lib/utils/api-error';
 import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
+import { User, Edit2, Camera, X, Loader2 } from 'lucide-react';
 
 export default function ProfileSettingsPage() {
   const { data: profile, isLoading } = useProfile();
   const updateMutation = useUpdateProfile();
+  const uploadAvatarMutation = useUploadAvatar();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [editMode, setEditMode] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    firstName: profile?.firstName || '',
-    lastName: profile?.lastName || '',
-    email: profile?.email || '',
-    jobTitle: profile?.jobTitle || '',
-    avatar: profile?.avatar || '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    jobTitle: '',
+    avatar: '',
   });
+
+  // Synchronize formData with profile when profile loads
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        email: profile.email || '',
+        jobTitle: profile.jobTitle || '',
+        avatar: profile.avatar || '',
+      });
+    }
+  }, [profile]);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSave = () => {
-    console.log('💾 Sauvegarde du profil');
+    console.log('Saving profile');
     setApiError(null);
     setSuccessMessage(null);
 
-    updateMutation.mutate(
-      {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        jobTitle: formData.jobTitle,
-        avatar: formData.avatar,
-      },
-      {
+    // Si une image est sélectionnée, l'uploader d'abord
+    if (avatarPreview && fileInputRef.current?.files?.[0]) {
+      const file = fileInputRef.current.files[0];
+      uploadAvatarMutation.mutate(file, {
         onSuccess: () => {
-          console.log('✅ Profil mis à jour');
-          setSuccessMessage('Profil mis à jour avec succès');
-          setEditMode(false);
-          setTimeout(() => setSuccessMessage(null), 3000);
+          console.log('Avatar uploaded, updating profile');
+          // Puis mettre à jour le profil
+          updateMutation.mutate(
+            {
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              email: formData.email,
+              jobTitle: formData.jobTitle,
+            },
+            {
+              onSuccess: () => {
+                console.log('Profile updated successfully');
+                setSuccessMessage('Profil mis à jour avec succès');
+                setEditMode(false);
+                setAvatarPreview(null);
+                setTimeout(() => setSuccessMessage(null), 3000);
+              },
+              onError: (err) => {
+                console.error('Profile update error:', getApiError(err));
+                setApiError(getApiError(err));
+              },
+            }
+          );
         },
         onError: (err) => {
-          console.error('❌ Erreur mise à jour profil:', getApiError(err));
+          console.error('Avatar upload error:', getApiError(err));
           setApiError(getApiError(err));
         },
-      }
-    );
+      });
+    } else {
+      // Pas d'avatar, juste mettre à jour le profil
+      updateMutation.mutate(
+        {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          jobTitle: formData.jobTitle,
+        },
+        {
+          onSuccess: () => {
+            console.log('Profile updated successfully');
+            setSuccessMessage('Profil mis à jour avec succès');
+            setEditMode(false);
+            setTimeout(() => setSuccessMessage(null), 3000);
+          },
+          onError: (err) => {
+            console.error('Profile update error:', getApiError(err));
+            setApiError(getApiError(err));
+          },
+        }
+      );
+    }
   };
 
   const handleCancel = () => {
@@ -67,6 +119,42 @@ export default function ProfileSettingsPage() {
     });
     setEditMode(false);
     setApiError(null);
+    setAvatarPreview(null);
+  };
+
+  const MAX_AVATAR_SIZE = 5 * 1024 * 1024; // 5 MB
+  const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Vérifier le type de fichier
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setApiError('Format non supporté. Utilisez JPG, PNG, WebP ou GIF');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // Vérifier la taille du fichier
+    if (file.size > MAX_AVATAR_SIZE) {
+      setApiError(`L'image ne doit pas dépasser ${MAX_AVATAR_SIZE / (1024 * 1024)} Mo`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    // Créer un preview
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setAvatarPreview(event.target?.result as string);
+      setApiError(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveAvatarPreview = () => {
+    setAvatarPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   if (isLoading) {
@@ -86,11 +174,14 @@ export default function ProfileSettingsPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Page Title */}
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">👤 Mon profil</h1>
-        <p className="text-text-secondary text-sm mt-1">
-          Gérez vos informations personnelles
-        </p>
+      <div className="flex items-center gap-3">
+        <User className="w-7 h-7 text-primary" />
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Mon profil</h1>
+          <p className="text-text-secondary text-sm mt-1">
+            Gérez vos informations personnelles
+          </p>
+        </div>
       </div>
 
       {/* Success Message */}
@@ -117,15 +208,94 @@ export default function ProfileSettingsPage() {
       <Card className="p-6 space-y-6">
         {/* Avatar Section */}
         <div className="flex items-center gap-6">
-          <div className="w-20 h-20 rounded-full bg-primary text-white flex items-center justify-center font-semibold text-2xl">
-            {profile.firstName[0]}
-            {profile.lastName[0]}
+          <div className="relative">
+            {/* Avatar */}
+            <div className="relative w-24 h-24 rounded-full overflow-hidden">
+              {avatarPreview || profile?.avatar ? (
+                <img
+                  src={avatarPreview || profile?.avatar || ''}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-primary text-white flex items-center justify-center font-semibold text-3xl">
+                  {profile.firstName?.[0]?.toUpperCase() || ''}
+                  {profile.lastName?.[0]?.toUpperCase() || ''}
+                </div>
+              )}
+
+              {/* Overlay de chargement */}
+              {uploadAvatarMutation.isPending && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                </div>
+              )}
+            </div>
+
+            {/* Bouton camera visible en mode édition */}
+            {editMode && !uploadAvatarMutation.isPending && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Camera button clicked, opening file picker');
+                  fileInputRef.current?.click();
+                }}
+                className="absolute -bottom-1 -right-1 w-9 h-9 bg-primary text-white rounded-full hover:bg-primary/90 active:bg-primary/80 flex items-center justify-center shadow-lg border-2 border-bg-surface transition z-20"
+                title="Changer la photo"
+                aria-label="Changer la photo de profil"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Bouton supprimer preview */}
+            {editMode && avatarPreview && !uploadAvatarMutation.isPending && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleRemoveAvatarPreview();
+                }}
+                className="absolute -top-1 -right-1 w-6 h-6 bg-critical text-white rounded-full hover:bg-critical/90 flex items-center justify-center shadow-md border-2 border-bg-surface transition z-20"
+                title="Annuler le changement"
+                aria-label="Annuler le changement d'avatar"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+
+            {/* Input fichier caché */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleAvatarChange}
+              className="hidden"
+            />
           </div>
-          <div>
-            <p className="text-lg font-semibold text-text-primary">
+
+          <div className="flex-1 min-w-0">
+            <p className="text-lg font-semibold text-text-primary truncate">
               {profile.firstName} {profile.lastName}
             </p>
             <p className="text-sm text-text-secondary">{profile.role}</p>
+            {editMode && (
+              <>
+                {avatarPreview ? (
+                  <div className="mt-2 flex items-center gap-1.5 text-xs text-warning">
+                    <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+                    Image en attente. Cliquez sur "Enregistrer" pour valider.
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs text-text-weak">
+                    JPG, PNG, WebP ou GIF — max 5 Mo
+                  </p>
+                )}
+              </>
+            )}
           </div>
         </div>
 
@@ -167,14 +337,6 @@ export default function ProfileSettingsPage() {
             }
             disabled={!editMode}
           />
-
-          <Input
-            label="URL Avatar (optionnel)"
-            value={formData.avatar}
-            onChange={(e) => handleChange('avatar', e.currentTarget.value)}
-            disabled={!editMode}
-            placeholder="https://..."
-          />
         </div>
 
         {/* Action Buttons */}
@@ -184,13 +346,14 @@ export default function ProfileSettingsPage() {
               <Button
                 variant="secondary"
                 onClick={handleCancel}
+                disabled={updateMutation.isPending || uploadAvatarMutation.isPending}
               >
                 Annuler
               </Button>
               <Button
                 variant="primary"
                 onClick={handleSave}
-                isLoading={updateMutation.isPending}
+                isLoading={updateMutation.isPending || uploadAvatarMutation.isPending}
               >
                 Enregistrer
               </Button>
@@ -199,8 +362,10 @@ export default function ProfileSettingsPage() {
             <Button
               variant="primary"
               onClick={() => setEditMode(true)}
+              className="flex items-center gap-1.5"
             >
-              ✎ Modifier
+              <Edit2 className="w-4 h-4" />
+              Modifier
             </Button>
           )}
         </div>

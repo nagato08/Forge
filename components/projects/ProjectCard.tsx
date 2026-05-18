@@ -1,21 +1,41 @@
 'use client';
 
-import Link from 'next/link';
-import { Project, Priority } from '@/lib/types/project.types';
-import Badge, { getPriorityBadge } from '@/components/ui/Badge';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { Project } from '@/lib/types/project.types';
+import { useUpdateProject } from '@/lib/hooks/useProjects';
+import { getPriorityBadge } from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
+import Modal from '@/components/ui/Modal';
+import Button from '@/components/ui/Button';
+import {
+  ListTodo,
+  Play,
+  Pause,
+  CheckCircle2,
+  Archive,
+  ChevronDown,
+} from 'lucide-react';
 
 interface ProjectCardProps {
   project: Project;
-  onClick?: () => void;
 }
 
-const statusConfig: Record<string, { icon: string; label: string; color: string }> = {
-  PLANNING: { icon: '📋', label: 'Planification', color: 'bg-info/10 text-info' },
-  ACTIVE: { icon: '▶️', label: 'Actif', color: 'bg-success/10 text-success' },
-  ON_HOLD: { icon: '⏸️', label: 'Suspendu', color: 'bg-warning/10 text-warning' },
-  COMPLETED: { icon: '✓', label: 'Terminé', color: 'bg-success/10 text-success' },
-  CANCELLED: { icon: '✕', label: 'Annulé', color: 'bg-critical/10 text-critical' },
+const statusConfig: Record<string, { icon: React.ComponentType<{ className?: string }>; label: string; color: string }> = {
+  PLANNING: { icon: ListTodo, label: 'Planification', color: 'bg-info/10 text-info' },
+  ACTIVE: { icon: Play, label: 'Actif', color: 'bg-success/10 text-success' },
+  ON_HOLD: { icon: Pause, label: 'Suspendu', color: 'bg-warning/10 text-warning' },
+  COMPLETED: { icon: CheckCircle2, label: 'Terminé', color: 'bg-success/10 text-success' },
+  ARCHIVED: { icon: Archive, label: 'Archivé', color: 'bg-border text-text-secondary' },
+};
+
+// Transitions valides selon le statut actuel
+const validTransitions: Record<string, string[]> = {
+  PLANNING: ['ACTIVE', 'ARCHIVED'],
+  ACTIVE: ['ON_HOLD', 'COMPLETED', 'ARCHIVED'],
+  ON_HOLD: ['ACTIVE', 'COMPLETED', 'ARCHIVED'],
+  COMPLETED: ['ARCHIVED'],
+  ARCHIVED: [],
 };
 
 function formatDate(dateString: string): string {
@@ -37,8 +57,15 @@ function getDaysRemaining(endDate?: string): { text: string; urgent: boolean } |
   return { text: `${diff}j restants`, urgent: false };
 }
 
-export default function ProjectCard({ project, onClick }: ProjectCardProps) {
-  const status = statusConfig[project.status] || { icon: '•', label: project.status, color: '' };
+export default function ProjectCard({ project }: ProjectCardProps) {
+  const router = useRouter();
+  const updateProjectMutation = useUpdateProject();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmTransition, setConfirmTransition] = useState<string | null>(null);
+
+  const status = statusConfig[project.status] || statusConfig['PLANNING'];
+  const StatusIcon = status.icon;
+  const nextStatuses = validTransitions[project.status] || [];
 
   // Calcul progression
   const tasksCount = project._count?.tasks ?? project.tasksCount ?? 0;
@@ -57,12 +84,29 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
     ? `${project.owner.firstName} ${project.owner.lastName}`
     : null;
 
+  const handleStatusChange = (newStatus: string) => {
+    console.log(`🔄 Changing project status: ${project.status} → ${newStatus}`);
+    updateProjectMutation.mutate(
+      { projectId: project.id, data: { status: newStatus as any } },
+      {
+        onSuccess: () => {
+          console.log(` Project status updated to ${newStatus}`);
+          setConfirmTransition(null);
+          setMenuOpen(false);
+        },
+        onError: (err) => {
+          console.error(' Failed to update project status:', err);
+        },
+      }
+    );
+  };
+
   return (
-    <Link href={`/projects/${project.id}/kanban`}>
+    <>
       <Card
         clickable
+        onClick={() => router.push(`/projects/${project.id}/kanban`)}
         className="space-y-3 hover:border-primary/50 transition-all duration-200 h-full"
-        onClick={onClick}
       >
         {/* Header: Name + Status */}
         <div className="flex items-start justify-between gap-2">
@@ -76,11 +120,53 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
               </p>
             )}
           </div>
-          <span
-            className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ${status.color}`}
+        </div>
+
+        {/* Status badge with menu */}
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMenuOpen(!menuOpen);
+            }}
+            className={`inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap transition-colors ${status.color} ${
+              nextStatuses.length > 0
+                ? 'cursor-pointer hover:opacity-80'
+                : 'cursor-default'
+            }`}
           >
-            {status.icon} {status.label}
-          </span>
+            <StatusIcon className="w-3 h-3" />
+            {status.label}
+            {nextStatuses.length > 0 && (
+              <ChevronDown className={`w-3 h-3 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
+            )}
+          </button>
+
+          {/* Dropdown menu */}
+          {menuOpen && nextStatuses.length > 0 && (
+            <div className="absolute top-full mt-1 left-0 bg-bg-surface border border-border rounded-lg shadow-md z-10">
+              {nextStatuses.map((nextStatus) => {
+                const nextConfig = statusConfig[nextStatus];
+                const NextIcon = nextConfig.icon;
+                return (
+                  <button
+                    key={nextStatus}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setConfirmTransition(nextStatus);
+                      setMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-3 py-2 text-sm text-text-primary hover:bg-bg-surface-hover transition-colors first:rounded-t-lg last:rounded-b-lg flex items-center gap-2"
+                  >
+                    <NextIcon className="w-3.5 h-3.5" />
+                    {nextConfig.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Badges: Priority + Deadline */}
@@ -161,6 +247,39 @@ export default function ProjectCard({ project, onClick }: ProjectCardProps) {
           )}
         </div>
       </Card>
-    </Link>
+
+      {/* Confirmation modal for status change */}
+      {confirmTransition && (
+        <Modal
+          isOpen={!!confirmTransition}
+          onClose={() => setConfirmTransition(null)}
+          title="Confirmer le changement de statut"
+          size="sm"
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setConfirmTransition(null)}>
+                Annuler
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                isLoading={updateProjectMutation.isPending}
+                onClick={() => handleStatusChange(confirmTransition)}
+              >
+                Confirmer
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-3">
+            <p className="text-text-primary">
+              Passer le projet <span className="font-semibold">{project.name}</span> de{' '}
+              <span className="font-semibold">{status.label}</span> à{' '}
+              <span className="font-semibold">{statusConfig[confirmTransition]?.label}</span>?
+            </p>
+          </div>
+        </Modal>
+      )}
+    </>
   );
 }

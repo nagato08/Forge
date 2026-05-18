@@ -65,7 +65,7 @@ export default function Header() {
             className="p-2 rounded-lg bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             aria-label="Toggle theme"
           >
-            {theme === 'light' ? '🌙' : '☀️'}
+            {theme === 'light' ? '🌙' : '☀'}
           </button>
 
           {/* Notifications */}

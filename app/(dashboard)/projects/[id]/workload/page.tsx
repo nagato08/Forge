@@ -7,6 +7,7 @@ import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { Activity, Clock, Users, AlertTriangle, Info } from 'lucide-react';
 
 export default function WorkloadPage() {
   const params = useParams();
@@ -46,12 +47,12 @@ export default function WorkloadPage() {
   if (!workloadData || !workloadData.entries || workloadData.entries.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="text-4xl mb-4">⚙️</div>
+        <Activity className="w-12 h-12 text-text-weak mx-auto mb-4" />
         <h2 className="text-xl font-semibold text-text-primary mb-2">
-          Aucune donnée de charge
+          Aucune donnee de charge
         </h2>
         <p className="text-text-secondary">
-          Assignez des tâches et enregistrez du temps pour voir la charge de travail
+          Assignez des taches et enregistrez du temps pour voir la charge de travail
         </p>
       </div>
     );
@@ -69,9 +70,12 @@ export default function WorkloadPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-text-primary">⚙️ Charge de travail</h1>
-        <p className="text-text-secondary mt-1">Répartition du travail par utilisateur</p>
+      <div className="flex items-center gap-3">
+        <Activity className="w-7 h-7 text-primary" />
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Charge de travail</h1>
+          <p className="text-text-secondary text-sm">Repartition du travail par utilisateur</p>
+        </div>
       </div>
 
       <Card className="p-6 space-y-4">
@@ -79,7 +83,7 @@ export default function WorkloadPage() {
           <div className="flex-1 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-text-primary">Date de début</label>
+                <label className="text-sm font-medium text-text-primary">Date de debut</label>
                 <input
                   type="date"
                   value={startDate}
@@ -118,7 +122,10 @@ export default function WorkloadPage() {
       </Card>
 
       <Card className="p-6">
-        <h2 className="text-lg font-semibold text-text-primary mb-6">📊 Charge par utilisateur</h2>
+        <h2 className="text-lg font-semibold text-text-primary mb-6 flex items-center gap-2">
+          <Users className="w-5 h-5 text-primary" />
+          Charge par utilisateur
+        </h2>
         <div className="space-y-4">
           {Array.from(userGroups.entries()).map(([userId, hours]) => {
             const isOverloaded = hours > overloadThreshold;
@@ -130,11 +137,12 @@ export default function WorkloadPage() {
                   <p className="text-sm font-medium text-text-primary">
                     {workloadData.entries.find((e) => e.userId === userId)?.userName}
                   </p>
-                  <div className="flex gap-3 text-sm">
+                  <div className="flex items-center gap-3 text-sm">
                     <span className="font-semibold text-text-primary">{hours}h</span>
                     {isOverloaded && (
-                      <span className="text-critical font-medium">
-                        ⚠️ Surchargé
+                      <span className="text-critical font-medium flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        Surcharge
                       </span>
                     )}
                   </div>
@@ -155,26 +163,32 @@ export default function WorkloadPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="p-6">
-          <p className="text-sm text-text-secondary font-medium mb-2">⏱️ Heures totales</p>
+          <div className="flex items-center gap-2 mb-2">
+            <Clock className="w-4 h-4 text-primary" />
+            <p className="text-sm text-text-secondary font-medium">Heures totales</p>
+          </div>
           <p className="text-3xl font-bold text-primary">{workloadData.totalHours}h</p>
           <p className="text-xs text-text-secondary mt-2">
             Moyenne: {(workloadData.totalHours / userGroups.size).toFixed(1)}h/personne
           </p>
         </Card>
         <Card className="p-6">
-          <p className="text-sm text-text-secondary font-medium mb-2">👥 Charge</p>
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="w-4 h-4 text-primary" />
+            <p className="text-sm text-text-secondary font-medium">Personnes</p>
+          </div>
           <p className="text-3xl font-bold text-primary">{userGroups.size}</p>
-          <p className="text-xs text-text-secondary mt-2">
-            Personnes
-          </p>
         </Card>
       </div>
 
-      <div className="bg-warning/10 border border-warning rounded-lg p-4">
-        <p className="text-sm text-text-primary font-medium mb-2">⚠️ Seuil de surcharge</p>
-        <p className="text-xs text-text-secondary">
-          Au-delà de {overloadThreshold}h par semaine, l'utilisateur est considéré comme surchargé
-        </p>
+      <div className="bg-warning/10 border border-warning rounded-lg p-4 flex items-start gap-3">
+        <Info className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm text-text-primary font-medium mb-1">Seuil de surcharge</p>
+          <p className="text-xs text-text-secondary">
+            Au-dela de {overloadThreshold}h par semaine, l'utilisateur est considere comme surcharge
+          </p>
+        </div>
       </div>
     </div>
   );

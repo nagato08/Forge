@@ -36,6 +36,7 @@ export interface Project {
   projectCode: string;
   inviteToken: string;
   createdBy: string;
+  ownerId?: string;
   createdAt: string;
   updatedAt: string;
   owner?: User;
@@ -47,6 +48,7 @@ export interface Project {
   tasksCount?: number;
   completedTasksCount?: number;
   membersCount?: number;
+  deletedAt?: string | null;
 }
 
 export interface CreateProjectRequest {

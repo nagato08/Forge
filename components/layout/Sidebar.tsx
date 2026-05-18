@@ -2,16 +2,45 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import {
+  LayoutGrid,
+  FolderOpen,
+  CheckSquare,
+  Clock,
+  Settings,
+  Users,
+  ChevronDown,
+} from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { useUIStore } from '@/lib/stores/ui.store';
 import { getRoleBadge } from '@/components/ui/Badge';
+import { useState, useSyncExternalStore } from 'react';
 
-const navItems = [
-  { href: '/dashboard', label: 'Tableau de bord', icon: '📊' },
-  { href: '/projects', label: 'Projets', icon: '📁' },
-  { href: '/my-tasks', label: 'Mes tâches', icon: '✓' },
-  { href: '/time-tracking', label: 'Temps', icon: '⏱' },
-  { href: '/settings/profile', label: 'Paramètres', icon: '⚙️' },
+/**
+ * S'abonne à l'état d'hydratation du store persisté Zustand.
+ * Évite le flash de contenu et le warning "setState dans un effect".
+ */
+function useStoreHydrated() {
+  return useSyncExternalStore(
+    (cb) => useAuthStore.persist.onFinishHydration(cb),
+    () => useAuthStore.persist.hasHydrated(),
+    () => false
+  );
+}
+
+const mainNavItems = [
+  { href: '/dashboard', label: 'Tableau de bord', icon: LayoutGrid },
+  { href: '/projects', label: 'Projets', icon: FolderOpen },
+  { href: '/my-tasks', label: 'Mes tâches', icon: CheckSquare },
+  { href: '/time-tracking', label: 'Temps', icon: Clock },
+];
+
+const adminNavItems = [
+  { href: '/settings/users', label: 'Utilisateurs', icon: Users },
+];
+
+const settingsNavItems = [
+  { href: '/settings/profile', label: 'Profil', icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -20,10 +49,14 @@ export default function Sidebar() {
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
   const user = useAuthStore((state) => state.user);
   const role = useAuthStore((state) => state.role);
+  const [adminOpen, setAdminOpen] = useState(true);
+  const hydrated = useStoreHydrated();
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
+
+  const isAdmin = hydrated && role === 'ADMIN';
 
   return (
     <>
@@ -75,7 +108,9 @@ export default function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-          {navItems.map((item) => {
+          {/* Main navigation */}
+          {mainNavItems.map((item) => {
+            const Icon = item.icon;
             const active = isActive(item.href);
             return (
               <Link
@@ -91,11 +126,82 @@ export default function Sidebar() {
                   }
                 `}
               >
-                <span className="text-lg">{item.icon}</span>
+                <Icon className="w-5 h-5" />
                 <span>{item.label}</span>
               </Link>
             );
           })}
+
+          {/* Admin section (only for admins) */}
+          {isAdmin && (
+            <div className="space-y-1 pt-3">
+              <button
+                onClick={() => setAdminOpen(!adminOpen)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors duration-200"
+              >
+                <div className="flex items-center gap-3">
+                  <Users className="w-5 h-5" />
+                  <span>Administration</span>
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${adminOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {adminOpen && (
+                <div className="ml-2 space-y-1 border-l border-[var(--border)] pl-2">
+                  {adminNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`
+                          flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
+                          transition-colors duration-200
+                          ${
+                            active
+                              ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
+                              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+                          }
+                        `}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Settings section */}
+          <div className="space-y-1 pt-3 border-t border-[var(--border)] mt-3">
+            {settingsNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`
+                    flex items-center gap-3 px-3 py-2.5 rounded-lg
+                    transition-colors duration-200
+                    ${
+                      active
+                        ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+                    }
+                  `}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
         </nav>
 
         {/* Footer */}

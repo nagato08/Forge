@@ -22,7 +22,7 @@ import Alert from '@/components/ui/Alert';
 import KanbanColumn from '@/components/tasks/KanbanColumn';
 import TaskCard from '@/components/tasks/TaskCard';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
-import TaskDetailModal from '@/components/tasks/TaskDetailModal';
+import { ListTodo, Play, CheckCircle2 } from 'lucide-react';
 
 export default function KanbanPage() {
   const params = useParams();
@@ -34,11 +34,14 @@ export default function KanbanPage() {
   const [createModalStatus, setCreateModalStatus] = useState<TaskStatus | null>(
     null
   );
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(TouchSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 5 },
+    }),
     useSensor(KeyboardSensor)
   );
 
@@ -59,7 +62,7 @@ export default function KanbanPage() {
   }
 
   console.log(
-    '📊 Kanban loaded:',
+    ' Kanban loaded:',
     tasks?.length || 0,
     'tasks for project:',
     projectId
@@ -94,17 +97,23 @@ export default function KanbanPage() {
     if (!task) return;
 
     if (task.status === newStatus) {
-      console.log('🔄 Drag cancelled (same status)');
       return;
     }
 
-    console.log(
-      '🔄 Drag ended:',
-      taskId,
-      task.status,
-      '→',
-      newStatus
-    );
+    // Verifier les dependances avant de passer en DOING ou DONE
+    if (newStatus !== TaskStatus.TODO && task.blockedBy && task.blockedBy.length > 0) {
+      const unblockedTasks = task.blockedBy
+        .map((dep) => tasks?.find((t) => t.id === dep.taskId))
+        .filter((t) => t && t.status !== TaskStatus.DONE);
+
+      if (unblockedTasks.length > 0) {
+        const names = unblockedTasks.map((t) => t!.title).join(', ');
+        alert(`Impossible : cette tache est bloquee par "${names}" qui n'est pas encore terminee`);
+        return;
+      }
+    }
+
+    console.log('Drag ended:', taskId, task.status, '->', newStatus);
     updateStatus.mutate({ taskId, status: { status: newStatus } });
   };
 
@@ -127,25 +136,22 @@ export default function KanbanPage() {
             status={TaskStatus.TODO}
             tasks={todoTasks}
             title="À faire"
-            icon="📋"
+            icon={ListTodo}
             onAddTask={() => setCreateModalStatus(TaskStatus.TODO)}
-            onTaskClick={(task) => setSelectedTaskId(task.id)}
           />
           <KanbanColumn
             status={TaskStatus.DOING}
             tasks={doingTasks}
             title="En cours"
-            icon="▶️"
+            icon={Play}
             onAddTask={() => setCreateModalStatus(TaskStatus.DOING)}
-            onTaskClick={(task) => setSelectedTaskId(task.id)}
           />
           <KanbanColumn
             status={TaskStatus.DONE}
             tasks={doneTasks}
             title="Fait"
-            icon="✓"
+            icon={CheckCircle2}
             onAddTask={() => setCreateModalStatus(TaskStatus.DONE)}
-            onTaskClick={(task) => setSelectedTaskId(task.id)}
           />
         </div>
 
@@ -161,11 +167,6 @@ export default function KanbanPage() {
         onClose={() => setCreateModalStatus(null)}
         projectId={projectId}
         initialStatus={createModalStatus || TaskStatus.TODO}
-      />
-
-      <TaskDetailModal
-        taskId={selectedTaskId}
-        onClose={() => setSelectedTaskId(null)}
       />
     </>
   );

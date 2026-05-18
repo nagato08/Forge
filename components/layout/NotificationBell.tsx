@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState } from 'react';
@@ -6,6 +7,16 @@ import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
+import {
+  CheckCircle2,
+  ArrowRight,
+  MessageSquare,
+  FileText,
+  User,
+  Clock,
+  AlertCircle,
+  Bell,
+} from 'lucide-react';
 
 export function NotificationBell() {
   const [panelOpen, setPanelOpen] = useState(false);
@@ -85,19 +96,24 @@ export function NotificationBell() {
 }
 
 function NotificationItem({ notification }: { notification: any }) {
-  const typeIcons: Record<string, string> = {
-    TASK_ASSIGNED: '✓',
-    TASK_STATUS_CHANGED: '→',
-    TASK_COMMENT: '💬',
-    DOCUMENT_UPLOADED: '📄',
-    DOCUMENT_COMMENT: '💬',
-    PROJECT_MESSAGE: '💬',
-    PROJECT_MEMBER_ADDED: '👤',
-    DEADLINE_APPROACHING: '⏰',
-    DEADLINE_PASSED: '⚠️',
-  };
+  const getIcon = (type: string) => {
+    const iconProps = 'w-5 h-5 flex-shrink-0';
+    const baseColor = notification.read ? 'text-[var(--text-secondary)]' : 'text-[var(--primary)]';
 
-  const icon = typeIcons[notification.type] || '📢';
+    const iconMap: Record<string, React.ReactNode> = {
+      TASK_ASSIGNED: <CheckCircle2 className={`${iconProps} ${baseColor}`} />,
+      TASK_STATUS_CHANGED: <ArrowRight className={`${iconProps} ${baseColor}`} />,
+      TASK_COMMENT: <MessageSquare className={`${iconProps} ${baseColor}`} />,
+      DOCUMENT_UPLOADED: <FileText className={`${iconProps} ${baseColor}`} />,
+      DOCUMENT_COMMENT: <MessageSquare className={`${iconProps} ${baseColor}`} />,
+      PROJECT_MESSAGE: <MessageSquare className={`${iconProps} ${baseColor}`} />,
+      PROJECT_MEMBER_ADDED: <User className={`${iconProps} ${baseColor}`} />,
+      DEADLINE_APPROACHING: <Clock className={`${iconProps} ${baseColor}`} />,
+      DEADLINE_PASSED: <AlertCircle className={`${iconProps} text-critical`} />,
+    };
+
+    return iconMap[type] || <Bell className={`${iconProps} ${baseColor}`} />;
+  };
 
   return (
     <div
@@ -110,8 +126,10 @@ function NotificationItem({ notification }: { notification: any }) {
         }
       `}
     >
-      <div className="flex items-start gap-2">
-        <span className="text-lg flex-shrink-0">{icon}</span>
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 mt-0.5">
+          {getIcon(notification.type)}
+        </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm text-[var(--text-primary)] break-words">
             {notification.content}

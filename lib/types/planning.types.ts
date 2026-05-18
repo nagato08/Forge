@@ -1,16 +1,23 @@
 // Types pour le planning (miroir du backend)
 
+export interface GanttAssignee {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatar?: string | null;
+}
+
 export interface GanttTask {
   id: string;
   title: string;
-  startDate?: string;
-  endDate?: string;
-  progress?: number;
-  dependencies?: string[];
-}
-
-export interface GanttData {
-  tasks: GanttTask[];
+  status: string;
+  priority: string;
+  startDate: string;
+  endDate: string;
+  deadline?: string;
+  durationDays: number;
+  dependencies: string[];
+  assignees: GanttAssignee[];
 }
 
 export interface PertNode {

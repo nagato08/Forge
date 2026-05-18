@@ -106,6 +106,13 @@ export const useAuthStore = create<AuthStore>()(
         token: state.token,
         role: state.role,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Réinitialiser le socket après rehydratation si un token existe
+        if (state?.token && typeof window !== 'undefined') {
+          console.log('🔌 Rehydrating socket after page refresh...');
+          initializeSocket();
+        }
+      },
     }
   )
 );

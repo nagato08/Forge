@@ -13,22 +13,22 @@ interface KanbanColumnProps {
   status: TaskStatus;
   tasks: Task[];
   title: string;
-  icon: string;
+  icon: React.ComponentType<{ className?: string }>;
   onAddTask: () => void;
-  onTaskClick: (task: Task) => void;
+  onTaskClick?: (task: Task) => void;
 }
 
 export default function KanbanColumn({
   status,
   tasks,
   title,
-  icon,
+  icon: IconComponent,
   onAddTask,
   onTaskClick,
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
-  console.log('📊 Column rendered:', status, tasks.length, 'tasks');
+  console.log('Column rendered:', status, tasks.length, 'tasks');
 
   return (
     <div
@@ -42,7 +42,7 @@ export default function KanbanColumn({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-lg">{icon}</span>
+          <IconComponent className="w-5 h-5 text-primary" />
           <h2 className="font-semibold text-[var(--text-primary)]">{title}</h2>
           <span className="text-xs bg-[var(--primary)]/20 text-[var(--primary)] px-2 py-1 rounded">
             {tasks.length}
@@ -73,7 +73,7 @@ export default function KanbanColumn({
               <TaskCard
                 key={task.id}
                 task={task}
-                onClick={() => onTaskClick(task)}
+                onClick={() => onTaskClick?.(task)}
               />
             ))
           )}

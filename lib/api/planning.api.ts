@@ -1,6 +1,6 @@
 import api from './client';
 import {
-  GanttData,
+  GanttTask,
   PertData,
   BurndownData,
   WorkloadData,
@@ -15,8 +15,8 @@ export const planningApi = {
    * Récupérer données Gantt d'un projet
    * GET /planning/projects/:projectId/gantt (JWT requis)
    */
-  getGantt: async (projectId: string): Promise<GanttData> => {
-    const response = await api.get<GanttData>(
+  getGantt: async (projectId: string): Promise<GanttTask[]> => {
+    const response = await api.get<GanttTask[]>(
       `${BASE_URL}/projects/${projectId}/gantt`
     );
     return response.data;
