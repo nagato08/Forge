@@ -6,6 +6,11 @@ import { useLogout } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { NotificationBell } from './NotificationBell';
 import Button from '@/components/ui/Button';
+import { Moon, Sun } from 'lucide-react';
+
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (callback: () => void) => { ready: Promise<void> };
+};
 
 export default function Header() {
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
@@ -23,9 +28,47 @@ export default function Header() {
     });
   };
 
-  const toggleTheme = () => {
+  const toggleTheme = (e: React.MouseEvent<HTMLButtonElement>) => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
+    const doc = document as ViewTransitionDocument;
+    const prefersReducedMotion = window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
+
+    // Pas de support View Transitions ou mouvement réduit → bascule directe
+    if (!doc.startViewTransition || prefersReducedMotion) {
+      setTheme(newTheme);
+      return;
+    }
+
+    // Centre du cercle = centre du bouton cliqué
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    );
+
+    const transition = doc.startViewTransition(() => {
+      setTheme(newTheme);
+    });
+
+    transition.ready.then(() => {
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${endRadius}px at ${x}px ${y}px)`,
+          ],
+        },
+        {
+          duration: 500,
+          easing: 'ease-in-out',
+          pseudoElement: '::view-transition-new(root)',
+        }
+      );
+    });
   };
 
   return (
@@ -63,9 +106,13 @@ export default function Header() {
           <button
             onClick={toggleTheme}
             className="p-2 rounded-lg bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-            aria-label="Toggle theme"
+            aria-label={theme === 'light' ? 'Activer le thème sombre' : 'Activer le thème clair'}
           >
-            {theme === 'light' ? '🌙' : '☀'}
+            {theme === 'light' ? (
+              <Moon className="w-5 h-5" />
+            ) : (
+              <Sun className="w-5 h-5" />
+            )}
           </button>
 
           {/* Notifications */}

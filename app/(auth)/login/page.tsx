@@ -8,8 +8,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLogin } from '@/lib/hooks/useAuth';
 import { useAuthStore } from '@/lib/stores/auth.store';
-import { Button, Input, Card, Alert } from '@/components/ui';
+import { Button, Input, Card } from '@/components/ui';
 import { getApiError } from '@/lib/utils/api-error';
+import { toast } from '@/lib/stores/toast.store';
 import { Eye, EyeOff } from 'lucide-react';
 import { ROLE_ROUTES } from '@/lib/utils/auth-routes';
 
@@ -24,7 +25,6 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
   const loginMutation = useLogin();
 
   const {
@@ -36,20 +36,17 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginForm) => {
-    console.log('Form submitted:', data.email);
-    setApiError(null);
     loginMutation.mutate(
       { email: data.email, password: data.password },
       {
         onSuccess: () => {
           const userRole = useAuthStore.getState().role;
           const dashboardUrl = userRole ? ROLE_ROUTES[userRole] : '/dashboard';
-          console.log('Login success, role:', userRole, '→ redirecting to:', dashboardUrl);
+          toast.success('Connexion réussie');
           router.push(dashboardUrl);
         },
         onError: (error) => {
-          console.error('Login mutation error callback:', error);
-          setApiError(getApiError(error));
+          toast.error(getApiError(error), { title: 'Erreur de connexion' });
         },
       }
     );
@@ -80,15 +77,6 @@ export default function LoginPage() {
 
         {/* Form Card */}
         <Card className="space-y-6 shadow-lg">
-          {apiError && (
-            <Alert
-              type="error"
-              title="Erreur de connexion"
-              message={apiError}
-              onClose={() => setApiError(null)}
-            />
-          )}
-
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Email */}
             <Input

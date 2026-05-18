@@ -73,12 +73,44 @@ body {
   }
 }
 
+/* Toasts */
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(110%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(110%);
+  }
+}
+
 @layer utilities {
   .animate-fade-in {
     animation: fadeIn 0.5s ease-out;
   }
 
-  /* Transition fluide pour le changement de thème */
+  .animate-toast-in {
+    animation: toastIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-toast-out {
+    animation: toastOut 0.2s ease-in forwards;
+  }
+
+  /* Transition fluide pour le changement de thème (fallback navigateurs
+     sans View Transitions API) */
   html {
     transition: background-color 0.3s ease, color 0.3s ease;
   }
@@ -119,5 +151,34 @@ body {
 
   .focus-ring:focus-visible {
     outline: 2px solid var(--primary);
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Transition de thème — révélation circulaire
+   (View Transitions API). On désactive le fondu
+   croisé par défaut : le nouveau thème est
+   dévoilé via un clip-path animé en JS depuis le
+   bouton (voir components/layout/Header.tsx).
+   ───────────────────────────────────────────── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
   }
 }

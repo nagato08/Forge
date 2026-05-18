@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useUIStore } from '@/lib/stores/ui.store';
+import { Toaster } from '@/components/ui';
 import './globals.css';
 
 // Créer client QueryClient (stable entre re-renders)
@@ -41,6 +42,7 @@ export default function RootLayout({
         <QueryClientProvider client={queryClient}>
           <ThemeHydrator />
           {children}
+          <Toaster />
         </QueryClientProvider>
       </body>
     </html>
