@@ -14,18 +14,20 @@ import {
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { useUIStore } from '@/lib/stores/ui.store';
 import { getRoleBadge } from '@/components/ui/Badge';
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * S'abonne à l'état d'hydratation du store persisté Zustand.
- * Évite le flash de contenu et le warning "setState dans un effect".
+ * hasHydrated() peut déjà être true au mount → on lit la valeur courante
+ * dans un effect en plus de l'abonnement à onFinishHydration.
  */
 function useStoreHydrated() {
-  return useSyncExternalStore(
-    (cb) => useAuthStore.persist.onFinishHydration(cb),
-    () => useAuthStore.persist.hasHydrated(),
-    () => false
-  );
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    if (useAuthStore.persist.hasHydrated()) setHydrated(true);
+    return useAuthStore.persist.onFinishHydration(() => setHydrated(true));
+  }, []);
+  return hydrated;
 }
 
 const mainNavItems = [
