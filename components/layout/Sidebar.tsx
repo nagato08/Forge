@@ -9,7 +9,6 @@ import {
   Clock,
   Settings,
   Users,
-  ChevronDown,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { useUIStore } from '@/lib/stores/ui.store';
@@ -22,9 +21,10 @@ import { useEffect, useState } from 'react';
  * dans un effect en plus de l'abonnement à onFinishHydration.
  */
 function useStoreHydrated() {
-  const [hydrated, setHydrated] = useState(false);
+  const [hydrated, setHydrated] = useState(
+    () => typeof window !== 'undefined' && useAuthStore.persist.hasHydrated()
+  );
   useEffect(() => {
-    if (useAuthStore.persist.hasHydrated()) setHydrated(true);
     return useAuthStore.persist.onFinishHydration(() => setHydrated(true));
   }, []);
   return hydrated;
@@ -49,9 +49,9 @@ export default function Sidebar() {
   const pathname = usePathname();
   const sidebarOpen = useUIStore((state) => state.sidebarOpen);
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
+  const setSidebarOpen = useUIStore((state) => state.setSidebarOpen);
   const user = useAuthStore((state) => state.user);
   const role = useAuthStore((state) => state.role);
-  const [adminOpen, setAdminOpen] = useState(true);
   const hydrated = useStoreHydrated();
 
   const isActive = (href: string) => {
@@ -59,6 +59,12 @@ export default function Sidebar() {
   };
 
   const isAdmin = hydrated && role === 'ADMIN';
+
+  const handleNavClick = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  };
 
   return (
     <>
@@ -118,6 +124,7 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={handleNavClick}
                 className={`
                   flex items-center gap-3 px-3 py-2.5 rounded-lg
                   transition-colors duration-200
@@ -134,50 +141,31 @@ export default function Sidebar() {
             );
           })}
 
-          {/* Admin section (only for admins) */}
-          {isAdmin && (
-            <div className="space-y-1 pt-3">
-              <button
-                onClick={() => setAdminOpen(!adminOpen)}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors duration-200"
-              >
-                <div className="flex items-center gap-3">
-                  <Users className="w-5 h-5" />
-                  <span>Administration</span>
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform ${adminOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
-
-              {adminOpen && (
-                <div className="ml-2 space-y-1 border-l border-[var(--border)] pl-2">
-                  {adminNavItems.map((item) => {
-                    const Icon = item.icon;
-                    const active = isActive(item.href);
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`
-                          flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
-                          transition-colors duration-200
-                          ${
-                            active
-                              ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
-                              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
-                          }
-                        `}
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+          {/* Admin items (only for admins) — direct links, no collapsible parent */}
+          {isAdmin &&
+            adminNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={handleNavClick}
+                  className={`
+                    flex items-center gap-3 px-3 py-2.5 rounded-lg
+                    transition-colors duration-200
+                    ${
+                      active
+                        ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+                    }
+                  `}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
 
           {/* Settings section */}
           <div className="space-y-1 pt-3 border-t border-[var(--border)] mt-3">
@@ -188,6 +176,7 @@ export default function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={handleNavClick}
                   className={`
                     flex items-center gap-3 px-3 py-2.5 rounded-lg
                     transition-colors duration-200
