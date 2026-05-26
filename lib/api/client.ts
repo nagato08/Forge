@@ -9,9 +9,17 @@ const api: AxiosInstance = axios.create({
   },
 });
 
-// Interceptor de requête : ajouter le token JWT
+// Interceptor de requête : ajouter le token JWT (attend l'hydratation du store)
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    if (typeof window !== 'undefined' && !useAuthStore.persist.hasHydrated()) {
+      await new Promise<void>((resolve) => {
+        const unsub = useAuthStore.persist.onFinishHydration(() => {
+          unsub();
+          resolve();
+        });
+      });
+    }
     const token = useAuthStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
