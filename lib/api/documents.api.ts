@@ -117,12 +117,7 @@ export const documentsApi = {
 
     const response = await api.post<Document>(
       `${BASE_URL}/${documentId}/versions`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
+      formData
     );
     return response.data;
   },

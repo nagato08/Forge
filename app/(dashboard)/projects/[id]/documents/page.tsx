@@ -34,14 +34,18 @@ import {
   Layers,
 } from 'lucide-react';
 
-const formatFileSize = (bytes: number) => {
+const formatFileSize = (bytes: number | undefined) => {
+  if (!bytes || bytes === 0) return '—';
   if (bytes < 1024) return `${bytes} o`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 };
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('fr-FR');
+const formatDate = (dateString: string | undefined) => {
+  if (!dateString) return '—';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('fr-FR');
 };
 
 export default function DocumentsPage() {
@@ -101,6 +105,8 @@ export default function DocumentsPage() {
       {
         onSuccess: (createdDoc) => {
           console.log('Document created:', createdDoc.id, '— uploading version');
+          // Set selected doc so detail modal can display it
+          setSelectedDocId(createdDoc.id);
           // Upload file as first version
           uploadMutation.mutate(
             { documentId: createdDoc.id, file: newDocFile },
@@ -110,6 +116,7 @@ export default function DocumentsPage() {
                 setNewDocName('');
                 setNewDocFile(null);
                 setShowCreateModal(false);
+                setShowDetailModal(true);
                 toast.success('Document créé avec succès');
               },
               onError: (err) => {
