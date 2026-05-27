@@ -61,11 +61,13 @@ export default function DocumentsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [newDocName, setNewDocName] = useState('');
+  const [newDocFile, setNewDocFile] = useState<File | null>(null);
   const [commentText, setCommentText] = useState('');
   const [renaming, setRenaming] = useState(false);
   const [renameName, setRenameName] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const createFileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedDocQuery = useDocumentById(selectedDocId);
   const doc = selectedDocQuery.data;
@@ -83,20 +85,43 @@ export default function DocumentsPage() {
   console.log('Documents loaded:', documents?.length || 0, 'for project:', projectId);
 
   const handleCreateDocument = () => {
-    if (!newDocName.trim()) return;
-    console.log('Creating document:', newDocName);
+    if (!newDocName.trim()) {
+      toast.error('Veuillez entrer un nom');
+      return;
+    }
+    if (!newDocFile) {
+      toast.error('Veuillez sélectionner un fichier');
+      return;
+    }
+
+    console.log('Creating document:', newDocName, 'with file:', newDocFile.name);
 
     createMutation.mutate(
       { projectId, name: newDocName },
       {
         onSuccess: (createdDoc) => {
-          console.log('Document created:', createdDoc.id);
-          setNewDocName('');
-          setShowCreateModal(false);
+          console.log('Document created:', createdDoc.id, '— uploading version');
+          // Upload file as first version
+          uploadMutation.mutate(
+            { documentId: createdDoc.id, file: newDocFile },
+            {
+              onSuccess: () => {
+                console.log('Version uploaded');
+                setNewDocName('');
+                setNewDocFile(null);
+                setShowCreateModal(false);
+                toast.success('Document créé avec succès');
+              },
+              onError: (err) => {
+                console.error('Upload error:', getApiError(err));
+                toast.error(getApiError(err), { title: 'Échec upload' });
+              },
+            }
+          );
         },
         onError: (err) => {
           console.error('Create document error:', getApiError(err));
-          toast.error(getApiError(err), { title: 'Échec' });
+          toast.error(getApiError(err), { title: 'Échec création' });
         },
       }
     );
@@ -253,6 +278,8 @@ export default function DocumentsPage() {
         onClose={() => {
           setShowCreateModal(false);
           setNewDocName('');
+          setNewDocFile(null);
+          if (createFileInputRef.current) createFileInputRef.current.value = '';
         }}
         title="Creer un document"
         size="sm"
@@ -264,6 +291,8 @@ export default function DocumentsPage() {
               onClick={() => {
                 setShowCreateModal(false);
                 setNewDocName('');
+                setNewDocFile(null);
+                if (createFileInputRef.current) createFileInputRef.current.value = '';
               }}
             >
               Annuler
@@ -272,20 +301,45 @@ export default function DocumentsPage() {
               variant="primary"
               size="sm"
               onClick={handleCreateDocument}
-              isLoading={createMutation.isPending}
+              isLoading={createMutation.isPending || uploadMutation.isPending}
+              disabled={!newDocName.trim() || !newDocFile}
             >
               Creer
             </Button>
           </div>
         }
       >
-        <Input
-          label="Nom du document"
-          placeholder="ex: Rapport_Q3.pdf"
-          value={newDocName}
-          onChange={(e) => setNewDocName(e.currentTarget.value)}
-          autoFocus
-        />
+        <div className="space-y-4">
+          <Input
+            label="Nom du document"
+            placeholder="ex: Rapport_Q3.pdf"
+            value={newDocName}
+            onChange={(e) => setNewDocName(e.currentTarget.value)}
+            autoFocus
+          />
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-text-primary">
+              Fichier *
+            </label>
+            <input
+              ref={createFileInputRef}
+              type="file"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setNewDocFile(file);
+                }
+              }}
+              className="w-full px-3 py-2 border border-border rounded-lg bg-bg-surface text-text-primary text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+            />
+            {newDocFile && (
+              <p className="text-xs text-text-secondary">
+                Fichier sélectionné : <span className="font-medium">{newDocFile.name}</span>
+              </p>
+            )}
+          </div>
+        </div>
       </Modal>
 
       {/* Document Detail Modal */}

@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { timeEntriesApi } from '@/lib/api/time-entries.api';
+import { projectsApi } from '@/lib/api/projects.api';
+import { ProjectStatus } from '@/lib/types/project.types';
 
 const CACHE_KEYS = {
   active: ['time-entries', 'active'],
@@ -41,12 +43,34 @@ export function useStartTimer() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (taskId: string) => timeEntriesApi.startTimer(taskId),
+    mutationFn: async (taskId: string) => {
+      const entry = await timeEntriesApi.startTimer(taskId);
+
+      // Auto-transition project from PLANNING to ACTIVE
+      if (entry.task?.projectId) {
+        try {
+          const project = await projectsApi.getProjectById(entry.task.projectId);
+          if (project.status === ProjectStatus.PLANNING) {
+            await projectsApi.updateProject(entry.task.projectId, {
+              status: ProjectStatus.ACTIVE,
+            });
+          }
+        } catch (err) {
+          console.error('Failed to auto-transition project:', err);
+          // Silently fail — timer started, project transition is optional
+        }
+      }
+
+      return entry;
+    },
     onSuccess: () => {
       // Invalider le chronomètre actif
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.active });
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.myEntries });
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.myStats });
+      // Invalider workload + planning queries
+      queryClient.invalidateQueries({ queryKey: ['planning', 'workload'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 }
@@ -64,6 +88,8 @@ export function useStopTimer() {
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.active });
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.myEntries });
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.myStats });
+      // Invalider workload queries
+      queryClient.invalidateQueries({ queryKey: ['planning', 'workload'] });
     },
   });
 }
@@ -75,16 +101,38 @@ export function useAddManualEntry() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: {
+    mutationFn: async (data: {
       taskId: string;
       startTime: string;
       endTime?: string;
       duration?: number;
-    }) => timeEntriesApi.addManualEntry(data),
+    }) => {
+      const entry = await timeEntriesApi.addManualEntry(data);
+
+      // Auto-transition project from PLANNING to ACTIVE
+      if (entry.task?.projectId) {
+        try {
+          const project = await projectsApi.getProjectById(entry.task.projectId);
+          if (project.status === ProjectStatus.PLANNING) {
+            await projectsApi.updateProject(entry.task.projectId, {
+              status: ProjectStatus.ACTIVE,
+            });
+          }
+        } catch (err) {
+          console.error('Failed to auto-transition project:', err);
+          // Silently fail — entry added, project transition is optional
+        }
+      }
+
+      return entry;
+    },
     onSuccess: () => {
       // Invalider les entrées et stats
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.myEntries });
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.myStats });
+      // Invalider workload + planning queries
+      queryClient.invalidateQueries({ queryKey: ['planning', 'workload'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 }
