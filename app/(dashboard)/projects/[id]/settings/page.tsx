@@ -8,8 +8,8 @@ import { useAuthStore } from '@/lib/stores/auth.store';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import Alert from '@/components/ui/Alert';
 import Spinner from '@/components/ui/Spinner';
+import { toast } from '@/lib/stores/toast.store';
 import { Copy, UserPlus, Trash2, RotateCcw, AlertTriangle } from 'lucide-react';
 
 export default function ProjectSettingsPage() {
@@ -29,7 +29,6 @@ export default function ProjectSettingsPage() {
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   if (isLoadingProject) {
@@ -37,7 +36,7 @@ export default function ProjectSettingsPage() {
   }
 
   if (!project) {
-    return <Alert type="error" title="Erreur" message="Projet non trouvé" />;
+    return <div className="p-6 text-text-secondary">Projet non trouvé</div>;
   }
 
   const isOwner = currentUser?.id === project.ownerId || currentUser?.id === project.createdBy;
@@ -46,12 +45,11 @@ export default function ProjectSettingsPage() {
 
   const handleAddMember = () => {
     if (!selectedUserId) {
-      setApiError('Veuillez sélectionner un utilisateur');
+      toast.error('Veuillez sélectionner un utilisateur');
       return;
     }
 
     console.log(` Adding member ${selectedUserId} to project ${projectId}`);
-    setApiError(null);
 
     addMemberMutation.mutate(
       { projectId, userId: selectedUserId },
@@ -63,7 +61,7 @@ export default function ProjectSettingsPage() {
         },
         onError: (err) => {
           console.error(' Failed to add member:', err);
-          setApiError('Impossible d\'ajouter le membre');
+          toast.error('Impossible d\'ajouter le membre');
         },
       }
     );
@@ -71,7 +69,6 @@ export default function ProjectSettingsPage() {
 
   const handleRemoveMember = (userId: string) => {
     console.log(` Removing member ${userId} from project ${projectId}`);
-    setApiError(null);
 
     removeMemberMutation.mutate(
       { projectId, userId },
@@ -81,7 +78,7 @@ export default function ProjectSettingsPage() {
         },
         onError: (err) => {
           console.error(' Failed to remove member:', err);
-          setApiError('Impossible de retirer le membre');
+          toast.error('Impossible de retirer le membre');
         },
       }
     );
@@ -89,7 +86,6 @@ export default function ProjectSettingsPage() {
 
   const handleRegenerateToken = () => {
     console.log(`🔄 Regenerating invite token for project ${projectId}`);
-    setApiError(null);
 
     regenerateTokenMutation.mutate(projectId, {
       onSuccess: () => {
@@ -97,14 +93,13 @@ export default function ProjectSettingsPage() {
       },
       onError: (err) => {
         console.error(' Failed to regenerate token:', err);
-        setApiError('Impossible de régénérer le token');
+        toast.error('Impossible de régénérer le token');
       },
     });
   };
 
   const handleDeleteProject = () => {
     console.log(` Deleting project ${projectId}`);
-    setApiError(null);
 
     deleteProjectMutation.mutate(projectId, {
       onSuccess: () => {
@@ -113,7 +108,7 @@ export default function ProjectSettingsPage() {
       },
       onError: (err) => {
         console.error(' Failed to delete project:', err);
-        setApiError('Impossible de supprimer le projet');
+        toast.error('Impossible de supprimer le projet');
       },
     });
   };
@@ -131,16 +126,6 @@ export default function ProjectSettingsPage() {
         <h1 className="text-3xl font-bold text-text-primary">Paramètres du projet</h1>
         <p className="text-text-secondary mt-1">Gestion des membres, invitation et options du projet</p>
       </div>
-
-      {/* Error Alert */}
-      {apiError && (
-        <Alert
-          type="error"
-          title="Erreur"
-          message={apiError}
-          onClose={() => setApiError(null)}
-        />
-      )}
 
       {/* Invitation Section */}
       <Card className="p-6 space-y-4">
@@ -309,7 +294,6 @@ export default function ProjectSettingsPage() {
         onClose={() => {
           setShowAddMemberModal(false);
           setSelectedUserId('');
-          setApiError(null);
         }}
         title="Ajouter un membre"
         size="sm"
@@ -321,7 +305,6 @@ export default function ProjectSettingsPage() {
               onClick={() => {
                 setShowAddMemberModal(false);
                 setSelectedUserId('');
-                setApiError(null);
               }}
             >
               Annuler
@@ -338,15 +321,6 @@ export default function ProjectSettingsPage() {
         }
       >
         <div className="space-y-3">
-          {apiError && (
-            <Alert
-              type="error"
-              title="Erreur"
-              message={apiError}
-              onClose={() => setApiError(null)}
-            />
-          )}
-
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-primary">Utilisateur</label>
             <select

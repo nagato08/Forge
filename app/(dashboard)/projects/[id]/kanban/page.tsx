@@ -17,6 +17,7 @@ import { DragOverlay } from '@dnd-kit/core';
 import { useParams } from 'next/navigation';
 import { TaskStatus } from '@/lib/types/task.types';
 import { useTasks, useUpdateTaskStatus } from '@/lib/hooks/useTasks';
+import { toast } from '@/lib/stores/toast.store';
 import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
 import KanbanColumn from '@/components/tasks/KanbanColumn';
@@ -100,6 +101,14 @@ export default function KanbanPage() {
       return;
     }
 
+    // Empêcher de déplacer une tâche non assignée
+    if (!task.assignedUsers || task.assignedUsers.length === 0) {
+      toast.error('Impossible de déplacer une tâche non assignée', {
+        title: 'Tâche non assignée',
+      });
+      return;
+    }
+
     // Verifier les dependances avant de passer en DOING ou DONE
     if (newStatus !== TaskStatus.TODO && task.blockedBy && task.blockedBy.length > 0) {
       const unblockedTasks = task.blockedBy
@@ -108,7 +117,9 @@ export default function KanbanPage() {
 
       if (unblockedTasks.length > 0) {
         const names = unblockedTasks.map((t) => t!.title).join(', ');
-        alert(`Impossible : cette tache est bloquee par "${names}" qui n'est pas encore terminee`);
+        toast.error(`Cette tâche est bloquée par "${names}" qui n'est pas encore terminée`, {
+          title: 'Tâche bloquée',
+        });
         return;
       }
     }
@@ -144,14 +155,14 @@ export default function KanbanPage() {
             tasks={doingTasks}
             title="En cours"
             icon={Play}
-            onAddTask={() => setCreateModalStatus(TaskStatus.DOING)}
+            onAddTask={() => {}}
           />
           <KanbanColumn
             status={TaskStatus.DONE}
             tasks={doneTasks}
             title="Fait"
             icon={CheckCircle2}
-            onAddTask={() => setCreateModalStatus(TaskStatus.DONE)}
+            onAddTask={() => {}}
           />
         </div>
 

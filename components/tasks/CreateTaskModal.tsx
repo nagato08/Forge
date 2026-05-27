@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,7 +11,7 @@ import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
 import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
-import Alert from '@/components/ui/Alert';
+import { toast } from '@/lib/stores/toast.store';
 
 const createTaskSchema = z.object({
   title: z.string().min(1, 'Titre requis').max(200),
@@ -42,7 +41,6 @@ export default function CreateTaskModal({
   projectId,
   initialStatus,
 }: CreateTaskModalProps) {
-  const [apiError, setApiError] = useState<string | null>(null);
   const createMutation = useCreateTask();
 
   const {
@@ -59,7 +57,6 @@ export default function CreateTaskModal({
 
   const onSubmit = (data: CreateTaskForm) => {
     console.log(' Creating task:', data.title, 'priority:', data.priority, 'status:', initialStatus);
-    setApiError(null);
 
     createMutation.mutate(
       {
@@ -83,7 +80,7 @@ export default function CreateTaskModal({
         },
         onError: (error) => {
           console.error(' Task creation failed:', getApiError(error));
-          setApiError(getApiError(error));
+          toast.error(getApiError(error), { title: 'Échec' });
         },
       }
     );
@@ -110,15 +107,6 @@ export default function CreateTaskModal({
         </div>
       }
     >
-      {apiError && (
-        <Alert
-          type="error"
-          title="Erreur"
-          message={apiError}
-          onClose={() => setApiError(null)}
-        />
-      )}
-
       <form className="space-y-4">
         <Input
           label="Titre"

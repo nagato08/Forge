@@ -7,16 +7,13 @@ import {
 } from '@/lib/hooks';
 import { getApiError } from '@/lib/utils/api-error';
 import Spinner from '@/components/ui/Spinner';
-import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import { toast } from '@/lib/stores/toast.store';
 
 export default function NotificationsSettingsPage() {
   const { data: settings, isLoading } = useNotificationSettings();
   const updateMutation = useUpdateNotificationSettings();
-
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     email: settings?.email ?? false,
@@ -40,8 +37,6 @@ export default function NotificationsSettingsPage() {
 
   const handleSave = () => {
     console.log('💾 Sauvegarde des paramètres de notification');
-    setApiError(null);
-    setSuccessMessage(null);
 
     updateMutation.mutate(
       {
@@ -51,12 +46,11 @@ export default function NotificationsSettingsPage() {
       {
         onSuccess: () => {
           console.log(' Paramètres de notification mis à jour');
-          setSuccessMessage('Paramètres mis à jour avec succès');
-          setTimeout(() => setSuccessMessage(null), 3000);
+          toast.success('Paramètres mis à jour avec succès');
         },
         onError: (err) => {
           console.error(' Erreur mise à jour settings:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -77,26 +71,6 @@ export default function NotificationsSettingsPage() {
           Contrôlez comment vous recevez les notifications
         </p>
       </div>
-
-      {/* Success Message */}
-      {successMessage && (
-        <Alert
-          type="success"
-          title="Succès"
-          message={successMessage}
-          onClose={() => setSuccessMessage(null)}
-        />
-      )}
-
-      {/* Error Alert */}
-      {apiError && (
-        <Alert
-          type="error"
-          title="Erreur"
-          message={apiError}
-          onClose={() => setApiError(null)}
-        />
-      )}
 
       {/* Notification Preferences */}
       <Card className="p-6 space-y-6">

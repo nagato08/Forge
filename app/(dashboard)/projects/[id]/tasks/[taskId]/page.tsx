@@ -24,8 +24,8 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
 import Modal from '@/components/ui/Modal';
-import Alert from '@/components/ui/Alert';
 import Spinner from '@/components/ui/Spinner';
+import { toast } from '@/lib/stores/toast.store';
 import {
   ArrowLeft,
   Edit2,
@@ -64,7 +64,6 @@ export default function TaskDetailPage() {
   // Edit states
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
-  const [apiError, setApiError] = useState<string | null>(null);
 
   // Modals
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -79,7 +78,7 @@ export default function TaskDetailPage() {
 
   if (isLoadingTask) return <Spinner centered size="lg" label="Chargement de la tâche..." />;
   if (errorTask || !task) {
-    return <Alert type="error" title="Erreur" message="Impossible de charger la tâche" />;
+    return <div className="p-6 text-text-secondary">Impossible de charger la tâche</div>;
   }
 
   console.log('📋 Task detail data:', taskId, 'assignments:', JSON.stringify(task.assignments), 'keys:', Object.keys(task));
@@ -96,7 +95,6 @@ export default function TaskDetailPage() {
   };
 
   const handleEditSave = (field: string, value?: string | number) => {
-    setApiError(null);
     const updateData: Record<string, any> = {};
     // Utiliser la valeur passée en paramètre ou editValue
     updateData[field] = value !== undefined ? value : editValue;
@@ -113,7 +111,7 @@ export default function TaskDetailPage() {
         },
         onError: (err) => {
           console.error(`Update failed:`, getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -137,7 +135,7 @@ export default function TaskDetailPage() {
 
       if (unblockedTasks.length > 0) {
         const names = unblockedTasks.map((t) => t!.title).join(', ');
-        setApiError(`Impossible de changer le statut : cette tache est bloquee par "${names}" qui n'est pas encore terminee`);
+        toast.error(`Impossible de changer le statut : cette tache est bloquee par "${names}" qui n'est pas encore terminee`);
         return;
       }
     }
@@ -152,7 +150,7 @@ export default function TaskDetailPage() {
         },
         onError: (err) => {
           console.error('Status update failed:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -170,7 +168,7 @@ export default function TaskDetailPage() {
         },
         onError: (err) => {
           console.error('Status update failed:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -178,12 +176,11 @@ export default function TaskDetailPage() {
 
   const handleAssignUser = () => {
     if (!selectedUserId) {
-      setApiError('Veuillez sélectionner un utilisateur');
+      toast.error('Veuillez sélectionner un utilisateur');
       return;
     }
 
     console.log(` Assigning user ${selectedUserId} to task ${taskId}`);
-    setApiError(null);
 
     assignMutation.mutate(
       { taskId, userIds: [...assignedUsers.map((u) => u.id), selectedUserId] },
@@ -196,7 +193,7 @@ export default function TaskDetailPage() {
         },
         onError: (err) => {
           console.error('Assign failed:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -213,7 +210,7 @@ export default function TaskDetailPage() {
         },
         onError: (err) => {
           console.error('Unassign failed:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -221,14 +218,13 @@ export default function TaskDetailPage() {
 
   const handleAddDependency = () => {
     if (!selectedDependencyId) {
-      setApiError('Veuillez sélectionner une tâche');
+      toast.error('Veuillez sélectionner une tâche');
       return;
     }
 
     // API: POST /tasks/:selectedId/dependencies { blockedTaskId: taskId }
     // selectedDependencyId bloque notre tâche (taskId)
     console.log(`Adding dependency: ${selectedDependencyId} blocks ${taskId}`);
-    setApiError(null);
 
     addDependencyMutation.mutate(
       { taskId: selectedDependencyId, blockedTaskId: taskId },
@@ -241,7 +237,7 @@ export default function TaskDetailPage() {
         },
         onError: (err) => {
           console.error('Dependency add failed:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -249,7 +245,7 @@ export default function TaskDetailPage() {
 
   const handleRemoveDependency = (blockingTaskId: string | null | undefined) => {
     if (!blockingTaskId) {
-      setApiError('ID de tâche bloquante invalide');
+      toast.error('ID de tâche bloquante invalide');
       return;
     }
     // API: DELETE /tasks/:blockingTaskId/dependencies/:blockedTaskId
@@ -264,7 +260,7 @@ export default function TaskDetailPage() {
         },
         onError: (err) => {
           console.error('Dependency remove failed:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -272,12 +268,11 @@ export default function TaskDetailPage() {
 
   const handleAddComment = () => {
     if (!commentText.trim()) {
-      setApiError('Veuillez entrer un commentaire');
+      toast.error('Veuillez entrer un commentaire');
       return;
     }
 
     console.log(`Adding comment to task ${taskId}`);
-    setApiError(null);
 
     addCommentMutation.mutate(
       { taskId, content: commentText },
@@ -289,7 +284,7 @@ export default function TaskDetailPage() {
         },
         onError: (err) => {
           console.error('Comment add failed:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -304,7 +299,7 @@ export default function TaskDetailPage() {
       },
       onError: (err) => {
         console.error(' Delete failed:', getApiError(err));
-        setApiError(getApiError(err));
+        toast.error(getApiError(err), { title: 'Échec' });
       },
     });
   };
@@ -326,16 +321,6 @@ export default function TaskDetailPage() {
           Retour
         </Button>
       </div>
-
-      {/* Error Alert */}
-      {apiError && (
-        <Alert
-          type="error"
-          title="Erreur"
-          message={apiError}
-          onClose={() => setApiError(null)}
-        />
-      )}
 
       {/* Title + Status + Priority */}
       <Card className="p-6 space-y-4">
@@ -752,7 +737,6 @@ export default function TaskDetailPage() {
         onClose={() => {
           setShowAssignModal(false);
           setSelectedUserId('');
-          setApiError(null);
         }}
         title="Assigner un utilisateur"
         size="sm"
@@ -780,14 +764,6 @@ export default function TaskDetailPage() {
         }
       >
         <div className="space-y-3">
-          {apiError && (
-            <Alert
-              type="error"
-              title="Erreur"
-              message={apiError}
-              onClose={() => setApiError(null)}
-            />
-          )}
           <select
             value={selectedUserId}
             onChange={(e) => setSelectedUserId(e.target.value)}
@@ -809,7 +785,6 @@ export default function TaskDetailPage() {
         onClose={() => {
           setShowAddDependencyModal(false);
           setSelectedDependencyId('');
-          setApiError(null);
         }}
         title="Ajouter une dépendance"
         size="sm"
@@ -837,14 +812,6 @@ export default function TaskDetailPage() {
         }
       >
         <div className="space-y-3">
-          {apiError && (
-            <Alert
-              type="error"
-              title="Erreur"
-              message={apiError}
-              onClose={() => setApiError(null)}
-            />
-          )}
           <p className="text-sm text-text-secondary">
             Sélectionnez la tâche qui bloque celle-ci
           </p>

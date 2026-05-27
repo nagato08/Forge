@@ -6,8 +6,9 @@ import { useMyTasks, useUpdateTaskStatus } from '@/lib/hooks';
 import { tasksApi } from '@/lib/api/tasks.api';
 import { getApiError } from '@/lib/utils/api-error';
 import Spinner from '@/components/ui/Spinner';
-import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
+import Modal from '@/components/ui/Modal';
+import { toast } from '@/lib/stores/toast.store';
 import Card from '@/components/ui/Card';
 import {
   ClipboardList,
@@ -29,7 +30,7 @@ export default function MyTasksPage() {
 
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [filterPriority, setFilterPriority] = useState<string | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [confirmingTaskId, setConfirmingTaskId] = useState<string | null>(null);
 
   if (isLoading) {
     return <Spinner centered size="lg" label="Chargement de vos taches..." />;
@@ -57,18 +58,31 @@ export default function MyTasksPage() {
     (t) => t.deadline && new Date(t.deadline) < new Date() && t.status !== 'DONE'
   ).length || 0;
 
-  const handleStatusChange = async (taskId: string, newStatus: string, e: React.MouseEvent) => {
+  const handleStatusChange = async (
+    taskId: string,
+    newStatus: string,
+    currentStatus: string,
+    e: React.MouseEvent
+  ) => {
     e.stopPropagation();
-    setApiError(null);
 
-    // Verifier les dependances en fetching la tache complete
+    // Demander confirmation pour passer de DOING à DONE
+    if (currentStatus === 'DOING' && newStatus === 'DONE') {
+      setConfirmingTaskId(taskId);
+      return;
+    }
+
+    // Procéder au changement de statut
+    await performStatusChange(taskId, newStatus);
+  };
+
+  const performStatusChange = async (taskId: string, newStatus: string) => {
     if (newStatus !== 'TODO') {
       try {
         const fullTask = await tasksApi.getTaskById(taskId);
         const blockedBy = fullTask.blockedBy || [];
 
         if (blockedBy.length > 0) {
-          // Verifier si les bloqueurs sont termines
           const blockerIds = blockedBy
             .map((dep) => dep.blockingTaskId || dep.taskId)
             .filter((id): id is string => !!id);
@@ -79,7 +93,7 @@ export default function MyTasksPage() {
 
           if (unfinished.length > 0) {
             const names = unfinished.map((t) => t.title).join(', ');
-            setApiError(`Impossible : cette tache est bloquee par "${names}" qui n'est pas encore terminee`);
+            toast.error(`Tâche bloquée par "${names}" qui n'est pas terminée`);
             return;
           }
         }
@@ -88,13 +102,11 @@ export default function MyTasksPage() {
       }
     }
 
-    console.log('Changing task status:', taskId, '->', newStatus);
     updateStatusMutation.mutate(
       { taskId, status: { status: newStatus } as any },
       {
         onError: (err) => {
-          console.error('Status update error:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec changement statut' });
         },
       }
     );
@@ -144,16 +156,6 @@ export default function MyTasksPage() {
           </p>
         </div>
       </div>
-
-      {/* Error */}
-      {apiError && (
-        <Alert
-          type="error"
-          title="Erreur"
-          message={apiError}
-          onClose={() => setApiError(null)}
-        />
-      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -341,7 +343,7 @@ export default function MyTasksPage() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={(e) => handleStatusChange(task.id, 'DOING', e as any)}
+                        onClick={(e) => handleStatusChange(task.id, 'DOING', task.status, e as any)}
                         isLoading={updateStatusMutation.isPending}
                         className="flex items-center gap-1.5 text-primary border-primary/30 hover:bg-primary/10"
                       >
@@ -353,7 +355,7 @@ export default function MyTasksPage() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={(e) => handleStatusChange(task.id, 'DONE', e as any)}
+                        onClick={(e) => handleStatusChange(task.id, 'DONE', task.status, e as any)}
                         isLoading={updateStatusMutation.isPending}
                         className="flex items-center gap-1.5 text-success border-success/30 hover:bg-success/10"
                       >
@@ -374,6 +376,51 @@ export default function MyTasksPage() {
           })}
         </div>
       )}
+
+      {/* Confirmation Modal for completing task */}
+      <Modal
+        isOpen={!!confirmingTaskId}
+        onClose={() => setConfirmingTaskId(null)}
+        title="Confirmer la tâche"
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setConfirmingTaskId(null)}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                if (confirmingTaskId) {
+                  performStatusChange(confirmingTaskId, 'DONE');
+                  setConfirmingTaskId(null);
+                }
+              }}
+              isLoading={updateStatusMutation.isPending}
+            >
+              Confirmer
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-text-secondary">
+            Êtes-vous sûr de vouloir marquer cette tâche comme terminée ? Manipuler les tâches est très sensible et cette action ne peut pas être annulée facilement.
+          </p>
+          {confirmingTaskId && (
+            <div className="p-3 bg-bg-surface-hover rounded-lg border border-border">
+              <p className="text-sm text-text-primary font-medium">
+                {allTasks?.find((t) => t.id === confirmingTaskId)?.title}
+              </p>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

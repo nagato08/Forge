@@ -7,6 +7,7 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useRequestPasswordReset } from '@/lib/hooks/useAuth';
 import { Button, Input, Card, Alert } from '@/components/ui';
+import { toast } from '@/lib/stores/toast.store';
 import { getApiError } from '@/lib/utils/api-error';
 
 const resetSchema = z.object({
@@ -17,7 +18,6 @@ type ResetForm = z.infer<typeof resetSchema>;
 
 export default function ResetPasswordPage() {
   const [submitted, setSubmitted] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
   const resetMutation = useRequestPasswordReset();
 
   const {
@@ -33,7 +33,6 @@ export default function ResetPasswordPage() {
 
   const onSubmit = async (data: ResetForm) => {
     console.log('📧 Requesting password reset for:', data.email);
-    setApiError(null);
     resetMutation.mutate(data, {
       onSuccess: () => {
         console.log(' Password reset email sent to:', data.email);
@@ -41,7 +40,7 @@ export default function ResetPasswordPage() {
       },
       onError: (error) => {
         console.error(' Password reset request error:', getApiError(error));
-        setApiError(getApiError(error));
+        toast.error(getApiError(error), { title: 'Erreur' });
       },
     });
   };
@@ -122,15 +121,6 @@ export default function ResetPasswordPage() {
 
         {/* Form Card */}
         <Card className="space-y-6 shadow-lg">
-          {apiError && (
-            <Alert
-              type="error"
-              title="Erreur"
-              message={apiError}
-              onClose={() => setApiError(null)}
-            />
-          )}
-
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <Input
               label="Email"

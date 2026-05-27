@@ -5,8 +5,8 @@ import { useAuthStore } from '@/lib/stores/auth.store';
 import { useCompanySettings, useUpdateCompanySettings } from '@/lib/hooks';
 import { getApiError } from '@/lib/utils/api-error';
 import Spinner from '@/components/ui/Spinner';
-import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
+import { toast } from '@/lib/stores/toast.store';
 import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
 
@@ -16,8 +16,6 @@ export default function CompanySettingsPage() {
   const updateMutation = useUpdateCompanySettings();
 
   const [editMode, setEditMode] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     companyName: companySettings?.companyName || '',
@@ -35,14 +33,11 @@ export default function CompanySettingsPage() {
     }
   }, [companySettings]);
 
-  // Vérifier que l'utilisateur est ADMIN
   if (role !== 'ADMIN') {
     return (
-      <Alert
-        type="error"
-        title="Accès refusé"
-        message="Seuls les administrateurs peuvent accéder à ces paramètres"
-      />
+      <div className="p-6 text-text-secondary">
+        Seuls les administrateurs peuvent accéder à ces paramètres.
+      </div>
     );
   }
 
@@ -52,10 +47,6 @@ export default function CompanySettingsPage() {
   };
 
   const handleSave = () => {
-    console.log('💾 Sauvegarde des paramètres de l\'entreprise');
-    setApiError(null);
-    setSuccessMessage(null);
-
     updateMutation.mutate(
       {
         companyName: formData.companyName,
@@ -64,14 +55,11 @@ export default function CompanySettingsPage() {
       },
       {
         onSuccess: () => {
-          console.log(' Paramètres de l\'entreprise mis à jour');
-          setSuccessMessage('Paramètres mis à jour avec succès');
+          toast.success('Paramètres mis à jour');
           setEditMode(false);
-          setTimeout(() => setSuccessMessage(null), 3000);
         },
         onError: (err) => {
-          console.error(' Erreur mise à jour company settings:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec mise à jour' });
         },
       }
     );
@@ -84,7 +72,6 @@ export default function CompanySettingsPage() {
       primaryColor: companySettings?.primaryColor || '#2F81F7',
     });
     setEditMode(false);
-    setApiError(null);
   };
 
   if (isLoading) {
@@ -100,26 +87,6 @@ export default function CompanySettingsPage() {
           Gestion des informations générales et de la marque (ADMIN seulement)
         </p>
       </div>
-
-      {/* Success Message */}
-      {successMessage && (
-        <Alert
-          type="success"
-          title="Succès"
-          message={successMessage}
-          onClose={() => setSuccessMessage(null)}
-        />
-      )}
-
-      {/* Error Alert */}
-      {apiError && (
-        <Alert
-          type="error"
-          title="Erreur"
-          message={apiError}
-          onClose={() => setApiError(null)}
-        />
-      )}
 
       {/* Company Info Card */}
       <Card className="p-6 space-y-6">

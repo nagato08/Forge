@@ -9,8 +9,8 @@ import { useSocketEvent } from '@/lib/hooks/useSocket';
 import { getSocket, emitSocketEvent } from '@/lib/socket/socket.client';
 import { getApiError } from '@/lib/utils/api-error';
 import Spinner from '@/components/ui/Spinner';
-import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
+import { toast } from '@/lib/stores/toast.store';
 import {
   MessageCircle,
   Paperclip,
@@ -194,7 +194,6 @@ export default function ChatPage() {
   const currentUser = useAuthStore((state) => state.user);
 
   const [inputValue, setInputValue] = useState('');
-  const [apiError, setApiError] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -248,7 +247,7 @@ export default function ChatPage() {
 
   if (error) {
     return (
-      <Alert type="error" title="Erreur" message="Impossible de charger le chat" />
+      <div className="p-6 text-text-secondary">Impossible de charger le chat</div>
     );
   }
 
@@ -257,8 +256,6 @@ export default function ChatPage() {
   const handleSend = async () => {
     const content = inputValue.trim();
     if (!content && pendingFiles.length === 0) return;
-
-    setApiError(null);
 
     emitSocketEvent('user:stopped-typing', { projectId });
     if (typingTimeoutRef.current) {
@@ -274,7 +271,7 @@ export default function ChatPage() {
           textContent: pendingFiles.length === 1 ? content : undefined,
         });
       } catch (err) {
-        setApiError(getApiError(err));
+        toast.error(getApiError(err), { title: 'Échec' });
         return;
       }
     }
@@ -283,7 +280,7 @@ export default function ChatPage() {
       sendMutation.mutate(
         { projectId, content },
         {
-          onError: (err) => setApiError(getApiError(err)),
+          onError: (err) => toast.error(getApiError(err), { title: 'Échec' }),
         }
       );
     }
@@ -335,7 +332,7 @@ export default function ChatPage() {
     }
 
     if (errors.length > 0) {
-      setApiError(errors.join(', '));
+      toast.error(errors.join(', '));
     }
     if (valid.length > 0) {
       setPendingFiles((prev) => [...prev, ...valid]);
@@ -445,15 +442,6 @@ export default function ChatPage() {
 
       {/* Input area */}
       <div className="border-t border-border p-4 space-y-2">
-        {apiError && (
-          <Alert
-            type="error"
-            title="Erreur"
-            message={apiError}
-            onClose={() => setApiError(null)}
-          />
-        )}
-
         {/* Pending files preview */}
         {pendingFiles.length > 0 && (
           <div className="flex flex-wrap gap-2 pb-2">

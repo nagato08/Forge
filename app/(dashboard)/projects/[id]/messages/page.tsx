@@ -6,9 +6,9 @@ import { useProjectMessages, useSendProjectMessage, useDeleteMessage } from '@/l
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { getApiError } from '@/lib/utils/api-error';
 import Spinner from '@/components/ui/Spinner';
-import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import { toast } from '@/lib/stores/toast.store';
 
 export default function ProjectMessagesPage() {
   const params = useParams();
@@ -20,8 +20,6 @@ export default function ProjectMessagesPage() {
   const deleteMutation = useDeleteMessage();
 
   const [inputValue, setInputValue] = useState('');
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll vers le bas
@@ -38,13 +36,7 @@ export default function ProjectMessagesPage() {
   }
 
   if (error) {
-    return (
-      <Alert
-        type="error"
-        title="Erreur"
-        message="Impossible de charger les messages"
-      />
-    );
+    return <div className="p-6 text-text-secondary">Impossible de charger les messages</div>;
   }
 
   const handleSend = () => {
@@ -52,8 +44,6 @@ export default function ProjectMessagesPage() {
     if (!content) return;
 
     console.log('📨 Sending message to project:', projectId, 'content:', content);
-    setApiError(null);
-    setSuccessMessage(null);
 
     // Extraire les mentions (@username)
     const mentionRegex = /@(\w+)/g;
@@ -75,12 +65,11 @@ export default function ProjectMessagesPage() {
         onSuccess: () => {
           console.log(' Message sent successfully');
           setInputValue('');
-          setSuccessMessage('Message envoyé');
-          setTimeout(() => setSuccessMessage(null), 2000);
+          toast.success('Message envoyé');
         },
         onError: (error) => {
           console.error(' Send message error:', getApiError(error));
-          setApiError(getApiError(error));
+          toast.error(getApiError(error), { title: 'Échec' });
         },
       }
     );
@@ -93,12 +82,11 @@ export default function ProjectMessagesPage() {
     deleteMutation.mutate(messageId, {
       onSuccess: () => {
         console.log(' Message deleted');
-        setSuccessMessage('Message supprimé');
-        setTimeout(() => setSuccessMessage(null), 2000);
+        toast.success('Message supprimé');
       },
       onError: (error) => {
         console.error(' Delete message error:', getApiError(error));
-        setApiError(getApiError(error));
+        toast.error(getApiError(error), { title: 'Échec' });
       },
     });
   };
@@ -117,19 +105,6 @@ export default function ProjectMessagesPage() {
         <h2 className="text-lg font-semibold text-text-primary">📨 Messages du projet</h2>
         <p className="text-xs text-text-secondary mt-1">Communication interne avec le projet (distinct du chat)</p>
       </div>
-
-      {/* Alerts */}
-      {successMessage && (
-        <div className="mx-6 mt-4 p-3 bg-success/10 border border-success rounded-lg">
-          <p className="text-sm text-success">{successMessage}</p>
-        </div>
-      )}
-
-      {apiError && (
-        <div className="mx-6 mt-4 p-3 bg-critical/10 border border-critical rounded-lg">
-          <p className="text-sm text-critical">{apiError}</p>
-        </div>
-      )}
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">

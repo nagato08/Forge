@@ -7,7 +7,8 @@ import { Project, Priority, ProjectStatus } from '@/lib/types/project.types';
 import { useCreateProject, useUpdateProject } from '@/lib/hooks/useProjects';
 import Modal from '@/components/ui/Modal';
 import { Button, Input, Textarea, Select } from '@/components/ui';
-import Alert from '@/components/ui/Alert';
+import { toast } from '@/lib/stores/toast.store';
+import { getApiError } from '@/lib/utils/api-error';
 
 const projectSchema = z.object({
   name: z.string().min(3, 'Nom requis (min 3 caractères)'),
@@ -73,7 +74,16 @@ export default function ProjectModal({
     },
   });
 
-  const onSubmit = (data: ProjectForm) => {
+  const onSubmit = (raw: ProjectForm) => {
+    // Nettoyage : supprime les chaînes vides pour les champs optionnels
+    // (sinon @IsDateString backend rejette les strings vides)
+    const data = {
+      ...raw,
+      description: raw.description?.trim() || undefined,
+      objectives: raw.objectives?.trim() || undefined,
+      endDate: raw.endDate?.trim() || undefined,
+    };
+
     if (isEditing && project) {
       console.log('📝 Updating project:', project.id, data.name);
       updateMutation.mutate(
@@ -85,20 +95,18 @@ export default function ProjectModal({
             onClose();
           },
           onError: (err) => {
-            console.error(' Update project error:', err);
+            toast.error(getApiError(err), { title: 'Échec mise à jour' });
           },
         }
       );
     } else {
-      console.log('➕ Creating project:', data.name, 'priority:', data.priority);
       createMutation.mutate(data, {
         onSuccess: () => {
-          console.log(' Project created successfully');
           reset();
           onClose();
         },
         onError: (err) => {
-          console.error(' Create project error:', err);
+          toast.error(getApiError(err), { title: 'Échec création' });
         },
       });
     }
@@ -107,7 +115,6 @@ export default function ProjectModal({
   const isLoading = isEditing
     ? updateMutation.isPending
     : createMutation.isPending;
-  const error = isEditing ? updateMutation.error : createMutation.error;
 
   return (
     <Modal
@@ -127,14 +134,6 @@ export default function ProjectModal({
       }
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {error && (
-          <Alert
-            type="error"
-            title="Erreur"
-            message={error instanceof Error ? error.message : 'Une erreur est survenue'}
-          />
-        )}
-
         <Input
           label="Nom du projet"
           placeholder="Mon super projet"

@@ -3,11 +3,15 @@
 import { useState } from 'react';
 import { useTaskById, useUpdateTask, useDeleteTask, useAddTaskComment } from '@/lib/hooks/useTasks';
 import { getApiError } from '@/lib/utils/api-error';
+import { Priority, TaskStatus } from '@/lib/types/task.types';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
-import Alert from '@/components/ui/Alert';
+import Input from '@/components/ui/Input';
+import Textarea from '@/components/ui/Textarea';
+import Select from '@/components/ui/Select';
 import Spinner from '@/components/ui/Spinner';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Edit2 } from 'lucide-react';
+import { toast } from '@/lib/stores/toast.store';
 
 interface TaskDetailModalProps {
   taskId: string | null;
@@ -20,11 +24,21 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
   const deleteMutation = useDeleteTask();
   const addCommentMutation = useAddTaskComment();
 
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    title: '',
+    description: '',
+    priority: Priority.MEDIUM,
+    deadline: '',
+    startDate: '',
+    endDate: '',
+    storyPoints: '',
+    optimisticDays: '',
+    probableDays: '',
+    pessimisticDays: '',
+  });
   const [commentText, setCommentText] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
 
   if (!taskId) return null;
 
@@ -39,63 +53,83 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
   if (error || !task) {
     return (
       <Modal isOpen={!!taskId} onClose={onClose} title="Erreur">
-        <Alert
-          type="error"
-          title="Erreur"
-          message="Impossible de charger la tâche"
-        />
+        <p className="text-sm text-text-secondary">
+          Impossible de charger la tâche
+        </p>
       </Modal>
     );
   }
 
-  console.log('TaskDetail opened:', taskId);
+  const handleEditStart = () => {
+    setEditData({
+      title: task.title,
+      description: task.description || '',
+      priority: task.priority,
+      deadline: task.deadline ? task.deadline.split('T')[0] : '',
+      startDate: task.startDate ? task.startDate.split('T')[0] : '',
+      endDate: task.endDate ? task.endDate.split('T')[0] : '',
+      storyPoints: task.storyPoints?.toString() || '',
+      optimisticDays: task.optimisticDays?.toString() || '',
+      probableDays: task.probableDays?.toString() || '',
+      pessimisticDays: task.pessimisticDays?.toString() || '',
+    });
+    setIsEditing(true);
+  };
 
-  const handleEditField = (field: string, value: string) => {
-    if (field === 'title') {
-      console.log('Updating task field: title =', value);
-      updateMutation.mutate(
-        { taskId, data: { title: value } },
-        {
-          onSuccess: () => {
-            console.log('Task updated:', taskId);
-            setEditingField(null);
-          },
-          onError: (error) => {
-            console.error('Update failed:', getApiError(error));
-            setApiError(getApiError(error));
-          },
-        }
-      );
+  const handleSave = () => {
+    if (!editData.title.trim()) {
+      toast.error('Le titre est obligatoire');
+      return;
     }
+
+    const updatePayload: any = {
+      title: editData.title,
+      description: editData.description || undefined,
+      priority: editData.priority,
+      deadline: editData.deadline || undefined,
+      startDate: editData.startDate || undefined,
+      endDate: editData.endDate || undefined,
+      storyPoints: editData.storyPoints ? parseInt(editData.storyPoints) : undefined,
+      optimisticDays: editData.optimisticDays ? parseInt(editData.optimisticDays) : undefined,
+      probableDays: editData.probableDays ? parseInt(editData.probableDays) : undefined,
+      pessimisticDays: editData.pessimisticDays ? parseInt(editData.pessimisticDays) : undefined,
+    };
+
+    updateMutation.mutate(
+      { taskId, data: updatePayload },
+      {
+        onSuccess: () => {
+          toast.success('Tâche mise à jour');
+          setIsEditing(false);
+        },
+        onError: (error) => {
+          toast.error(getApiError(error), { title: 'Échec' });
+        },
+      }
+    );
   };
 
   const handleDelete = () => {
-    console.log('Delete confirmed for task:', taskId);
     deleteMutation.mutate(taskId, {
       onSuccess: () => {
-        console.log('Task deleted successfully');
         onClose();
       },
       onError: (error) => {
-        console.error('Delete failed:', getApiError(error));
-        setApiError(getApiError(error));
+        toast.error(getApiError(error), { title: 'Échec' });
       },
     });
   };
 
   const handleAddComment = () => {
     if (!commentText.trim()) return;
-    console.log('Adding comment to task:', taskId);
     addCommentMutation.mutate(
       { taskId, content: commentText },
       {
         onSuccess: () => {
-          console.log('Comment added');
           setCommentText('');
         },
         onError: (error) => {
-          console.error('Comment failed:', getApiError(error));
-          setApiError(getApiError(error));
+          toast.error(getApiError(error), { title: 'Échec' });
         },
       }
     );
@@ -127,6 +161,33 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
                 Annuler
               </Button>
             </>
+          ) : isEditing ? (
+            <>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                Supprimer
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsEditing(false)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSave}
+                  isLoading={updateMutation.isPending}
+                >
+                  Enregistrer
+                </Button>
+              </div>
+            </>
           ) : (
             <>
               <Button
@@ -134,106 +195,226 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
                 size="sm"
                 onClick={() => setShowDeleteConfirm(true)}
               >
-                 Supprimer
+                Supprimer
               </Button>
-              <Button variant="secondary" size="sm" onClick={onClose}>
-                Fermer
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={onClose}>
+                  Fermer
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleEditStart}
+                  className="flex items-center gap-1.5"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Éditer
+                </Button>
+              </div>
             </>
           )}
         </div>
       }
     >
-      {apiError && (
-        <Alert
-          type="error"
-          title="Erreur"
-          message={apiError}
-          onClose={() => setApiError(null)}
-        />
-      )}
-
       <div className="space-y-6">
-        {/* Title */}
-        <div>
-          {editingField === 'title' ? (
-            <input
-              type="text"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onBlur={() => handleEditField('title', editValue)}
-              autoFocus
-              className="text-lg font-bold border-b border-[var(--primary)] bg-transparent text-[var(--text-primary)] w-full"
+        {isEditing ? (
+          <form className="space-y-4">
+            <Input
+              label="Titre"
+              value={editData.title}
+              onChange={(e) => setEditData({ ...editData, title: e.target.value })}
             />
-          ) : (
-            <h2
-              className="text-lg font-bold cursor-pointer hover:underline text-[var(--text-primary)]"
-              onClick={() => {
-                setEditingField('title');
-                setEditValue(task.title);
-              }}
-            >
-              {task.title}
-            </h2>
-          )}
-        </div>
 
-        {/* Metadata */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-[var(--text-secondary)] text-xs">Priorité</p>
-            <p className="text-[var(--text-primary)] font-medium">{task.priority}</p>
-          </div>
-          <div>
-            <p className="text-[var(--text-secondary)] text-xs">Statut</p>
-            <p className="text-[var(--text-primary)] font-medium">{task.status}</p>
-          </div>
-          {task.deadline && (
-            <div>
-              <p className="text-[var(--text-secondary)] text-xs">Deadline</p>
-              <p className="text-[var(--text-primary)] font-medium">
-                {new Date(task.deadline).toLocaleDateString('fr-FR')}
-              </p>
-            </div>
-          )}
-          {(task.assignedUsers?.length || 0) > 0 && (
-            <div>
-              <p className="text-[var(--text-secondary)] text-xs">Assignés</p>
-              <p className="text-[var(--text-primary)] font-medium text-xs">
-                {(task.assignedUsers || [])
-                  .map((u) => `${u.firstName} ${u.lastName}`)
-                  .join(', ')}
-              </p>
-            </div>
-          )}
-        </div>
+            <Textarea
+              label="Description (optionnel)"
+              value={editData.description}
+              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+            />
 
-        {/* Description */}
-        {task.description && (
-          <div>
-            <p className="text-[var(--text-secondary)] text-xs mb-1">Description</p>
-            <p className="text-[var(--text-primary)] text-sm">{task.description}</p>
-          </div>
+            <Select
+              label="Priorité"
+              value={editData.priority}
+              onChange={(e) => setEditData({ ...editData, priority: e.target.value as Priority })}
+              options={[
+                { value: Priority.LOW, label: 'Basse' },
+                { value: Priority.MEDIUM, label: 'Moyenne' },
+                { value: Priority.HIGH, label: 'Haute' },
+                { value: Priority.CRITICAL, label: 'Critique' },
+              ]}
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Date de début (optionnel)"
+                type="date"
+                value={editData.startDate}
+                onChange={(e) => setEditData({ ...editData, startDate: e.target.value })}
+              />
+              <Input
+                label="Date de fin (optionnel)"
+                type="date"
+                value={editData.endDate}
+                onChange={(e) => setEditData({ ...editData, endDate: e.target.value })}
+              />
+            </div>
+
+            <Input
+              label="Deadline (optionnel)"
+              type="date"
+              value={editData.deadline}
+              onChange={(e) => setEditData({ ...editData, deadline: e.target.value })}
+            />
+
+            <Input
+              label="Story Points (optionnel)"
+              type="number"
+              value={editData.storyPoints}
+              onChange={(e) => setEditData({ ...editData, storyPoints: e.target.value })}
+            />
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary">PERT (optionnel)</label>
+              <div className="grid grid-cols-3 gap-2">
+                <Input
+                  label="Optimiste"
+                  type="number"
+                  placeholder="jours"
+                  value={editData.optimisticDays}
+                  onChange={(e) => setEditData({ ...editData, optimisticDays: e.target.value })}
+                />
+                <Input
+                  label="Probable"
+                  type="number"
+                  placeholder="jours"
+                  value={editData.probableDays}
+                  onChange={(e) => setEditData({ ...editData, probableDays: e.target.value })}
+                />
+                <Input
+                  label="Pessimiste"
+                  type="number"
+                  placeholder="jours"
+                  value={editData.pessimisticDays}
+                  onChange={(e) => setEditData({ ...editData, pessimisticDays: e.target.value })}
+                />
+              </div>
+            </div>
+          </form>
+        ) : (
+          <>
+            {/* Title */}
+            <div>
+              <h2 className="text-lg font-bold text-text-primary">
+                {task.title}
+              </h2>
+            </div>
+
+            {/* Metadata */}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-text-secondary text-xs">Priorité</p>
+                <p className="text-text-primary font-medium">{task.priority}</p>
+              </div>
+              <div>
+                <p className="text-text-secondary text-xs">Statut</p>
+                <p className="text-text-primary font-medium">{task.status}</p>
+              </div>
+              {task.deadline && (
+                <div>
+                  <p className="text-text-secondary text-xs">Deadline</p>
+                  <p className="text-text-primary font-medium">
+                    {new Date(task.deadline).toLocaleDateString('fr-FR')}
+                  </p>
+                </div>
+              )}
+              {(task.assignedUsers?.length || 0) > 0 && (
+                <div>
+                  <p className="text-text-secondary text-xs">Assignés</p>
+                  <p className="text-text-primary font-medium text-xs">
+                    {(task.assignedUsers || [])
+                      .map((u) => `${u.firstName} ${u.lastName}`)
+                      .join(', ')}
+                  </p>
+                </div>
+              )}
+              {task.startDate && (
+                <div>
+                  <p className="text-text-secondary text-xs">Début</p>
+                  <p className="text-text-primary font-medium">
+                    {new Date(task.startDate).toLocaleDateString('fr-FR')}
+                  </p>
+                </div>
+              )}
+              {task.endDate && (
+                <div>
+                  <p className="text-text-secondary text-xs">Fin</p>
+                  <p className="text-text-primary font-medium">
+                    {new Date(task.endDate).toLocaleDateString('fr-FR')}
+                  </p>
+                </div>
+              )}
+              {task.storyPoints && (
+                <div>
+                  <p className="text-text-secondary text-xs">Story Points</p>
+                  <p className="text-text-primary font-medium">{task.storyPoints}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Description */}
+            {task.description && (
+              <div>
+                <p className="text-text-secondary text-xs mb-1">Description</p>
+                <p className="text-text-primary text-sm">{task.description}</p>
+              </div>
+            )}
+
+            {/* PERT */}
+            {(task.optimisticDays || task.probableDays || task.pessimisticDays) && (
+              <div className="bg-bg-surface-hover p-4 rounded-lg">
+                <p className="text-text-secondary text-xs mb-2">PERT</p>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  {task.optimisticDays && (
+                    <div>
+                      <p className="text-text-secondary text-xs">Optimiste</p>
+                      <p className="text-text-primary font-medium">{task.optimisticDays}j</p>
+                    </div>
+                  )}
+                  {task.probableDays && (
+                    <div>
+                      <p className="text-text-secondary text-xs">Probable</p>
+                      <p className="text-text-primary font-medium">{task.probableDays}j</p>
+                    </div>
+                  )}
+                  {task.pessimisticDays && (
+                    <div>
+                      <p className="text-text-secondary text-xs">Pessimiste</p>
+                      <p className="text-text-primary font-medium">{task.pessimisticDays}j</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Comments */}
-        <div className="border-t border-[var(--border)] pt-4">
-          <h3 className="font-semibold text-[var(--text-primary)] mb-3">
+        <div className="border-t border-border pt-4">
+          <h3 className="font-semibold text-text-primary mb-3">
             Commentaires
           </h3>
 
           {/* Comment list */}
           <div className="space-y-3 mb-4 max-h-[200px] overflow-y-auto">
             {(task.comments?.length || 0) === 0 ? (
-              <p className="text-sm text-[var(--text-weak)]">Aucun commentaire</p>
+              <p className="text-sm text-text-weak">Aucun commentaire</p>
             ) : (
               (task.comments || []).map((comment) => (
                 <div key={comment.id} className="text-sm">
-                  <p className="text-[var(--text-secondary)] text-xs">
+                  <p className="text-text-secondary text-xs">
                     {comment.user.firstName} {comment.user.lastName} •{' '}
                     {new Date(comment.createdAt).toLocaleDateString('fr-FR')}
                   </p>
-                  <p className="text-[var(--text-primary)]">{comment.content}</p>
+                  <p className="text-text-primary">{comment.content}</p>
                 </div>
               ))
             )}
@@ -249,7 +430,7 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && commentText.trim()) handleAddComment();
               }}
-              className="flex-1 text-sm border border-[var(--border)] rounded bg-[var(--bg-surface)] text-[var(--text-primary)] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+              className="flex-1 text-sm border border-border rounded bg-bg-surface text-text-primary px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
             />
             <Button
               size="sm"

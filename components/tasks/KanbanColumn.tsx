@@ -48,14 +48,16 @@ export default function KanbanColumn({
             {tasks.length}
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onAddTask}
-          className="text-lg"
-        >
-          +
-        </Button>
+        {status === TaskStatus.TODO && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onAddTask}
+            className="text-lg"
+          >
+            +
+          </Button>
+        )}
       </div>
 
       {/* Tasks */}

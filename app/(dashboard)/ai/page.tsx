@@ -5,10 +5,10 @@ import { useParams } from 'next/navigation';
 import { useInterpretMessage, useExecuteAction, useAIAct, useAnalyzeGantt, useAnalyzePert, useAnalyzeDelays } from '@/lib/hooks/useAI';
 import { getApiError } from '@/lib/utils/api-error';
 import Spinner from '@/components/ui/Spinner';
-import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
+import { toast } from '@/lib/stores/toast.store';
 
 export default function AIAssistantPage() {
   const params = useParams();
@@ -22,8 +22,6 @@ export default function AIAssistantPage() {
   const analyzeDelaysMutation = useAnalyzeDelays(projectId);
 
   const [inputMessage, setInputMessage] = useState('');
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [conversationHistory, setConversationHistory] = useState<
     Array<{ role: 'user' | 'ai'; message: string; timestamp: Date }>
   >([]);
@@ -32,13 +30,11 @@ export default function AIAssistantPage() {
 
   const handleInterpret = () => {
     if (!inputMessage.trim()) {
-      setApiError('Veuillez entrer un message');
+      toast.error('Veuillez entrer un message');
       return;
     }
 
     console.log('🤖 Interpreting message:', inputMessage);
-    setApiError(null);
-    setSuccessMessage(null);
 
     interpretMutation.mutate(
       {
@@ -56,7 +52,7 @@ export default function AIAssistantPage() {
         },
         onError: (err) => {
           console.error(' Interpretation error:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -66,8 +62,6 @@ export default function AIAssistantPage() {
     if (!suggestedAction) return;
 
     console.log('⚡ Executing action:', suggestedAction);
-    setApiError(null);
-    setSuccessMessage(null);
 
     executeMutation.mutate(
       {
@@ -78,7 +72,7 @@ export default function AIAssistantPage() {
       {
         onSuccess: (result) => {
           console.log(' Action executed:', result);
-          setSuccessMessage('Action exécutée avec succès !');
+          toast.success('Action exécutée avec succès !');
           setConversationHistory([
             ...conversationHistory,
             {
@@ -89,11 +83,10 @@ export default function AIAssistantPage() {
           ]);
           setSuggestedAction(null);
           setInputMessage('');
-          setTimeout(() => setSuccessMessage(null), 3000);
         },
         onError: (err) => {
           console.error(' Execution error:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -101,13 +94,11 @@ export default function AIAssistantPage() {
 
   const handleAct = () => {
     if (!inputMessage.trim()) {
-      setApiError('Veuillez entrer un message');
+      toast.error('Veuillez entrer un message');
       return;
     }
 
     console.log('🤖 AI Act (interpret + execute):', inputMessage);
-    setApiError(null);
-    setSuccessMessage(null);
 
     actMutation.mutate(
       {
@@ -126,14 +117,13 @@ export default function AIAssistantPage() {
               timestamp: new Date(),
             },
           ]);
-          setSuccessMessage('Action exécutée avec succès !');
+          toast.success('Action exécutée avec succès !');
           setInputMessage('');
           setSuggestedAction(null);
-          setTimeout(() => setSuccessMessage(null), 3000);
         },
         onError: (err) => {
           console.error(' Act error:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -141,69 +131,63 @@ export default function AIAssistantPage() {
 
   const handleAnalyzeGantt = () => {
     if (!projectId) {
-      setApiError('Aucun projet sélectionné');
+      toast.error('Aucun projet sélectionné');
       return;
     }
 
     console.log(' Analyzing Gantt:', projectId);
-    setApiError(null);
 
     analyzeGanttMutation.mutate(undefined, {
       onSuccess: (response) => {
         console.log(' Gantt analysis:', response);
         setAnalysisResults({ ...analysisResults, gantt: response.analysis });
-        setSuccessMessage('Analyse Gantt terminée!');
-        setTimeout(() => setSuccessMessage(null), 3000);
+        toast.success('Analyse Gantt terminée!');
       },
       onError: (err) => {
         console.error(' Gantt analysis error:', getApiError(err));
-        setApiError(getApiError(err));
+        toast.error(getApiError(err), { title: 'Échec' });
       },
     });
   };
 
   const handleAnalyzePert = () => {
     if (!projectId) {
-      setApiError('Aucun projet sélectionné');
+      toast.error('Aucun projet sélectionné');
       return;
     }
 
     console.log('🔗 Analyzing PERT:', projectId);
-    setApiError(null);
 
     analyzePertMutation.mutate(undefined, {
       onSuccess: (response) => {
         console.log(' PERT analysis:', response);
         setAnalysisResults({ ...analysisResults, pert: response.analysis });
-        setSuccessMessage('Analyse PERT terminée!');
-        setTimeout(() => setSuccessMessage(null), 3000);
+        toast.success('Analyse PERT terminée!');
       },
       onError: (err) => {
         console.error(' PERT analysis error:', getApiError(err));
-        setApiError(getApiError(err));
+        toast.error(getApiError(err), { title: 'Échec' });
       },
     });
   };
 
   const handleAnalyzeDelays = () => {
     if (!projectId) {
-      setApiError('Aucun projet sélectionné');
+      toast.error('Aucun projet sélectionné');
       return;
     }
 
     console.log(' Analyzing delays:', projectId);
-    setApiError(null);
 
     analyzeDelaysMutation.mutate(undefined, {
       onSuccess: (response) => {
         console.log(' Delays analysis:', response);
         setAnalysisResults({ ...analysisResults, delays: response.analysis });
-        setSuccessMessage('Analyse des retards terminée!');
-        setTimeout(() => setSuccessMessage(null), 3000);
+        toast.success('Analyse des retards terminée!');
       },
       onError: (err) => {
         console.error(' Delays analysis error:', getApiError(err));
-        setApiError(getApiError(err));
+        toast.error(getApiError(err), { title: 'Échec' });
       },
     });
   };
@@ -216,24 +200,6 @@ export default function AIAssistantPage() {
           Utilisez l'IA pour obtenir des suggestions et exécuter des actions automatiquement
         </p>
       </div>
-
-      {successMessage && (
-        <Alert
-          type="success"
-          title="Succès"
-          message={successMessage}
-          onClose={() => setSuccessMessage(null)}
-        />
-      )}
-
-      {apiError && (
-        <Alert
-          type="error"
-          title="Erreur"
-          message={apiError}
-          onClose={() => setApiError(null)}
-        />
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 space-y-4">

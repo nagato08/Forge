@@ -14,11 +14,11 @@ import {
 } from '@/lib/hooks/useDocuments';
 import { getApiError } from '@/lib/utils/api-error';
 import Spinner from '@/components/ui/Spinner';
-import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import Card from '@/components/ui/Card';
+import { toast } from '@/lib/stores/toast.store';
 import {
   FileText,
   Plus,
@@ -65,7 +65,6 @@ export default function DocumentsPage() {
   const [renaming, setRenaming] = useState(false);
   const [renameName, setRenameName] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedDocQuery = useDocumentById(selectedDocId);
@@ -77,11 +76,7 @@ export default function DocumentsPage() {
 
   if (error) {
     return (
-      <Alert
-        type="error"
-        title="Erreur"
-        message="Impossible de charger les documents"
-      />
+      <div className="p-6 text-text-secondary">Impossible de charger les documents</div>
     );
   }
 
@@ -90,7 +85,6 @@ export default function DocumentsPage() {
   const handleCreateDocument = () => {
     if (!newDocName.trim()) return;
     console.log('Creating document:', newDocName);
-    setApiError(null);
 
     createMutation.mutate(
       { projectId, name: newDocName },
@@ -102,7 +96,7 @@ export default function DocumentsPage() {
         },
         onError: (err) => {
           console.error('Create document error:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -112,13 +106,11 @@ export default function DocumentsPage() {
     console.log('Document selected:', docId);
     setSelectedDocId(docId);
     setShowDetailModal(true);
-    setApiError(null);
   };
 
   const handleRenameDocument = () => {
     if (!doc || !renameName.trim()) return;
     console.log('Renaming document:', doc.id, '->', renameName);
-    setApiError(null);
 
     updateMutation.mutate(
       { documentId: doc.id, name: renameName },
@@ -130,7 +122,7 @@ export default function DocumentsPage() {
         },
         onError: (err) => {
           console.error('Rename error:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -139,7 +131,6 @@ export default function DocumentsPage() {
   const handleUploadVersion = (file: File) => {
     if (!doc) return;
     console.log('Uploading version for doc:', doc.id, file.name);
-    setApiError(null);
 
     uploadMutation.mutate(
       { documentId: doc.id, file },
@@ -150,7 +141,7 @@ export default function DocumentsPage() {
         },
         onError: (err) => {
           console.error('Upload error:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -159,7 +150,6 @@ export default function DocumentsPage() {
   const handleAddComment = () => {
     if (!doc || !commentText.trim()) return;
     console.log('Adding comment to doc:', doc.id);
-    setApiError(null);
 
     addCommentMutation.mutate(
       { documentId: doc.id, content: commentText },
@@ -170,7 +160,7 @@ export default function DocumentsPage() {
         },
         onError: (err) => {
           console.error('Add comment error:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec' });
         },
       }
     );
@@ -179,7 +169,6 @@ export default function DocumentsPage() {
   const handleDeleteDocument = () => {
     if (!doc) return;
     console.log('Deleting document:', doc.id);
-    setApiError(null);
 
     deleteMutation.mutate(doc.id, {
       onSuccess: () => {
@@ -190,7 +179,7 @@ export default function DocumentsPage() {
       },
       onError: (err) => {
         console.error('Delete error:', getApiError(err));
-        setApiError(getApiError(err));
+        toast.error(getApiError(err), { title: 'Échec' });
       },
     });
   };
@@ -264,7 +253,6 @@ export default function DocumentsPage() {
         onClose={() => {
           setShowCreateModal(false);
           setNewDocName('');
-          setApiError(null);
         }}
         title="Creer un document"
         size="sm"
@@ -276,7 +264,6 @@ export default function DocumentsPage() {
               onClick={() => {
                 setShowCreateModal(false);
                 setNewDocName('');
-                setApiError(null);
               }}
             >
               Annuler
@@ -292,14 +279,6 @@ export default function DocumentsPage() {
           </div>
         }
       >
-        {apiError && (
-          <Alert
-            type="error"
-            title="Erreur"
-            message={apiError}
-            onClose={() => setApiError(null)}
-          />
-        )}
         <Input
           label="Nom du document"
           placeholder="ex: Rapport_Q3.pdf"
@@ -318,7 +297,6 @@ export default function DocumentsPage() {
           setRenaming(false);
           setConfirmDelete(false);
           setCommentText('');
-          setApiError(null);
         }}
         title={doc ? doc.name : ''}
         size="lg"
@@ -373,15 +351,6 @@ export default function DocumentsPage() {
           </div>
         }
       >
-        {apiError && (
-          <Alert
-            type="error"
-            title="Erreur"
-            message={apiError}
-            onClose={() => setApiError(null)}
-          />
-        )}
-
         {doc && (
           <div className="space-y-6">
             {/* Title with rename */}

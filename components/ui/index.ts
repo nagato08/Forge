@@ -18,6 +18,7 @@ export {
   getRoleBadge,
 } from './Badge';
 export { default as Alert, type AlertProps, type AlertType } from './Alert';
+export { default as ErrorAlert } from './ErrorAlert';
 export { default as Spinner, type SpinnerProps, type SpinnerSize, type SpinnerColor } from './Spinner';
 export { default as Tooltip, type TooltipProps, type TooltipPosition } from './Tooltip';
 export { default as Toaster } from './Toaster';

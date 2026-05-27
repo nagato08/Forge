@@ -244,9 +244,11 @@ export function useUploadAvatar() {
  * Hook pour récupérer les enums des départements
  */
 export function useGetDepartmentEnums() {
+  const token = useAuthStore((state) => state.token);
   return useQuery({
     queryKey: ['auth', 'enums', 'departments'],
     queryFn: () => authApi.getDepartmentEnums(),
+    enabled: !!token,
     staleTime: Infinity, // Les enums ne changent pas
   });
 }

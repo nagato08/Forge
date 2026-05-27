@@ -16,18 +16,13 @@ import { getRoleBadge } from '@/components/ui/Badge';
 import { useEffect, useState } from 'react';
 
 /**
- * S'abonne à l'état d'hydratation du store persisté Zustand.
- * hasHydrated() peut déjà être true au mount → on lit la valeur courante
- * dans un effect en plus de l'abonnement à onFinishHydration.
+ * Évite hydration mismatch SSR/client: rend null côté SSR, puis vrai contenu après mount.
+ * Au mount, Zustand a déjà hydraté depuis localStorage → role/user lisibles via selector.
  */
-function useStoreHydrated() {
-  const [hydrated, setHydrated] = useState(
-    () => typeof window !== 'undefined' && useAuthStore.persist.hasHydrated()
-  );
-  useEffect(() => {
-    return useAuthStore.persist.onFinishHydration(() => setHydrated(true));
-  }, []);
-  return hydrated;
+function useMounted() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return mounted;
 }
 
 const mainNavItems = [
@@ -52,13 +47,13 @@ export default function Sidebar() {
   const setSidebarOpen = useUIStore((state) => state.setSidebarOpen);
   const user = useAuthStore((state) => state.user);
   const role = useAuthStore((state) => state.role);
-  const hydrated = useStoreHydrated();
+  const mounted = useMounted();
 
   const isActive = (href: string) => {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
-  const isAdmin = hydrated && role === 'ADMIN';
+  const isAdmin = mounted && role === 'ADMIN';
 
   const handleNavClick = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {

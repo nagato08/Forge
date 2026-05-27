@@ -14,11 +14,11 @@ import {
 } from '@/lib/hooks';
 import { getApiError } from '@/lib/utils/api-error';
 import Spinner from '@/components/ui/Spinner';
-import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import Card from '@/components/ui/Card';
+import { toast } from '@/lib/stores/toast.store';
 import {
   Clock,
   Play,
@@ -63,7 +63,6 @@ export default function TimeTrackingPage() {
 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showManualModal, setShowManualModal] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const [manualForm, setManualForm] = useState({
@@ -100,11 +99,35 @@ export default function TimeTrackingPage() {
 
   const handleStartTimer = () => {
     if (!manualForm.taskId.trim()) {
-      setApiError('Veuillez sélectionner une tâche');
+      toast.error('Veuillez sélectionner une tâche');
       return;
     }
+
+    const selectedTask = myTasks?.find((t) => t.id === manualForm.taskId);
+    if (!selectedTask) {
+      toast.error('Tâche non trouvée');
+      return;
+    }
+
+    // Vérifier les dépendances
+    if (selectedTask.blockedBy && selectedTask.blockedBy.length > 0) {
+      const TaskStatus = { TODO: 'TODO', DOING: 'DOING', DONE: 'DONE' };
+      const unblockedTasks = selectedTask.blockedBy.filter(
+        (dep) => dep.blockingTask?.status !== TaskStatus.DONE
+      );
+
+      if (unblockedTasks.length > 0) {
+        const names = unblockedTasks
+          .map((dep) => dep.blockingTask?.title || 'Tâche inconnue')
+          .join(', ');
+        toast.error(`Cette tâche est bloquée par "${names}" qui n'est pas encore terminée`, {
+          title: 'Tâche bloquée',
+        });
+        return;
+      }
+    }
+
     console.log('Starting timer for task:', manualForm.taskId);
-    setApiError(null);
 
     startMutation.mutate(manualForm.taskId, {
       onSuccess: (timer) => {
@@ -113,14 +136,13 @@ export default function TimeTrackingPage() {
       },
       onError: (err) => {
         console.error(' Start timer error:', getApiError(err));
-        setApiError(getApiError(err));
+        toast.error(getApiError(err), { title: 'Échec' });
       },
     });
   };
 
   const handleStopTimer = () => {
     console.log('Stopping active timer');
-    setApiError(null);
 
     stopMutation.mutate(undefined, {
       onSuccess: (entry) => {
@@ -128,23 +150,46 @@ export default function TimeTrackingPage() {
       },
       onError: (err) => {
         console.error(' Stop timer error:', getApiError(err));
-        setApiError(getApiError(err));
+        toast.error(getApiError(err), { title: 'Échec' });
       },
     });
   };
 
   const handleAddManualEntry = () => {
     if (!manualForm.taskId.trim()) {
-      setApiError('Veuillez sélectionner une tâche');
+      toast.error('Veuillez sélectionner une tâche');
       return;
     }
     if (!manualForm.startTime) {
-      setApiError('Veuillez entrer une heure de début');
+      toast.error('Veuillez entrer une heure de début');
       return;
     }
 
+    const selectedTask = myTasks?.find((t) => t.id === manualForm.taskId);
+    if (!selectedTask) {
+      toast.error('Tâche non trouvée');
+      return;
+    }
+
+    // Vérifier les dépendances
+    if (selectedTask.blockedBy && selectedTask.blockedBy.length > 0) {
+      const TaskStatus = { TODO: 'TODO', DOING: 'DOING', DONE: 'DONE' };
+      const unblockedTasks = selectedTask.blockedBy.filter(
+        (dep) => dep.blockingTask?.status !== TaskStatus.DONE
+      );
+
+      if (unblockedTasks.length > 0) {
+        const names = unblockedTasks
+          .map((dep) => dep.blockingTask?.title || 'Tâche inconnue')
+          .join(', ');
+        toast.error(`Cette tâche est bloquée par "${names}" qui n'est pas encore terminée`, {
+          title: 'Tâche bloquée',
+        });
+        return;
+      }
+    }
+
     console.log('Adding manual time entry:', manualForm.taskId);
-    setApiError(null);
 
     const data: any = {
       taskId: manualForm.taskId,
@@ -165,14 +210,13 @@ export default function TimeTrackingPage() {
       },
       onError: (err) => {
         console.error(' Add manual entry error:', getApiError(err));
-        setApiError(getApiError(err));
+        toast.error(getApiError(err), { title: 'Échec' });
       },
     });
   };
 
   const handleDeleteEntry = (entryId: string) => {
     console.log('Deleting time entry:', entryId);
-    setApiError(null);
 
     deleteMutation.mutate(entryId, {
       onSuccess: () => {
@@ -180,7 +224,7 @@ export default function TimeTrackingPage() {
       },
       onError: (err) => {
         console.error(' Delete entry error:', getApiError(err));
-        setApiError(getApiError(err));
+        toast.error(getApiError(err), { title: 'Échec' });
       },
     });
   };
@@ -294,16 +338,6 @@ export default function TimeTrackingPage() {
           )}
         </div>
       </Card>
-
-      {/* Error Alert */}
-      {apiError && (
-        <Alert
-          type="error"
-          title="Erreur"
-          message={apiError}
-          onClose={() => setApiError(null)}
-        />
-      )}
 
       {/* Stats Section */}
       {stats && (
@@ -444,7 +478,6 @@ export default function TimeTrackingPage() {
         onClose={() => {
           setShowManualModal(false);
           setManualForm({ taskId: '', startTime: '', endTime: '', duration: '' });
-          setApiError(null);
         }}
         title="Saisie manuelle de temps"
         size="sm"
@@ -461,7 +494,6 @@ export default function TimeTrackingPage() {
                   endTime: '',
                   duration: '',
                 });
-                setApiError(null);
               }}
             >
               Annuler
@@ -477,15 +509,6 @@ export default function TimeTrackingPage() {
           </div>
         }
       >
-        {apiError && (
-          <Alert
-            type="error"
-            title="Erreur"
-            message={apiError}
-            onClose={() => setApiError(null)}
-          />
-        )}
-
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-primary">

@@ -9,7 +9,8 @@ import { useRouter } from 'next/navigation';
 import { useRegister } from '@/lib/hooks/useAuth';
 import { useGetDepartmentEnums } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/stores/auth.store';
-import { Button, Input, Select, Card, Alert } from '@/components/ui';
+import { Button, Input, Select, Card } from '@/components/ui';
+import { toast } from '@/lib/stores/toast.store';
 import { getApiError } from '@/lib/utils/api-error';
 import { Role, Department } from '@/lib/types/user.types';
 import { ROLE_ROUTES } from '@/lib/utils/auth-routes';
@@ -43,7 +44,6 @@ export default function RegisterPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
   const registerMutation = useRegister();
   const { data: departments, isLoading: deptLoading } = useGetDepartmentEnums();
 
@@ -62,7 +62,6 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterForm) => {
     console.log('Register form submitted:', data.email, 'role:', data.role);
-    setApiError(null);
     registerMutation.mutate(
       {
         firstName: data.firstName,
@@ -82,7 +81,7 @@ export default function RegisterPage() {
         },
         onError: (error) => {
           console.error('Registration error:', getApiError(error));
-          setApiError(getApiError(error));
+          toast.error(getApiError(error), { title: 'Erreur' });
         },
       }
     );
@@ -113,15 +112,6 @@ export default function RegisterPage() {
 
         {/* Form Card */}
         <Card className="space-y-6 shadow-lg">
-          {apiError && (
-            <Alert
-              type="error"
-              title="Erreur d'inscription"
-              message={apiError}
-              onClose={() => setApiError(null)}
-            />
-          )}
-
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Name Row */}
             <div className="grid grid-cols-2 gap-3">

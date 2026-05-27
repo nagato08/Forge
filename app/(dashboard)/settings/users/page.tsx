@@ -7,8 +7,8 @@ import { Role } from '@/lib/types/user.types';
 import type { CreateUserRequest } from '@/lib/types/user.types';
 import { UserPlus, Trash2, Shield, Users as UsersIcon } from 'lucide-react';
 import Spinner from '@/components/ui/Spinner';
-import Alert from '@/components/ui/Alert';
 import Card from '@/components/ui/Card';
+import { toast } from '@/lib/stores/toast.store';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
@@ -21,7 +21,6 @@ export default function UsersManagementPage() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -38,11 +37,9 @@ export default function UsersManagementPage() {
 
   const handleCreateUser = () => {
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-      setApiError('Tous les champs obligatoires doivent être remplis');
+      toast.error('Tous les champs obligatoires doivent être remplis');
       return;
     }
-
-    setApiError(null);
 
     const payload: CreateUserRequest = {
       firstName: formData.firstName,
@@ -56,7 +53,7 @@ export default function UsersManagementPage() {
 
     createUserMutation.mutate(payload, {
       onSuccess: () => {
-        console.log('User created successfully');
+        toast.success('Utilisateur créé');
         setShowCreateModal(false);
         setFormData({
           firstName: '',
@@ -69,24 +66,19 @@ export default function UsersManagementPage() {
         });
       },
       onError: (err) => {
-        console.error('User creation error:', getApiError(err));
-        setApiError(getApiError(err));
+        toast.error(getApiError(err), { title: 'Échec création' });
       },
     });
   };
 
   const handleDeleteUser = (userId: string) => {
-    console.log('Deleting user:', userId);
-    setApiError(null);
-
     deleteUserMutation.mutate(userId, {
       onSuccess: () => {
-        console.log('User deleted:', userId);
+        toast.success('Utilisateur supprimé');
         setDeleteConfirmId(null);
       },
       onError: (err) => {
-        console.error('Delete user error:', getApiError(err));
-        setApiError(getApiError(err));
+        toast.error(getApiError(err), { title: 'Échec suppression' });
         setDeleteConfirmId(null);
       },
     });
@@ -148,16 +140,6 @@ export default function UsersManagementPage() {
           </div>
         </Card>
       </div>
-
-      {/* Error Alert */}
-      {apiError && (
-        <Alert
-          type="error"
-          title="Erreur"
-          message={apiError}
-          onClose={() => setApiError(null)}
-        />
-      )}
 
       {/* Users List */}
       <Card>
@@ -264,7 +246,6 @@ export default function UsersManagementPage() {
             department: '',
             jobTitle: '',
           });
-          setApiError(null);
         }}
         title="Créer un nouvel utilisateur"
         size="sm"
@@ -284,7 +265,6 @@ export default function UsersManagementPage() {
                   department: '',
                   jobTitle: '',
                 });
-                setApiError(null);
               }}
             >
               Annuler
@@ -300,15 +280,6 @@ export default function UsersManagementPage() {
           </div>
         }
       >
-        {apiError && (
-          <Alert
-            type="error"
-            title="Erreur"
-            message={apiError}
-            onClose={() => setApiError(null)}
-          />
-        )}
-
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <Input

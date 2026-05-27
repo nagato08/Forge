@@ -43,16 +43,47 @@ const COLORS = {
   info: '#58A6FF',
 };
 
-function generateSparklineData(value: number, trend: 'up' | 'down' | 'stable') {
-  const data = [];
-  let current = value * 0.7;
-  for (let i = 0; i < 7; i++) {
-    const variance = (Math.random() - 0.5) * (value * 0.2);
-    if (trend === 'up') current += value * 0.05;
-    else if (trend === 'down') current -= value * 0.05;
-    data.push({ value: Math.max(0, current + variance) });
+function buildSparkline<T>(
+  items: T[] | undefined,
+  getDate: (item: T) => string | undefined,
+  nowMs: number,
+  days = 7
+) {
+  const dayMs = 24 * 60 * 60 * 1000;
+  const total = (items || []).length;
+  const createdInWindow: number[] = Array(days).fill(0);
+  (items || []).forEach((it) => {
+    const d = getDate(it);
+    if (!d) return;
+    const t = new Date(d).getTime();
+    const diffDays = Math.floor((nowMs - t) / dayMs);
+    if (diffDays >= 0 && diffDays < days) {
+      createdInWindow[days - 1 - diffDays] += 1;
+    }
+  });
+  let running = total - createdInWindow.reduce((a, b) => a + b, 0);
+  const buckets: number[] = [];
+  for (let i = 0; i < days; i++) {
+    running += createdInWindow[i];
+    buckets.push(running);
   }
-  return data;
+  return buckets.map((value) => ({ value }));
+}
+
+function percentChange(current: number, prev: number): number {
+  if (prev === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - prev) / prev) * 100);
+}
+
+function inWindow(dateStr: string | undefined, cutoffMs: number): boolean {
+  if (!dateStr) return false;
+  return new Date(dateStr).getTime() >= cutoffMs;
+}
+
+function inRange(dateStr: string | undefined, fromMs: number, toMs: number): boolean {
+  if (!dateStr) return false;
+  const t = new Date(dateStr).getTime();
+  return t >= fromMs && t < toMs;
 }
 
 export default function AdminDashboardPage() {
@@ -100,37 +131,130 @@ export default function AdminDashboardPage() {
     [totalTasks, tasksByStatus.DONE]
   );
 
+  const periodDays = period === '7d' ? 7 : period === '30d' ? 30 : 90;
+  const periodMs = periodDays * 24 * 60 * 60 * 1000;
+  const [now] = useState<number>(() => Date.now());
+  const cutoffStart = now - periodMs;
+  const cutoffPrev = now - 2 * periodMs;
+
   const taskTrends = useMemo(
-    () => generateSparklineData(totalTasks, completionRate > 60 ? 'up' : 'stable'),
-    [totalTasks, completionRate]
+    () => buildSparkline(allTasks, (t) => t.createdAt, now, 7),
+    [allTasks, now]
   );
 
-  const userTrends = useMemo(() => generateSparklineData(totalUsers, 'up'), [totalUsers]);
+  const userTrends = useMemo(
+    () => buildSparkline(users, (u) => u.createdAt, now, 7),
+    [users, now]
+  );
 
   const projectTrends = useMemo(
-    () =>
-      generateSparklineData(
-        totalProjects,
-        projectsByStatus.ACTIVE > totalProjects * 0.5 ? 'up' : 'down'
-      ),
-    [totalProjects, projectsByStatus.ACTIVE]
+    () => buildSparkline(projects, (p) => p.createdAt, now, 7),
+    [projects, now]
   );
 
-  const progressionData = useMemo(() => {
-    const data = [];
-    for (let i = 30; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
+  const newUsersThisPeriod = useMemo(
+    () => users?.filter((u) => inWindow(u.createdAt, cutoffStart)).length || 0,
+    [users, cutoffStart]
+  );
 
-      // Utiliser les chiffres exacts actuels pour chaque jour
+  const doneTasksThisPeriod = useMemo(
+    () => allTasks?.filter((t) => t.status === 'DONE' && inWindow(t.updatedAt, cutoffStart)).length || 0,
+    [allTasks, cutoffStart]
+  );
+
+  const doneTasksPrevPeriod = useMemo(
+    () => allTasks?.filter((t) => t.status === 'DONE' && inRange(t.updatedAt, cutoffPrev, cutoffStart)).length || 0,
+    [allTasks, cutoffPrev, cutoffStart]
+  );
+
+  const doneTasksChange = useMemo(
+    () => percentChange(doneTasksThisPeriod, doneTasksPrevPeriod),
+    [doneTasksThisPeriod, doneTasksPrevPeriod]
+  );
+
+  const activeProjectsNow = projectsByStatus.ACTIVE;
+  const activeProjectsCreatedThisPeriod = useMemo(
+    () => projects?.filter((p) => p.status === 'ACTIVE' && inWindow(p.createdAt, cutoffStart)).length || 0,
+    [projects, cutoffStart]
+  );
+  const activeProjectsCreatedPrevPeriod = useMemo(
+    () => projects?.filter((p) => p.status === 'ACTIVE' && inRange(p.createdAt, cutoffPrev, cutoffStart)).length || 0,
+    [projects, cutoffPrev, cutoffStart]
+  );
+  const activeProjectsChange = useMemo(
+    () => percentChange(activeProjectsCreatedThisPeriod, activeProjectsCreatedPrevPeriod),
+    [activeProjectsCreatedThisPeriod, activeProjectsCreatedPrevPeriod]
+  );
+
+  const activeUserIds = useMemo(() => {
+    const ids = new Set<string>();
+    allTasks?.forEach((t) => {
+      if (!inWindow(t.updatedAt, cutoffStart)) return;
+      const users = t.assignments?.map((a: TaskAssignment) => a.user.id) || t.assignedUsers?.map((u) => u.id) || [];
+      users.forEach((id) => ids.add(id));
+    });
+    return ids;
+  }, [allTasks, cutoffStart]);
+
+  const activeUserIdsPrev = useMemo(() => {
+    const ids = new Set<string>();
+    allTasks?.forEach((t) => {
+      if (!inRange(t.updatedAt, cutoffPrev, cutoffStart)) return;
+      const users = t.assignments?.map((a: TaskAssignment) => a.user.id) || t.assignedUsers?.map((u) => u.id) || [];
+      users.forEach((id) => ids.add(id));
+    });
+    return ids;
+  }, [allTasks, cutoffPrev, cutoffStart]);
+
+  const activeUsersChange = useMemo(
+    () => percentChange(activeUserIds.size, activeUserIdsPrev.size),
+    [activeUserIds, activeUserIdsPrev]
+  );
+
+  const completionRatePrev = useMemo(() => {
+    const tasksAtStartOfPeriod = allTasks?.filter((t) => new Date(t.createdAt).getTime() < cutoffStart) || [];
+    if (tasksAtStartOfPeriod.length === 0) return 0;
+    const doneBefore = tasksAtStartOfPeriod.filter(
+      (t) => t.status === 'DONE' && new Date(t.updatedAt).getTime() < cutoffStart
+    ).length;
+    return Math.round((doneBefore / tasksAtStartOfPeriod.length) * 100);
+  }, [allTasks, cutoffStart]);
+
+  const completionRateChange = completionRate - completionRatePrev;
+
+  const progressionData = useMemo(() => {
+    const dayMs = 24 * 60 * 60 * 1000;
+    const days = 30;
+    const data: Array<{ date: string; completed: number; inProgress: number }> = [];
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = days - 1; i >= 0; i--) {
+      const dayStart = new Date(today.getTime() - i * dayMs);
+      const dayEnd = new Date(dayStart.getTime() + dayMs);
+
+      const completed =
+        allTasks?.filter((t) => {
+          if (t.status !== 'DONE') return false;
+          const u = new Date(t.updatedAt).getTime();
+          return u >= dayStart.getTime() && u < dayEnd.getTime();
+        }).length || 0;
+
+      const inProgress =
+        allTasks?.filter((t) => {
+          if (t.status !== 'DOING') return false;
+          const u = new Date(t.updatedAt).getTime();
+          return u >= dayStart.getTime() && u < dayEnd.getTime();
+        }).length || 0;
+
       data.push({
-        date: date.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }),
-        completed: tasksByStatus.DONE,
-        inProgress: tasksByStatus.DOING,
+        date: dayStart.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }),
+        completed,
+        inProgress,
       });
     }
     return data;
-  }, [tasksByStatus.DONE, tasksByStatus.DOING]);
+  }, [allTasks, now]);
 
   const risks = useMemo(() => {
     const alerts: Array<{
@@ -144,7 +268,7 @@ export default function AdminDashboardPage() {
     const overdueTasks =
       allTasks?.filter((t) => {
         if (t.status === 'DONE' || !t.deadline) return false;
-        return new Date(t.deadline) < new Date();
+        return new Date(t.deadline).getTime() < now;
       }).length || 0;
 
     if (overdueTasks > 0) {
@@ -161,7 +285,7 @@ export default function AdminDashboardPage() {
       projects?.filter((p) => {
         if (p.status === 'COMPLETED' || p.status === 'CANCELLED' || !p.endDate) return false;
         const daysUntilEnd = Math.ceil(
-          (new Date(p.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+          (new Date(p.endDate).getTime() - now) / (1000 * 60 * 60 * 24)
         );
         return daysUntilEnd < 7 && daysUntilEnd > 0;
       }).length || 0;
@@ -176,13 +300,20 @@ export default function AdminDashboardPage() {
       });
     }
 
-    const inactiveUsers = Math.floor(totalUsers * 0.15);
+    const twoWeeksAgo = now - 14 * 24 * 60 * 60 * 1000;
+    const activeUserIdsSet = new Set<string>();
+    allTasks?.forEach((t) => {
+      if (new Date(t.updatedAt).getTime() < twoWeeksAgo) return;
+      const ids = t.assignments?.map((a: TaskAssignment) => a.user.id) || t.assignedUsers?.map((u) => u.id) || [];
+      ids.forEach((id) => activeUserIdsSet.add(id));
+    });
+    const inactiveUsers = (users || []).filter((u) => !activeUserIdsSet.has(u.id)).length;
     if (inactiveUsers > 0) {
       alerts.push({
         type: 'info',
         icon: Users,
         title: `${inactiveUsers} utilisateurs inactifs`,
-        description: 'Pas d\'activité depuis 2 semaines',
+        description: 'Aucune activité sur tâche depuis 2 semaines',
         color: 'text-info',
       });
     }
@@ -198,7 +329,7 @@ export default function AdminDashboardPage() {
     }
 
     return alerts;
-  }, [allTasks, projects, totalUsers, completionRate]);
+  }, [allTasks, projects, users, completionRate, now]);
 
   const topContributors = useMemo(() => {
     const contributorMap: {
@@ -232,32 +363,42 @@ export default function AdminDashboardPage() {
       {
         label: 'Tâches complétées',
         value: tasksByStatus.DONE,
-        change: '+12%',
-        trend: 'up' as const,
+        change: `${doneTasksChange >= 0 ? '+' : ''}${doneTasksChange}%`,
+        trend: (doneTasksChange >= 0 ? 'up' : 'down') as 'up' | 'down',
       },
       {
         label: 'Projets actifs',
-        value: projectsByStatus.ACTIVE,
-        change: '+3%',
-        trend: 'up' as const,
+        value: activeProjectsNow,
+        change: `${activeProjectsChange >= 0 ? '+' : ''}${activeProjectsChange}%`,
+        trend: (activeProjectsChange >= 0 ? 'up' : 'down') as 'up' | 'down',
       },
       {
         label: 'Utilisateurs actifs',
-        value: Math.floor(totalUsers * 0.85),
-        change: '-2%',
-        trend: 'down' as const,
+        value: activeUserIds.size,
+        change: `${activeUsersChange >= 0 ? '+' : ''}${activeUsersChange}%`,
+        trend: (activeUsersChange >= 0 ? 'up' : 'down') as 'up' | 'down',
       },
     ],
-    [tasksByStatus.DONE, projectsByStatus.ACTIVE, totalUsers]
+    [
+      tasksByStatus.DONE,
+      activeProjectsNow,
+      activeUserIds,
+      doneTasksChange,
+      activeProjectsChange,
+      activeUsersChange,
+    ]
   );
 
   const projectsWithMetrics = useMemo(() => {
-    return (projects || []).slice(0, 8).map((p, idx) => ({
-      name: p.name.substring(0, 12),
-      tasks: allTasks?.filter((t) => t.projectId === p.id).length || 0,
-      messages: (idx * 7) % 50 + 5,
-      documents: (idx * 3) % 20 + 2,
-    }));
+    return (projects || []).slice(0, 8).map((p) => {
+      const projectTasks = allTasks?.filter((t) => t.projectId === p.id) || [];
+      return {
+        name: p.name.substring(0, 12),
+        tasks: projectTasks.length,
+        completed: projectTasks.filter((t) => t.status === 'DONE').length,
+        members: p._count?.members ?? p.membersCount ?? p.members?.length ?? 0,
+      };
+    });
   }, [projects, allTasks]);
 
   const projectStatusData = useMemo(
@@ -345,8 +486,16 @@ export default function AdminDashboardPage() {
               </ResponsiveContainer>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <ArrowUp className="w-4 h-4 text-success" />
-              <span className="text-success font-medium">+5 cette semaine</span>
+              {newUsersThisPeriod > 0 ? (
+                <>
+                  <ArrowUp className="w-4 h-4 text-success" />
+                  <span className="text-success font-medium">
+                    +{newUsersThisPeriod} sur {periodDays}j
+                  </span>
+                </>
+              ) : (
+                <span className="text-text-secondary">Aucun nouveau sur {periodDays}j</span>
+              )}
             </div>
           </div>
         </Card>
@@ -428,15 +577,17 @@ export default function AdminDashboardPage() {
               />
             </div>
             <div className="flex items-center gap-2 text-sm">
-              {completionRate > 60 ? (
+              {completionRateChange === 0 ? (
+                <span className="text-text-secondary">Stable</span>
+              ) : completionRateChange > 0 ? (
                 <>
                   <ArrowUp className="w-4 h-4 text-success" />
-                  <span className="text-success font-medium">+8%</span>
+                  <span className="text-success font-medium">+{completionRateChange} pts</span>
                 </>
               ) : (
                 <>
                   <ArrowDown className="w-4 h-4 text-warning" />
-                  <span className="text-warning font-medium">-2%</span>
+                  <span className="text-warning font-medium">{completionRateChange} pts</span>
                 </>
               )}
             </div>
@@ -677,8 +828,8 @@ export default function AdminDashboardPage() {
               />
               <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--text-secondary)' }} />
               <Bar dataKey="tasks" fill={COLORS.primary} name="Tâches" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="messages" fill={COLORS.info} name="Messages" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="documents" fill={COLORS.success} name="Documents" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="completed" fill={COLORS.success} name="Complétées" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="members" fill={COLORS.info} name="Membres" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>

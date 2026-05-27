@@ -12,6 +12,7 @@ import {
 } from '@/lib/hooks/useAuth';
 import { Button, Input, Card, Alert, Spinner } from '@/components/ui';
 import { getApiError } from '@/lib/utils/api-error';
+import { toast } from '@/lib/stores/toast.store';
 
 const resetSchema = z
   .object({
@@ -32,7 +33,6 @@ export default function ResetPasswordTokenPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [tokenValid, setTokenValid] = useState<boolean | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const verifyMutation = useVerifyResetToken();
@@ -68,7 +68,6 @@ export default function ResetPasswordTokenPage() {
 
   const onSubmit = async (data: ResetForm) => {
     console.log('🔒 Resetting password with token:', token.substring(0, 8) + '...');
-    setApiError(null);
     resetMutation.mutate(
       { token, password: data.password },
       {
@@ -78,7 +77,7 @@ export default function ResetPasswordTokenPage() {
         },
         onError: (error) => {
           console.error(' Password reset error:', getApiError(error));
-          setApiError(getApiError(error));
+          toast.error(getApiError(error), { title: 'Erreur' });
         },
       }
     );
@@ -203,15 +202,6 @@ export default function ResetPasswordTokenPage() {
 
         {/* Form Card */}
         <Card className="space-y-6 shadow-lg">
-          {apiError && (
-            <Alert
-              type="error"
-              title="Erreur"
-              message={apiError}
-              onClose={() => setApiError(null)}
-            />
-          )}
-
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Password */}
             <div className="relative">

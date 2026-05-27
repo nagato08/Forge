@@ -4,8 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useProfile, useUpdateProfile, useUploadAvatar } from '@/lib/hooks';
 import { getApiError } from '@/lib/utils/api-error';
 import Spinner from '@/components/ui/Spinner';
-import Alert from '@/components/ui/Alert';
 import Button from '@/components/ui/Button';
+import { toast } from '@/lib/stores/toast.store';
 import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
 import { User, Edit2, Camera, X, Loader2 } from 'lucide-react';
@@ -17,8 +17,6 @@ export default function ProfileSettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [editMode, setEditMode] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
@@ -46,17 +44,10 @@ export default function ProfileSettingsPage() {
   };
 
   const handleSave = () => {
-    console.log('Saving profile');
-    setApiError(null);
-    setSuccessMessage(null);
-
-    // Si une image est sélectionnée, l'uploader d'abord
     if (avatarPreview && fileInputRef.current?.files?.[0]) {
       const file = fileInputRef.current.files[0];
       uploadAvatarMutation.mutate(file, {
         onSuccess: () => {
-          console.log('Avatar uploaded, updating profile');
-          // Puis mettre à jour le profil
           updateMutation.mutate(
             {
               firstName: formData.firstName,
@@ -66,26 +57,21 @@ export default function ProfileSettingsPage() {
             },
             {
               onSuccess: () => {
-                console.log('Profile updated successfully');
-                setSuccessMessage('Profil mis à jour avec succès');
+                toast.success('Profil mis à jour');
                 setEditMode(false);
                 setAvatarPreview(null);
-                setTimeout(() => setSuccessMessage(null), 3000);
               },
               onError: (err) => {
-                console.error('Profile update error:', getApiError(err));
-                setApiError(getApiError(err));
+                toast.error(getApiError(err), { title: 'Échec mise à jour' });
               },
             }
           );
         },
         onError: (err) => {
-          console.error('Avatar upload error:', getApiError(err));
-          setApiError(getApiError(err));
+          toast.error(getApiError(err), { title: 'Échec upload avatar' });
         },
       });
     } else {
-      // Pas d'avatar, juste mettre à jour le profil
       updateMutation.mutate(
         {
           firstName: formData.firstName,
@@ -95,14 +81,11 @@ export default function ProfileSettingsPage() {
         },
         {
           onSuccess: () => {
-            console.log('Profile updated successfully');
-            setSuccessMessage('Profil mis à jour avec succès');
+            toast.success('Profil mis à jour');
             setEditMode(false);
-            setTimeout(() => setSuccessMessage(null), 3000);
           },
           onError: (err) => {
-            console.error('Profile update error:', getApiError(err));
-            setApiError(getApiError(err));
+            toast.error(getApiError(err), { title: 'Échec mise à jour' });
           },
         }
       );
@@ -118,7 +101,6 @@ export default function ProfileSettingsPage() {
       avatar: profile?.avatar || '',
     });
     setEditMode(false);
-    setApiError(null);
     setAvatarPreview(null);
   };
 
@@ -129,25 +111,21 @@ export default function ProfileSettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Vérifier le type de fichier
     if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      setApiError('Format non supporté. Utilisez JPG, PNG, WebP ou GIF');
+      toast.error('Format non supporté. Utilisez JPG, PNG, WebP ou GIF');
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    // Vérifier la taille du fichier
     if (file.size > MAX_AVATAR_SIZE) {
-      setApiError(`L'image ne doit pas dépasser ${MAX_AVATAR_SIZE / (1024 * 1024)} Mo`);
+      toast.error(`L'image ne doit pas dépasser ${MAX_AVATAR_SIZE / (1024 * 1024)} Mo`);
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    // Créer un preview
     const reader = new FileReader();
     reader.onload = (event) => {
       setAvatarPreview(event.target?.result as string);
-      setApiError(null);
     };
     reader.readAsDataURL(file);
   };
@@ -163,11 +141,7 @@ export default function ProfileSettingsPage() {
 
   if (!profile) {
     return (
-      <Alert
-        type="error"
-        title="Erreur"
-        message="Impossible de charger le profil"
-      />
+      <div className="p-6 text-text-secondary">Impossible de charger le profil</div>
     );
   }
 
@@ -183,26 +157,6 @@ export default function ProfileSettingsPage() {
           </p>
         </div>
       </div>
-
-      {/* Success Message */}
-      {successMessage && (
-        <Alert
-          type="success"
-          title="Succès"
-          message={successMessage}
-          onClose={() => setSuccessMessage(null)}
-        />
-      )}
-
-      {/* Error Alert */}
-      {apiError && (
-        <Alert
-          type="error"
-          title="Erreur"
-          message={apiError}
-          onClose={() => setApiError(null)}
-        />
-      )}
 
       {/* Profile Card */}
       <Card className="p-6 space-y-6">
