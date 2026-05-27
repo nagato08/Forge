@@ -111,15 +111,15 @@ export default function TimeTrackingPage() {
 
     // Vérifier les dépendances
     if (selectedTask.blockedBy && selectedTask.blockedBy.length > 0) {
-      const TaskStatus = { TODO: 'TODO', DOING: 'DOING', DONE: 'DONE' };
-      const unblockedTasks = selectedTask.blockedBy.filter(
-        (dep) => dep.blockingTask?.status !== TaskStatus.DONE
-      );
+      const unblockedTasks = selectedTask.blockedBy
+        .map((dep) => {
+          const blockingTaskId = dep.blockingTaskId || dep.taskId;
+          return myTasks?.find((t) => t.id === blockingTaskId);
+        })
+        .filter((t) => t && t.status !== 'DONE');
 
       if (unblockedTasks.length > 0) {
-        const names = unblockedTasks
-          .map((dep) => dep.blockingTask?.title || 'Tâche inconnue')
-          .join(', ');
+        const names = unblockedTasks.map((t) => t!.title).join(', ');
         toast.error(`Cette tâche est bloquée par "${names}" qui n'est pas encore terminée`, {
           title: 'Tâche bloquée',
         });
@@ -173,15 +173,15 @@ export default function TimeTrackingPage() {
 
     // Vérifier les dépendances
     if (selectedTask.blockedBy && selectedTask.blockedBy.length > 0) {
-      const TaskStatus = { TODO: 'TODO', DOING: 'DOING', DONE: 'DONE' };
-      const unblockedTasks = selectedTask.blockedBy.filter(
-        (dep) => dep.blockingTask?.status !== TaskStatus.DONE
-      );
+      const unblockedTasks = selectedTask.blockedBy
+        .map((dep) => {
+          const blockingTaskId = dep.blockingTaskId || dep.taskId;
+          return myTasks?.find((t) => t.id === blockingTaskId);
+        })
+        .filter((t) => t && t.status !== 'DONE');
 
       if (unblockedTasks.length > 0) {
-        const names = unblockedTasks
-          .map((dep) => dep.blockingTask?.title || 'Tâche inconnue')
-          .join(', ');
+        const names = unblockedTasks.map((t) => t!.title).join(', ');
         toast.error(`Cette tâche est bloquée par "${names}" qui n'est pas encore terminée`, {
           title: 'Tâche bloquée',
         });
