@@ -101,6 +101,14 @@ export default function KanbanPage() {
       return;
     }
 
+    // Empêcher de modifier une tâche terminée
+    if (task.status === TaskStatus.DONE) {
+      toast.error('Impossible de modifier une tâche terminée', {
+        title: 'Tâche terminée',
+      });
+      return;
+    }
+
     // Empêcher de déplacer une tâche non assignée
     if (!task.assignedUsers || task.assignedUsers.length === 0) {
       toast.error('Impossible de déplacer une tâche non assignée', {
