@@ -474,11 +474,11 @@ export default function DocumentsPage() {
                   >
                     <div>
                       <p className="font-medium text-text-primary">
-                        v{version.versionNumber}
+                        v{version.version}
                       </p>
                       <p className="text-xs text-text-weak flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        {formatFileSize(version.fileSize)} - {formatDate(version.uploadedAt)}
+                        {formatFileSize(version.fileSize ?? undefined)} - {formatDate(version.createdAt)}
                       </p>
                     </div>
                     <a

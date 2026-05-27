@@ -32,7 +32,6 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
     deadline: '',
     startDate: '',
     endDate: '',
-    storyPoints: '',
     optimisticDays: '',
     probableDays: '',
     pessimisticDays: '',
@@ -68,7 +67,6 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
       deadline: task.deadline ? task.deadline.split('T')[0] : '',
       startDate: task.startDate ? task.startDate.split('T')[0] : '',
       endDate: task.endDate ? task.endDate.split('T')[0] : '',
-      storyPoints: task.storyPoints?.toString() || '',
       optimisticDays: task.optimisticDays?.toString() || '',
       probableDays: task.probableDays?.toString() || '',
       pessimisticDays: task.pessimisticDays?.toString() || '',
@@ -89,7 +87,6 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
       deadline: editData.deadline || undefined,
       startDate: editData.startDate || undefined,
       endDate: editData.endDate || undefined,
-      storyPoints: editData.storyPoints ? parseInt(editData.storyPoints) : undefined,
       optimisticDays: editData.optimisticDays ? parseInt(editData.optimisticDays) : undefined,
       probableDays: editData.probableDays ? parseInt(editData.probableDays) : undefined,
       pessimisticDays: editData.pessimisticDays ? parseInt(editData.pessimisticDays) : undefined,
@@ -265,13 +262,6 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
               onChange={(e) => setEditData({ ...editData, deadline: e.target.value })}
             />
 
-            <Input
-              label="Story Points (optionnel)"
-              type="number"
-              value={editData.storyPoints}
-              onChange={(e) => setEditData({ ...editData, storyPoints: e.target.value })}
-            />
-
             <div className="space-y-2">
               <label className="text-sm font-medium text-text-primary">PERT (optionnel)</label>
               <div className="grid grid-cols-3 gap-2">
@@ -350,12 +340,6 @@ export default function TaskDetailModal({ taskId, onClose }: TaskDetailModalProp
                   <p className="text-text-primary font-medium">
                     {new Date(task.endDate).toLocaleDateString('fr-FR')}
                   </p>
-                </div>
-              )}
-              {task.storyPoints && (
-                <div>
-                  <p className="text-text-secondary text-xs">Story Points</p>
-                  <p className="text-text-primary font-medium">{task.storyPoints}</p>
                 </div>
               )}
             </div>

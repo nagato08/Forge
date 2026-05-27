@@ -1,4 +1,5 @@
 import { forwardRef } from 'react';
+import { Info, CheckCircle2, AlertCircle, X } from 'lucide-react';
 
 export type AlertType = 'info' | 'success' | 'warning' | 'error';
 
@@ -11,34 +12,34 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   closeable?: boolean;
 }
 
-const typeClasses: Record<AlertType, { bg: string; border: string; icon: string }> = {
+const typeClasses: Record<AlertType, { bg: string; border: string; icon: React.ReactNode }> = {
   info: {
-    bg: 'bg-[var(--info)]/10',
-    border: 'border-[var(--info)]/30',
-    icon: '💡',
+    bg: 'bg-info/10',
+    border: 'border-info/30',
+    icon: <Info className="w-5 h-5" />,
   },
   success: {
-    bg: 'bg-[var(--success)]/10',
-    border: 'border-[var(--success)]/30',
-    icon: '✓',
+    bg: 'bg-success/10',
+    border: 'border-success/30',
+    icon: <CheckCircle2 className="w-5 h-5" />,
   },
   warning: {
-    bg: 'bg-[var(--warning)]/10',
-    border: 'border-[var(--warning)]/30',
-    icon: '',
+    bg: 'bg-warning/10',
+    border: 'border-warning/30',
+    icon: <AlertCircle className="w-5 h-5" />,
   },
   error: {
-    bg: 'bg-[var(--critical)]/10',
-    border: 'border-[var(--critical)]/30',
-    icon: '✕',
+    bg: 'bg-critical/10',
+    border: 'border-critical/30',
+    icon: <AlertCircle className="w-5 h-5" />,
   },
 };
 
 const textClasses: Record<AlertType, string> = {
-  info: 'text-[var(--info)]',
-  success: 'text-[var(--success)]',
-  warning: 'text-[var(--warning)]',
-  error: 'text-[var(--critical)]',
+  info: 'text-info',
+  success: 'text-success',
+  warning: 'text-warning',
+  error: 'text-critical',
 };
 
 const Alert = forwardRef<HTMLDivElement, AlertProps>(
@@ -70,7 +71,7 @@ const Alert = forwardRef<HTMLDivElement, AlertProps>(
         {...props}
       >
         <div className="flex gap-3">
-          <div className="flex-shrink-0 text-lg">{classes.icon}</div>
+          <div className="flex-shrink-0 text-lg text-current">{classes.icon}</div>
           <div className="flex-1">
             {title && (
               <h3 className={`font-semibold ${textClass} mb-1`}>
@@ -94,19 +95,7 @@ const Alert = forwardRef<HTMLDivElement, AlertProps>(
               className={`flex-shrink-0 ${textClass} hover:opacity-70 transition-opacity`}
               aria-label="Close alert"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>

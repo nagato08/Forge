@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Task } from '@/lib/types/task.types';
 import { getPriorityBadge } from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
-import { AlertCircle, Calendar, Zap, MessageSquare, CheckSquare } from 'lucide-react';
+import { AlertCircle, Calendar, MessageSquare, CheckSquare } from 'lucide-react';
 
 interface TaskCardProps {
   task: Task;
@@ -71,12 +71,6 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
           {/* Priority Badge */}
           <div className="flex items-center gap-2">
             {getPriorityBadge(task.priority)}
-            {task.storyPoints && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-info/10 text-info font-medium flex items-center gap-1">
-                <Zap className="w-3 h-3" />
-                {task.storyPoints}
-              </span>
-            )}
           </div>
 
           {/* Meta info: Deadline + Dates */}

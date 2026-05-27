@@ -2,11 +2,10 @@ import api from './client';
 
 export interface DocumentVersion {
   id: string;
-  versionNumber: number;
+  version: number;
   fileUrl: string;
-  fileSize: number;
-  uploadedBy: string;
-  uploadedAt: string;
+  fileSize: number | null;
+  createdAt: string;
 }
 
 export interface Document {

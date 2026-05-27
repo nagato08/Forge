@@ -38,7 +38,6 @@ import {
   MessageSquare,
   AlertTriangle,
   Calendar,
-  Zap,
 } from 'lucide-react';
 
 export default function TaskDetailPage() {
@@ -493,21 +492,6 @@ export default function TaskDetailPage() {
                     className="w-full px-2 py-1 text-sm border border-border rounded bg-bg-surface text-text-primary"
                   />
                 </div>
-              </div>
-
-              {/* Story Points */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-text-secondary flex items-center gap-1">
-                  <Zap className="w-4 h-4" />
-                  Story Points:
-                </span>
-                <input
-                  type="number"
-                  value={task.storyPoints || ''}
-                  onChange={(e) => handleEditSave('storyPoints', parseInt(e.target.value) || 0)}
-                  className="w-20 px-2 py-1 text-sm border border-border rounded bg-bg-surface text-text-primary"
-                  min="0"
-                />
               </div>
 
               {/* PERT */}

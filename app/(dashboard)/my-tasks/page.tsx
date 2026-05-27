@@ -18,7 +18,6 @@ import {
   AlertCircle,
   Calendar,
   ArrowRight,
-  Zap,
   Filter,
   X,
 } from 'lucide-react';
@@ -316,12 +315,6 @@ export default function MyTasksPage() {
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${priorityConfig.color}`}>
                         {priorityConfig.label}
                       </span>
-                      {task.storyPoints && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-info/10 text-info font-medium flex items-center gap-1">
-                          <Zap className="w-3 h-3" />
-                          {task.storyPoints} pts
-                        </span>
-                      )}
                       {task.deadline && (
                         <span className={`text-xs flex items-center gap-1 ${
                           overdue ? 'text-critical font-medium' : 'text-text-secondary'

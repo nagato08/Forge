@@ -20,7 +20,6 @@ const createTaskSchema = z.object({
   deadline: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  storyPoints: z.string().optional(),
   optimisticDays: z.string().optional(),
   probableDays: z.string().optional(),
   pessimisticDays: z.string().optional(),
@@ -66,7 +65,6 @@ export default function CreateTaskModal({
         deadline: data.deadline || undefined,
         startDate: data.startDate || undefined,
         endDate: data.endDate || undefined,
-        storyPoints: data.storyPoints ? parseInt(data.storyPoints) : undefined,
         optimisticDays: data.optimisticDays ? parseInt(data.optimisticDays) : undefined,
         probableDays: data.probableDays ? parseInt(data.probableDays) : undefined,
         pessimisticDays: data.pessimisticDays ? parseInt(data.pessimisticDays) : undefined,
@@ -155,14 +153,6 @@ export default function CreateTaskModal({
           type="date"
           error={errors.deadline?.message}
           {...register('deadline')}
-        />
-
-        <Input
-          label="Story Points (optionnel)"
-          type="number"
-          placeholder="5"
-          error={errors.storyPoints?.message}
-          {...register('storyPoints')}
         />
 
         <div className="space-y-2">
