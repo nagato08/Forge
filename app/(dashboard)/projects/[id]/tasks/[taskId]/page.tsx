@@ -17,6 +17,7 @@ import {
   useDeleteTaskComment,
 } from '@/lib/hooks/useTasks';
 import { useUsers } from '@/lib/hooks/useAuth';
+import { useProjectById } from '@/lib/hooks/useProjects';
 import { TaskStatus, Priority, TaskAssignment } from '@/lib/types/task.types';
 import { getApiError } from '@/lib/utils/api-error';
 import Card from '@/components/ui/Card';
@@ -49,6 +50,7 @@ export default function TaskDetailPage() {
   const { data: task, isLoading: isLoadingTask, error: errorTask, refetch: refetchTask } = useTaskById(taskId);
   const { data: projectTasks } = useTasks(projectId);
   const { data: allUsers } = useUsers();
+  const { data: project } = useProjectById(projectId);
 
   const updateMutation = useUpdateTask();
   const deleteMutation = useDeleteTask();
@@ -305,7 +307,10 @@ export default function TaskDetailPage() {
 
   const statusOptions = [TaskStatus.TODO, TaskStatus.DOING, TaskStatus.DONE];
   const priorityOptions = [Priority.LOW, Priority.MEDIUM, Priority.HIGH, Priority.CRITICAL];
-  const availableUsers = allUsers?.filter((u) => !assignedUsers.find((a) => a.id === u.id)) || [];
+  const projectMemberIds = project?.members?.map((m: any) => m.userId) || [];
+  const availableUsers = allUsers?.filter(
+    (u) => projectMemberIds.includes(u.id) && !assignedUsers.find((a) => a.id === u.id)
+  ) || [];
 
   return (
     <div className="space-y-6">
