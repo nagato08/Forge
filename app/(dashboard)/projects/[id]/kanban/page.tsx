@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   DndContext,
   DragStartEvent,
@@ -27,6 +28,7 @@ import { ListTodo, Play, CheckCircle2 } from 'lucide-react';
 
 export default function KanbanPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const projectId = params.id as string;
   const { data: tasks, isLoading, error } = useTasks(projectId);
   const updateStatus = useUpdateTaskStatus();
@@ -35,6 +37,13 @@ export default function KanbanPage() {
   const [createModalStatus, setCreateModalStatus] = useState<TaskStatus | null>(
     null
   );
+
+  // Auto-open create modal if createTask param is present
+  useEffect(() => {
+    if (searchParams.get('createTask') === 'true') {
+      setCreateModalStatus(TaskStatus.TODO);
+    }
+  }, [searchParams]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

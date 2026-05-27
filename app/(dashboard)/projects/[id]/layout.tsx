@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams, usePathname } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useProjectById } from '@/lib/hooks/useProjects';
 import { useAuthStore } from '@/lib/stores/auth.store';
@@ -23,6 +23,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Pause,
+  Plus,
 } from 'lucide-react';
 
 interface ProjectLayoutProps {
@@ -84,6 +85,7 @@ function getDaysRemaining(endDate: string | null | undefined): { text: string; u
 export default function ProjectLayout({ children }: ProjectLayoutProps) {
   const params = useParams();
   const pathname = usePathname();
+  const router = useRouter();
   const projectId = params.id as string;
   const userId = useAuthStore((state) => state.user?.id);
 
@@ -158,6 +160,14 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
 
           {/* Actions */}
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => router.push(`/projects/${projectId}/kanban?createTask=true`)}
+              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1.5"
+              title="Créer une nouvelle tâche"
+            >
+              <Plus className="w-4 h-4" />
+              Nouvelle tâche
+            </button>
             <button
               onClick={() => setShowDetails(!showDetails)}
               className="px-3 py-1.5 text-xs font-medium rounded-lg bg-bg-surface-hover text-text-secondary hover:text-text-primary hover:bg-border transition-colors"
