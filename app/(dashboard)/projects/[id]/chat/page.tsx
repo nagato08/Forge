@@ -196,20 +196,66 @@ export default function ChatPage() {
   const [inputValue, setInputValue] = useState('');
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [socketConnected, setSocketConnected] = useState(() => !!getSocket()?.connected);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Rejoindre la room du projet
+  // Suivre l'état de connexion socket pour l'indicateur UI
   useEffect(() => {
     const socket = getSocket();
-    if (socket?.connected) {
-      emitSocketEvent('join-project-room', { projectId });
-    }
+    if (!socket) return;
+    const onConnect = () => setSocketConnected(true);
+    const onDisconnect = () => setSocketConnected(false);
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    setSocketConnected(socket.connected);
     return () => {
-      emitSocketEvent('leave-project-room', { projectId });
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
     };
-  }, [projectId]);
+  }, []);
+
+  // Rejoindre la room du projet + re-join à chaque reconnexion socket
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    const joinRoom = () => {
+      emitSocketEvent('join-project-room', { projectId, userId: currentUser.id });
+    };
+
+    const socket = getSocket();
+
+    if (socket) {
+      if (socket.connected) {
+        joinRoom();
+      }
+      // Re-join sur chaque connect (y compris reconnexion)
+      socket.on('connect', joinRoom);
+    } else {
+      // Socket pas encore créé — poll jusqu'à disponible
+      let attempts = 0;
+      const interval = setInterval(() => {
+        attempts++;
+        const s = getSocket();
+        if (s) {
+          clearInterval(interval);
+          if (s.connected) joinRoom();
+          s.on('connect', joinRoom);
+        }
+        if (attempts >= 20) clearInterval(interval);
+      }, 300);
+      return () => clearInterval(interval);
+    }
+
+    return () => {
+      const s = getSocket();
+      if (s) {
+        s.off('connect', joinRoom);
+        if (s.connected) emitSocketEvent('leave-project-room', { projectId });
+      }
+    };
+  }, [projectId, currentUser?.id]);
 
   const handleUserTyping = useCallback((data: any) => {
     if (data.projectId === projectId && data.userId !== currentUser?.id) {
@@ -348,11 +394,17 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-200px)] bg-bg-surface rounded-lg border border-border">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-border flex items-center gap-2">
-        <MessageCircle className="w-5 h-5 text-primary" />
-        <h2 className="text-lg font-semibold text-text-primary">
-          Chat du projet
-        </h2>
+      <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-semibold text-text-primary">
+            Chat du projet
+          </h2>
+        </div>
+        <div className={`flex items-center gap-1.5 text-xs font-medium ${socketConnected ? 'text-success' : 'text-critical'}`}>
+          <span className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-success animate-pulse' : 'bg-critical'}`} />
+          {socketConnected ? 'En ligne' : 'Hors ligne'}
+        </div>
       </div>
 
       {/* Messages area */}

@@ -34,8 +34,9 @@ export function initializeSocket(): void {
     },
     reconnection: true,
     reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
-    reconnectionAttempts: 5,
+    reconnectionDelayMax: 10000,
+    reconnectionAttempts: Infinity, // Ne jamais abandonner
+    timeout: 10000,
   });
 
   // Événements de connexion
