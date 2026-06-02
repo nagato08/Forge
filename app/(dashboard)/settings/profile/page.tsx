@@ -330,10 +330,6 @@ export default function ProfileSettingsPage() {
         <h3 className="font-semibold text-text-primary">Informations du compte</h3>
         <div className="space-y-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-text-secondary">ID utilisateur</span>
-            <span className="text-text-primary font-mono">{profile.id}</span>
-          </div>
-          <div className="flex justify-between">
             <span className="text-text-secondary">Rôle</span>
             <span className="text-text-primary">{profile.role}</span>
           </div>
