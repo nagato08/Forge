@@ -5,9 +5,9 @@ import { useParams } from 'next/navigation';
 import { useProjectMessages, useSendProjectMessage, useDeleteMessage } from '@/lib/hooks/useMessages';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { getApiError } from '@/lib/utils/api-error';
+import { getSocket } from '@/lib/socket/socket.client';
 import Spinner from '@/components/ui/Spinner';
 import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
 import { toast } from '@/lib/stores/toast.store';
 
 export default function ProjectMessagesPage() {
@@ -22,14 +22,42 @@ export default function ProjectMessagesPage() {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Join project room pour recevoir les messages en temps réel
+  useEffect(() => {
+    if (!projectId || !currentUser?.id) return;
+
+    const joinRoom = () => {
+      const socket = getSocket();
+      if (!socket?.connected) return false;
+      socket.emit('join-project-room', { projectId, userId: currentUser.id });
+      return true;
+    };
+
+    if (joinRoom()) {
+      return () => {
+        const socket = getSocket();
+        socket?.emit('leave-project-room', { projectId });
+      };
+    }
+
+    // Socket pas connecté → poll jusqu'à connexion
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      if (joinRoom() || attempts >= 15) clearInterval(interval);
+    }, 300);
+
+    return () => {
+      clearInterval(interval);
+      const socket = getSocket();
+      socket?.emit('leave-project-room', { projectId });
+    };
+  }, [projectId, currentUser?.id]);
+
   // Auto-scroll vers le bas
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  useEffect(() => {
-    console.log('📨 Project messages loaded for:', projectId, 'with', messages?.length || 0, 'messages');
-  }, [projectId, messages?.length]);
 
   if (isLoading) {
     return <Spinner centered size="lg" label="Chargement des messages..." />;

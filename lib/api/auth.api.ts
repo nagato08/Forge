@@ -11,6 +11,20 @@ import {
 
 const BASE_URL = '/auth';
 
+export interface UserImpact {
+  user: { id: string; firstName: string; lastName: string; email: string };
+  projectsOwned: { id: string; name: string; status: string }[];
+  tasksAssigned: {
+    id: string;
+    title: string;
+    status: string;
+    projectId: string;
+    project: { id: string; name: string };
+  }[];
+  projectsMember: { id: string; name: string }[];
+  hasImpact: boolean;
+}
+
 export const authApi = {
   /**
    * Inscription utilisateur
@@ -49,11 +63,27 @@ export const authApi = {
   },
 
   /**
-   * Supprimer un utilisateur
+   * Récupérer l'impact d'une suppression utilisateur
+   * GET /auth/users/:id/impact (ADMIN seulement)
+   */
+  getUserImpact: async (userId: string): Promise<UserImpact> => {
+    const response = await api.get<UserImpact>(
+      `${BASE_URL}/users/${userId}/impact`,
+    );
+    return response.data;
+  },
+
+  /**
+   * Supprimer un utilisateur (avec réassignation optionnelle)
    * DELETE /auth/:id (ADMIN seulement)
    */
-  deleteUser: async (userId: string): Promise<void> => {
-    await api.delete(`${BASE_URL}/${userId}`);
+  deleteUser: async (
+    userId: string,
+    reassignTo?: string,
+  ): Promise<void> => {
+    await api.delete(`${BASE_URL}/${userId}`, {
+      data: reassignTo ? { reassignTo } : undefined,
+    });
   },
 
   /**

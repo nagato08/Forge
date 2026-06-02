@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useUsers, useCreateUser, useDeleteUser, useGetDepartmentEnums } from '@/lib/hooks';
+import { useUsers, useCreateUser, useGetDepartmentEnums } from '@/lib/hooks';
 import { getApiError } from '@/lib/utils/api-error';
 import { Role } from '@/lib/types/user.types';
 import type { CreateUserRequest } from '@/lib/types/user.types';
@@ -12,15 +12,15 @@ import { toast } from '@/lib/stores/toast.store';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
+import DeleteUserModal from '@/components/auth/DeleteUserModal';
 
 export default function UsersManagementPage() {
   const { data: users, isLoading } = useUsers();
   const createUserMutation = useCreateUser();
-  const deleteUserMutation = useDeleteUser();
   const { data: departments } = useGetDepartmentEnums();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -67,19 +67,6 @@ export default function UsersManagementPage() {
       },
       onError: (err) => {
         toast.error(getApiError(err), { title: 'Échec création' });
-      },
-    });
-  };
-
-  const handleDeleteUser = (userId: string) => {
-    deleteUserMutation.mutate(userId, {
-      onSuccess: () => {
-        toast.success('Utilisateur supprimé');
-        setDeleteConfirmId(null);
-      },
-      onError: (err) => {
-        toast.error(getApiError(err), { title: 'Échec suppression' });
-        setDeleteConfirmId(null);
       },
     });
   };
@@ -197,32 +184,14 @@ export default function UsersManagementPage() {
                       <p className="text-sm text-text-secondary">{user.jobTitle || '—'}</p>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {deleteConfirmId === user.id ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <span className="text-xs text-critical font-medium">Confirmer ?</span>
-                          <button
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="px-3 py-1 text-xs rounded bg-critical/10 text-critical hover:bg-critical/20 transition-colors font-medium"
-                          >
-                            Oui
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirmId(null)}
-                            className="px-3 py-1 text-xs rounded bg-border text-text-secondary hover:bg-bg-surface-hover transition-colors font-medium"
-                          >
-                            Non
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setDeleteConfirmId(user.id)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded text-critical hover:bg-critical/10 transition-colors font-medium"
-                          title="Supprimer cet utilisateur"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Supprimer
-                        </button>
-                      )}
+                      <button
+                        onClick={() => setDeleteTargetId(user.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded text-critical hover:bg-critical/10 transition-colors font-medium"
+                        title="Supprimer cet utilisateur"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Supprimer
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -349,6 +318,11 @@ export default function UsersManagementPage() {
           />
         </div>
       </Modal>
+
+      <DeleteUserModal
+        userId={deleteTargetId}
+        onClose={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }

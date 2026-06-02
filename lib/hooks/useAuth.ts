@@ -135,15 +135,27 @@ export function useUsers() {
 }
 
 /**
- * Hook pour supprimer un utilisateur
+ * Hook pour récupérer l'impact d'une suppression utilisateur
+ */
+export function useUserImpact(userId: string | null) {
+  return useQuery({
+    queryKey: ['users', userId, 'impact'],
+    queryFn: () => authApi.getUserImpact(userId!),
+    enabled: !!userId,
+    staleTime: 30 * 1000,
+  });
+}
+
+/**
+ * Hook pour supprimer un utilisateur (avec réassignation optionnelle)
  */
 export function useDeleteUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (userId: string) => {
-      console.log('🗑️ Deleting user (soft delete):', userId);
-      return authApi.deleteUser(userId);
+    mutationFn: (params: { userId: string; reassignTo?: string }) => {
+      console.log('🗑️ Deleting user (soft delete):', params.userId);
+      return authApi.deleteUser(params.userId, params.reassignTo);
     },
     onSuccess: () => {
       console.log('✅ User deleted successfully');
