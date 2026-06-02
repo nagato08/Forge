@@ -316,11 +316,13 @@ export default function TimeTrackingPage() {
                   className="w-full px-3 py-2 border border-border rounded-lg bg-bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">Choisir une tâche...</option>
-                  {myTasks?.map((task) => (
-                    <option key={task.id} value={task.id}>
-                      {task.title}
-                    </option>
-                  ))}
+                  {myTasks
+                    ?.filter((task) => task.status !== 'DONE')
+                    .map((task) => (
+                      <option key={task.id} value={task.id}>
+                        {task.title}
+                      </option>
+                    ))}
                 </select>
                 <Button
                   variant="primary"

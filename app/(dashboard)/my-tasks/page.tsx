@@ -37,7 +37,8 @@ export default function MyTasksPage() {
 
   console.log('My tasks loaded:', allTasks?.length || 0, 'tasks');
 
-  // Filter tasks
+  // Filter + sort tasks (DOING en premier, puis TODO, puis DONE)
+  const statusOrder: Record<string, number> = { DOING: 0, TODO: 1, DONE: 2 };
   let filteredTasks = allTasks || [];
   if (filterStatus) {
     filteredTasks = filteredTasks.filter((t) => t.status === filterStatus);
@@ -45,6 +46,18 @@ export default function MyTasksPage() {
   if (filterPriority) {
     filteredTasks = filteredTasks.filter((t) => t.priority === filterPriority);
   }
+  filteredTasks = [...filteredTasks].sort((a, b) => {
+    const sa = statusOrder[a.status] ?? 99;
+    const sb = statusOrder[b.status] ?? 99;
+    if (sa !== sb) return sa - sb;
+    // Même statut : par deadline croissante (sans deadline en dernier)
+    if (a.deadline && b.deadline) {
+      return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+    }
+    if (a.deadline) return -1;
+    if (b.deadline) return 1;
+    return 0;
+  });
 
   const tasksByStatus = {
     TODO: allTasks?.filter((t) => t.status === 'TODO').length || 0,

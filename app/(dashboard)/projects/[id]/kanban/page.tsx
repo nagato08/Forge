@@ -119,7 +119,10 @@ export default function KanbanPage() {
     }
 
     // Empêcher de déplacer une tâche non assignée
-    if (!task.assignedUsers || task.assignedUsers.length === 0) {
+    const isAssigned =
+      (task.assignedUsers && task.assignedUsers.length > 0) ||
+      (task.assignments && task.assignments.length > 0);
+    if (!isAssigned) {
       toast.error('Impossible de déplacer une tâche non assignée', {
         title: 'Tâche non assignée',
       });

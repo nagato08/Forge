@@ -31,7 +31,9 @@ export function useProjectMessages(projectId: string | null) {
     queryKey: CACHE_KEYS.projectMessages(projectId || ''),
     queryFn: () => messagesApi.getProjectMessages(projectId!),
     enabled: !!projectId,
-    staleTime: 0, // Toujours fresh (socket met à jour)
+    staleTime: 0,
+    refetchInterval: 10_000, // Fallback si event socket raté
+    refetchOnWindowFocus: true,
   });
 }
 

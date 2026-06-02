@@ -143,12 +143,20 @@ export default function ProjectMessagesPage() {
         ) : (
           messages.map((message) => {
             const isOwn = message.userId === currentUser?.id;
+            const initials =
+              (message.user?.firstName?.[0] || '?') +
+              (message.user?.lastName?.[0] || '');
 
             return (
               <div
                 key={message.id}
-                className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                className={`flex gap-2 ${isOwn ? 'justify-end' : 'justify-start'}`}
               >
+                {!isOwn && (
+                  <div className="w-8 h-8 rounded-full bg-primary text-white text-xs flex items-center justify-center font-semibold shrink-0">
+                    {initials.toUpperCase()}
+                  </div>
+                )}
                 <div
                   className={`max-w-md p-4 rounded-lg border ${
                     isOwn
@@ -158,11 +166,10 @@ export default function ProjectMessagesPage() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
-                      {!isOwn && (
-                        <p className="text-xs font-semibold text-text-primary mb-1">
-                          {message.user.firstName} {message.user.lastName}
-                        </p>
-                      )}
+                      <p className="text-xs font-semibold text-text-primary mb-1">
+                        {message.user?.firstName} {message.user?.lastName}
+                        {isOwn && <span className="text-text-weak"> (vous)</span>}
+                      </p>
                       <p className="text-sm break-words">{message.content}</p>
                       {message.mentions && message.mentions.length > 0 && (
                         <p className="text-xs text-text-secondary mt-1">
