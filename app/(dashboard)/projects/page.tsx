@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Archive } from 'lucide-react';
 import { useProjects } from '@/lib/hooks/useProjects';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import ProjectCard from '@/components/projects/ProjectCard';
@@ -15,22 +16,30 @@ const statusLabels: Record<string, string> = {
   ACTIVE: 'Actif',
   ON_HOLD: 'Suspendu',
   COMPLETED: 'Terminé',
-  CANCELLED: 'Annulé',
 };
 
 export default function ProjectsPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [includeArchived, setIncludeArchived] = useState(false);
 
   const role = useAuthStore((state) => state.role);
   const canCreateProject = role === 'ADMIN' || role === 'PROJECT_MANAGER';
 
   const { data: projects, isLoading, error } = useProjects();
 
-  const filteredProjects = statusFilter
-    ? projects?.filter((p) => p.status === statusFilter)
-    : projects;
+  const visibleProjects = (projects ?? []).filter((p) => {
+    if (statusFilter === 'ARCHIVED') return p.status === 'ARCHIVED';
+    if (!includeArchived && p.status === 'ARCHIVED') return false;
+    return true;
+  });
+
+  const filteredProjects = statusFilter && statusFilter !== 'ARCHIVED'
+    ? visibleProjects.filter((p) => p.status === statusFilter)
+    : visibleProjects;
+
+  const archivedCount = projects?.filter((p) => p.status === 'ARCHIVED').length ?? 0;
 
   return (
     <div className="space-y-6">
@@ -86,41 +95,65 @@ export default function ProjectsPage() {
         />
       )}
 
-      {/* Filter tabs */}
+      {/* Filter tabs + toggle archivés */}
       {!isLoading && projects && projects.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6">
-          <button
-            onClick={() => {
-              console.log('🔍 Filter: All projects');
-              setStatusFilter(null);
-            }}
-            className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
-              statusFilter === null
-                ? 'bg-[var(--primary)] text-white'
-                : 'bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-          >
-            Tous ({projects?.length || 0})
-          </button>
-          {Object.entries(statusLabels).map(([status, label]) => {
-            const count = projects?.filter((p) => p.status === status).length || 0;
-            return (
+        <div className="space-y-3">
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6">
+            <button
+              onClick={() => setStatusFilter(null)}
+              className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
+                statusFilter === null
+                  ? 'bg-[var(--primary)] text-white'
+                  : 'bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              Tous ({visibleProjects.length})
+            </button>
+            {Object.entries(statusLabels).map(([status, label]) => {
+              const count = visibleProjects.filter((p) => p.status === status).length;
+              return (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
+                    statusFilter === status
+                      ? 'bg-[var(--primary)] text-white'
+                      : 'bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {label} ({count})
+                </button>
+              );
+            })}
+            {archivedCount > 0 && (
               <button
-                key={status}
                 onClick={() => {
-                  console.log('🔍 Filter: status =', status);
-                  setStatusFilter(status);
+                  setStatusFilter('ARCHIVED');
+                  setIncludeArchived(true);
                 }}
-                className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors ${
-                  statusFilter === status
+                className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition-colors flex items-center gap-1.5 ${
+                  statusFilter === 'ARCHIVED'
                     ? 'bg-[var(--primary)] text-white'
                     : 'bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                {label} ({count})
+                <Archive className="w-4 h-4" />
+                Archivés ({archivedCount})
               </button>
-            );
-          })}
+            )}
+          </div>
+
+          {statusFilter !== 'ARCHIVED' && archivedCount > 0 && (
+            <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                checked={includeArchived}
+                onChange={(e) => setIncludeArchived(e.target.checked)}
+                className="rounded"
+              />
+              Inclure les projets archivés ({archivedCount})
+            </label>
+          )}
         </div>
       )}
 

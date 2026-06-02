@@ -164,13 +164,13 @@ export function useUpdateTaskStatus() {
     }) => tasksApi.updateTaskStatus(taskId, status),
     onSuccess: (task, { taskId, status }) => {
       console.log('✅ Status updated successfully:', taskId, '→', status.status);
-      // Mettre à jour immédiatement le cache
       queryClient.setQueryData(CACHE_KEYS.byId(taskId), task);
-      // Invalider aussi les listes pour se rafraîchir
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.projectTasks(task.projectId),
       });
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.myTasks });
+      // Le statut du projet peut avoir changé (PLANNING → ACTIVE) → rafraîchir
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
     onError: (error) => {
       console.error('❌ Update task status error:', getApiError(error));
