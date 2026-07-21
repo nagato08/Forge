@@ -81,7 +81,7 @@ export default function ResetPasswordPage() {
               <p>
                 • Vérifiez votre dossier de spam si vous ne recevez pas l&apos;email
               </p>
-              <p>• Le lien expire dans 24 heures</p>
+              <p>• Le lien expire dans 1 heure</p>
               <p>• Cliquez sur le lien pour créer un nouveau mot de passe</p>
             </div>
 

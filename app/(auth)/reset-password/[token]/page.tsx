@@ -117,7 +117,7 @@ export default function ResetPasswordTokenPage() {
             <Alert
               type="error"
               title="Lien invalide ou expiré"
-              message="Les liens de réinitialisation expirent après 24 heures."
+              message="Les liens de réinitialisation expirent après 1 heure."
             />
 
             <Link href="/reset-password" className="block">
