@@ -53,7 +53,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.C
   ACTIVE: { label: 'Actif', color: 'success', icon: CheckCircle2 },
   ON_HOLD: { label: 'Suspendu', color: 'warning', icon: Pause },
   COMPLETED: { label: 'Terminé', color: 'success', icon: CheckCircle2 },
-  CANCELLED: { label: 'Annulé', color: 'danger', icon: AlertCircle },
+  ARCHIVED: { label: 'Archivé', color: 'danger', icon: AlertCircle },
 };
 
 function formatDate(dateString: string | null | undefined): string {

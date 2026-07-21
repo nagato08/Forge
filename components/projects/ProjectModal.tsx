@@ -40,7 +40,7 @@ const statusOptions = [
   { value: ProjectStatus.ACTIVE, label: 'Actif' },
   { value: ProjectStatus.ON_HOLD, label: 'Suspendu' },
   { value: ProjectStatus.COMPLETED, label: 'Terminé' },
-  { value: ProjectStatus.CANCELLED, label: 'Annulé' },
+  { value: ProjectStatus.ARCHIVED, label: 'Archivé' },
 ];
 
 export default function ProjectModal({

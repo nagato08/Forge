@@ -112,7 +112,7 @@ export default function AdminDashboardPage() {
       ACTIVE: projects?.filter((p) => p.status === 'ACTIVE').length || 0,
       ON_HOLD: projects?.filter((p) => p.status === 'ON_HOLD').length || 0,
       COMPLETED: projects?.filter((p) => p.status === 'COMPLETED').length || 0,
-      CANCELLED: projects?.filter((p) => p.status === 'CANCELLED').length || 0,
+      ARCHIVED: projects?.filter((p) => p.status === 'ARCHIVED').length || 0,
     }),
     [projects]
   );
@@ -283,7 +283,7 @@ export default function AdminDashboardPage() {
 
     const projectsAtRisk =
       projects?.filter((p) => {
-        if (p.status === 'COMPLETED' || p.status === 'CANCELLED' || !p.endDate) return false;
+        if (p.status === 'COMPLETED' || p.status === 'ARCHIVED' || !p.endDate) return false;
         const daysUntilEnd = Math.ceil(
           (new Date(p.endDate).getTime() - now) / (1000 * 60 * 60 * 24)
         );
@@ -407,7 +407,7 @@ export default function AdminDashboardPage() {
       { name: 'Actif', value: projectsByStatus.ACTIVE },
       { name: 'Suspendu', value: projectsByStatus.ON_HOLD },
       { name: 'Terminé', value: projectsByStatus.COMPLETED },
-      { name: 'Annulé', value: projectsByStatus.CANCELLED },
+      { name: 'Archivé', value: projectsByStatus.ARCHIVED },
     ],
     [projectsByStatus]
   );
