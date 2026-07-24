@@ -6,7 +6,7 @@ import { authApi } from '@/lib/api/auth.api';
 import {
   User,
   LoginRequest,
-  CreateUserRequest,
+  RegisterRequest,
   AuthResponse,
   ResetPasswordRequest,
 } from '@/lib/types/user.types';
@@ -58,7 +58,7 @@ export function useRegister() {
   const { login } = useAuthStore();
 
   return useMutation({
-    mutationFn: (data: CreateUserRequest) => {
+    mutationFn: (data: RegisterRequest) => {
       console.log('📝 Register: calling API with', data.email);
       return authApi.register(data);
     },
@@ -93,8 +93,14 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      console.log('🔓 Logout: clearing session...');
-      return Promise.resolve();
+      console.log('🔓 Logout: révocation de la session côté serveur...');
+      // Révoque le refresh token en base + efface le cookie httpOnly.
+      // On n'échoue jamais le logout local si l'appel serveur échoue.
+      try {
+        await authApi.logout();
+      } catch {
+        // session déjà invalide côté serveur : on continue le nettoyage local
+      }
     },
     onSuccess: () => {
       // Déconnecter Zustand (qui déconnecte aussi socket + supprime cookie)
@@ -222,7 +228,7 @@ export function useCreateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateUserRequest) => authApi.register(data),
+    mutationFn: (data: RegisterRequest) => authApi.register(data),
     onSuccess: () => {
       // Invalider la liste des utilisateurs
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.users });

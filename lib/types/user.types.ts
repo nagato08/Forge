@@ -40,6 +40,20 @@ export interface CreateUserRequest {
   avatar?: string;
 }
 
+/**
+ * Inscription publique : aucun rôle n'est transmis.
+ * Le serveur force toujours EMPLOYEE. La création de comptes privilégiés
+ * (ADMIN / PROJECT_MANAGER) passe par l'espace admin avec CreateUserRequest.
+ */
+export interface RegisterRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  department?: Department;
+  jobTitle?: string;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;

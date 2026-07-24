@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Archive } from 'lucide-react';
+import { Archive, FolderOpen } from 'lucide-react';
 import { useProjects } from '@/lib/hooks/useProjects';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import ProjectCard from '@/components/projects/ProjectCard';
@@ -163,7 +163,9 @@ export default function ProjectsPage() {
       ) : !filteredProjects || filteredProjects.length === 0 ? (
         /* Empty state */
         <div className="text-center py-12">
-          <div className="text-4xl mb-4">📁</div>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--primary)]/10 mb-4">
+            <FolderOpen className="w-8 h-8 text-[var(--primary)]" strokeWidth={2} />
+          </div>
           <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">
             Aucun projet
           </h2>

@@ -6,6 +6,16 @@ import Alert from '@/components/ui/Alert';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
+import {
+  LayoutDashboard,
+  FolderKanban,
+  CheckSquare,
+  Clock,
+  TrendingUp,
+  FileText,
+  Plus,
+  BarChart3,
+} from 'lucide-react';
 
 export default function ProjectManagerDashboardPage() {
   const { data: projects, isLoading: isLoadingProjects } = useProjects();
@@ -32,8 +42,9 @@ export default function ProjectManagerDashboardPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-text-primary">
-           Tableau de bord Manager
+        <h1 className="text-3xl font-bold text-text-primary flex items-center gap-2">
+          <LayoutDashboard className="w-7 h-7 text-primary" />
+          Tableau de bord Manager
         </h1>
         <p className="text-text-secondary text-sm mt-1">
           Vue d&apos;ensemble de vos projets et tâches assignées
@@ -45,7 +56,9 @@ export default function ProjectManagerDashboardPage() {
         {/* My Projects */}
         <Card className="p-6">
           <div className="space-y-3">
-            <p className="text-sm text-text-secondary font-medium">📋 Mes projets</p>
+            <p className="text-sm text-text-secondary font-medium flex items-center gap-1.5">
+              <FolderKanban className="w-4 h-4" /> Mes projets
+            </p>
             <p className="text-3xl font-bold text-primary">
               {projects?.length || 0}
             </p>
@@ -58,7 +71,9 @@ export default function ProjectManagerDashboardPage() {
         {/* My Tasks */}
         <Card className="p-6">
           <div className="space-y-3">
-            <p className="text-sm text-text-secondary font-medium">✓ Mes tâches</p>
+            <p className="text-sm text-text-secondary font-medium flex items-center gap-1.5">
+              <CheckSquare className="w-4 h-4" /> Mes tâches
+            </p>
             <p className="text-3xl font-bold text-primary">
               {myTasks?.length || 0}
             </p>
@@ -71,7 +86,9 @@ export default function ProjectManagerDashboardPage() {
         {/* In Progress */}
         <Card className="p-6">
           <div className="space-y-3">
-            <p className="text-sm text-text-secondary font-medium">⏳ En cours</p>
+            <p className="text-sm text-text-secondary font-medium flex items-center gap-1.5">
+              <Clock className="w-4 h-4" /> En cours
+            </p>
             <p className="text-3xl font-bold text-warning">
               {tasksByStatus.DOING}
             </p>
@@ -84,7 +101,9 @@ export default function ProjectManagerDashboardPage() {
         {/* Completion */}
         <Card className="p-6">
           <div className="space-y-3">
-            <p className="text-sm text-text-secondary font-medium">📈 Complétées</p>
+            <p className="text-sm text-text-secondary font-medium flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4" /> Complétées
+            </p>
             <p className="text-3xl font-bold text-success">
               {tasksByStatus.DONE}
             </p>
@@ -101,8 +120,9 @@ export default function ProjectManagerDashboardPage() {
       {/* Projects Grid */}
       <Card className="space-y-4">
         <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-lg font-semibold text-text-primary">
-            📋 Mes projets récents
+          <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+            <FolderKanban className="w-5 h-5 text-text-secondary" />
+            Mes projets récents
           </h2>
           <Link href="/projects" onClick={() => console.log('🔗 Navigating to all projects')}>
             <Button variant="secondary" size="sm">
@@ -152,8 +172,9 @@ export default function ProjectManagerDashboardPage() {
       {/* My Tasks Overview */}
       <Card className="space-y-4">
         <div className="p-6 border-b border-border">
-          <h2 className="text-lg font-semibold text-text-primary">
-            📝 Tâches assignées
+          <h2 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+            <FileText className="w-5 h-5 text-text-secondary" />
+            Tâches assignées
           </h2>
         </div>
 
@@ -231,7 +252,9 @@ export default function ProjectManagerDashboardPage() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-4">
-          <p className="text-sm font-medium text-text-primary mb-3">➕ Actions</p>
+          <p className="text-sm font-medium text-text-primary mb-3 flex items-center gap-1.5">
+            <Plus className="w-4 h-4" /> Actions
+          </p>
           <Link href="/projects" onClick={() => console.log('🔗 Navigating to projects (quick action)')}>
             <Button variant="secondary" size="sm" className="w-full">
               Nouveau projet
@@ -239,13 +262,17 @@ export default function ProjectManagerDashboardPage() {
           </Link>
         </Card>
         <Card className="p-4">
-          <p className="text-sm font-medium text-text-primary mb-3"> Suivi</p>
+          <p className="text-sm font-medium text-text-primary mb-3 flex items-center gap-1.5">
+            <BarChart3 className="w-4 h-4" /> Suivi
+          </p>
           <Button variant="secondary" size="sm" className="w-full" onClick={() => console.log(' View reports clicked')}>
             Voir rapports
           </Button>
         </Card>
         <Card className="p-4">
-          <p className="text-sm font-medium text-text-primary mb-3">⏲ Temps</p>
+          <p className="text-sm font-medium text-text-primary mb-3 flex items-center gap-1.5">
+            <Clock className="w-4 h-4" /> Temps
+          </p>
           <Link href="/time-tracking" onClick={() => console.log('🔗 Navigating to time tracking')}>
             <Button variant="secondary" size="sm" className="w-full">
               Suivi du temps

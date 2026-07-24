@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
+import { CheckCircle2 } from 'lucide-react';
 import { useRequestPasswordReset } from '@/lib/hooks/useAuth';
 import { Button, Input, Card, Alert } from '@/components/ui';
 import { toast } from '@/lib/stores/toast.store';
@@ -56,10 +57,8 @@ export default function ResetPasswordPage() {
         <div className="relative w-full max-w-md space-y-8 animate-fade-in">
           {/* Header */}
           <div className="text-center space-y-3">
-            <div className="inline-block">
-              <div className="text-4xl font-bold bg-gradient-to-r from-[var(--success)] to-[var(--success)]/80 bg-clip-text text-transparent">
-                ✓
-              </div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--success)]/10">
+              <CheckCircle2 className="w-8 h-8 text-[var(--success)]" strokeWidth={2} />
             </div>
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">
               Email envoyé

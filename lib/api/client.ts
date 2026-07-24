@@ -4,6 +4,8 @@ import { useAuthStore } from '@/lib/stores/auth.store';
 const api: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   timeout: 10000,
+  // Nécessaire pour que le cookie httpOnly du refresh token soit envoyé/reçu (cross-sous-domaine)
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -88,19 +90,79 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// --- Rafraîchissement automatique de l'access token sur 401 ---
+// Un seul refresh à la fois : les requêtes 401 concurrentes attendent le même refresh.
+let isRefreshing = false;
+let pendingQueue: Array<(token: string | null) => void> = [];
+
+function flushQueue(token: string | null) {
+  pendingQueue.forEach((cb) => cb(token));
+  pendingQueue = [];
+}
+
+function forceLogout() {
+  useAuthStore.getState().logout();
+  if (
+    typeof window !== 'undefined' &&
+    !window.location.pathname.startsWith('/login')
+  ) {
+    window.location.href = '/login';
+  }
+}
+
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
-  (error: AxiosError<ApiErrorPayload>) => {
-    if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
-      if (
-        typeof window !== 'undefined' &&
-        !window.location.pathname.startsWith('/login')
-      ) {
-        window.location.href = '/login';
-      }
+  async (error: AxiosError<ApiErrorPayload>) => {
+    const original = error.config as
+      | (typeof error.config & { _retry?: boolean })
+      | undefined;
+    const status = error.response?.status;
+    const url = original?.url ?? '';
+
+    // On ne tente pas de refresh sur les routes d'auth elles-mêmes (évite la boucle)
+    const isAuthRoute =
+      url.includes('/auth/refresh') ||
+      url.includes('/auth/login') ||
+      url.includes('/auth/register') ||
+      url.includes('/auth/logout');
+
+    if (status !== 401 || !original || original._retry || isAuthRoute) {
+      return Promise.reject(toApiError(error));
     }
-    return Promise.reject(toApiError(error));
+
+    original._retry = true;
+
+    // Un refresh est déjà en cours : on met la requête en file d'attente
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        pendingQueue.push((token) => {
+          if (token) {
+            original.headers.Authorization = `Bearer ${token}`;
+            resolve(api(original));
+          } else {
+            reject(toApiError(error));
+          }
+        });
+      });
+    }
+
+    isRefreshing = true;
+    try {
+      const { data } = await api.post<{ access_token: string }>(
+        '/auth/refresh'
+      );
+      const newToken = data.access_token;
+      useAuthStore.getState().refreshToken(newToken);
+      flushQueue(newToken);
+      original.headers.Authorization = `Bearer ${newToken}`;
+      return api(original);
+    } catch {
+      flushQueue(null);
+      forceLogout();
+      return Promise.reject(toApiError(error));
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
 

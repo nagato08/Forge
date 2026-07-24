@@ -12,7 +12,7 @@ import { useAuthStore } from '@/lib/stores/auth.store';
 import { Button, Input, Select, Card } from '@/components/ui';
 import { toast } from '@/lib/stores/toast.store';
 import { getApiError } from '@/lib/utils/api-error';
-import { Role, Department } from '@/lib/types/user.types';
+import { Department } from '@/lib/types/user.types';
 import { ROLE_ROUTES } from '@/lib/utils/auth-routes';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -23,7 +23,6 @@ const registerSchema = z
     email: z.string().email('Email invalide'),
     password: z.string().min(8, 'Minimum 8 caractères'),
     confirmPassword: z.string(),
-    role: z.nativeEnum(Role),
     department: z.nativeEnum(Department).optional(),
     jobTitle: z.string().optional(),
   })
@@ -33,12 +32,6 @@ const registerSchema = z
   });
 
 type RegisterForm = z.infer<typeof registerSchema>;
-
-const roleOptions = [
-  { value: Role.EMPLOYEE, label: 'Employé' },
-  { value: Role.PROJECT_MANAGER, label: 'Chef de projet' },
-  // ADMIN ne peut pas s'inscrire (backend retourne 403)
-];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -61,14 +54,13 @@ export default function RegisterPage() {
   });
 
   const onSubmit = async (data: RegisterForm) => {
-    console.log('Register form submitted:', data.email, 'role:', data.role);
+    console.log('Register form submitted:', data.email);
     registerMutation.mutate(
       {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
         password: data.password,
-        role: data.role,
         department: data.department,
         jobTitle: data.jobTitle,
       },
@@ -186,14 +178,6 @@ export default function RegisterPage() {
                 )}
               </button>
             </div>
-
-            {/* Role */}
-            <Select
-              label="Rôle"
-              options={roleOptions}
-              placeholder="Choisir un rôle"
-              {...register('role')}
-            />
 
             {/* Department */}
             <Select

@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
 import {
   useVerifyResetToken,
   useResetPassword,
@@ -100,10 +101,8 @@ export default function ResetPasswordTokenPage() {
 
         <div className="relative w-full max-w-md space-y-8">
           <div className="text-center space-y-3">
-            <div className="inline-block">
-              <div className="text-4xl font-bold bg-gradient-to-r from-[var(--critical)] to-[var(--critical)]/80 bg-clip-text text-transparent">
-                ✕
-              </div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--critical)]/10">
+              <XCircle className="w-8 h-8 text-[var(--critical)]" strokeWidth={2} />
             </div>
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">
               Lien expiré
@@ -145,10 +144,8 @@ export default function ResetPasswordTokenPage() {
 
         <div className="relative w-full max-w-md space-y-8 animate-fade-in">
           <div className="text-center space-y-3">
-            <div className="inline-block">
-              <div className="text-4xl font-bold bg-gradient-to-r from-[var(--success)] to-[var(--success)]/80 bg-clip-text text-transparent">
-                ✓
-              </div>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--success)]/10">
+              <CheckCircle2 className="w-8 h-8 text-[var(--success)]" strokeWidth={2} />
             </div>
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">
               Mot de passe réinitialisé
@@ -218,8 +215,9 @@ export default function ResetPasswordTokenPage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
               >
-                {showPassword ? '👁' : '👁‍🗨'}
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
 
@@ -237,8 +235,9 @@ export default function ResetPasswordTokenPage() {
                 type="button"
                 onClick={() => setShowConfirm(!showConfirm)}
                 className="absolute right-3 top-[38px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                aria-label={showConfirm ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
               >
-                {showConfirm ? '👁' : '👁‍🗨'}
+                {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
 

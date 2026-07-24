@@ -1,7 +1,7 @@
 import api from './client';
 import {
   User,
-  CreateUserRequest,
+  RegisterRequest,
   LoginRequest,
   AuthResponse,
   ResetPasswordRequest,
@@ -30,7 +30,7 @@ export const authApi = {
    * Inscription utilisateur
    * POST /auth/register
    */
-  register: async (data: CreateUserRequest): Promise<AuthResponse> => {
+  register: async (data: RegisterRequest): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>(`${BASE_URL}/register`, data);
     return response.data;
   },
@@ -41,6 +41,36 @@ export const authApi = {
    */
   login: async (data: LoginRequest): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>(`${BASE_URL}/login`, data);
+    return response.data;
+  },
+
+  /**
+   * Renouveler l'access token via le refresh cookie (httpOnly)
+   * POST /auth/refresh
+   */
+  refresh: async (): Promise<{ access_token: string }> => {
+    const response = await api.post<{ access_token: string }>(
+      `${BASE_URL}/refresh`
+    );
+    return response.data;
+  },
+
+  /**
+   * Déconnexion : révoque le refresh token courant côté serveur
+   * POST /auth/logout
+   */
+  logout: async (): Promise<void> => {
+    await api.post(`${BASE_URL}/logout`);
+  },
+
+  /**
+   * Déconnexion de tous les appareils (JWT requis)
+   * POST /auth/logout-all
+   */
+  logoutAll: async (): Promise<{ revoked: number }> => {
+    const response = await api.post<{ revoked: number }>(
+      `${BASE_URL}/logout-all`
+    );
     return response.data;
   },
 
