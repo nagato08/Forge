@@ -17,10 +17,22 @@ export enum ProjectStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
+/**
+ * Rôle d'un membre DANS un projet, indépendant du rôle global.
+ * Hiérarchie : OWNER > ADMIN > MEMBER > VIEWER.
+ */
+export enum ProjectRole {
+  OWNER = 'OWNER',
+  ADMIN = 'ADMIN',
+  MEMBER = 'MEMBER',
+  VIEWER = 'VIEWER',
+}
+
 export interface ProjectMember {
   id: string;
   userId: string;
   projectId: string;
+  role: ProjectRole;
   user: User;
 }
 
@@ -40,6 +52,8 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   owner?: User;
+  /** Rôle de l'utilisateur courant sur ce projet, calculé par le backend. */
+  myRole?: ProjectRole | null;
   members: ProjectMember[];
   _count?: {
     tasks: number;
@@ -81,6 +95,17 @@ export interface JoinProjectByTokenRequest {
 
 export interface AddProjectMemberRequest {
   userId: string;
+  /** MEMBER par défaut côté serveur. OWNER est refusé (voir transfert de propriété). */
+  role?: Exclude<ProjectRole, ProjectRole.OWNER>;
+}
+
+export interface UpdateMemberRoleRequest {
+  userId: string;
+  role: Exclude<ProjectRole, ProjectRole.OWNER>;
+}
+
+export interface TransferOwnershipRequest {
+  newOwnerId: string;
 }
 
 export interface RegenerateTokenResponse {

@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useMessages, useSendMessage, useSendFileMessage } from '@/lib/hooks/useChat';
 import { parseAttachments, ChatAttachment } from '@/lib/api/chat.api';
 import { useAuthStore } from '@/lib/stores/auth.store';
+import { useProjectRole } from '@/lib/hooks/useProjects';
 import { useSocketEvent } from '@/lib/hooks/useSocket';
 import { getSocket, emitSocketEvent } from '@/lib/socket/socket.client';
 import { getApiError } from '@/lib/utils/api-error';
@@ -189,6 +190,8 @@ export default function ChatPage() {
   const projectId = params.id as string;
 
   const { data: messages, isLoading, error } = useMessages(projectId);
+  // Poster exige MEMBER minimum, comme côté serveur.
+  const { canContribute: canContributeToProject } = useProjectRole(projectId);
   const sendMutation = useSendMessage();
   const sendFileMutation = useSendFileMessage();
   const currentUser = useAuthStore((state) => state.user);
@@ -492,7 +495,14 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* Input area */}
+      {/* Input area — masquée en lecture seule, le serveur refuse de toute façon */}
+      {!canContributeToProject ? (
+        <div className="border-t border-border p-4">
+          <p className="text-sm text-text-secondary text-center">
+            Votre rôle sur ce projet ne permet pas d&apos;écrire dans la discussion.
+          </p>
+        </div>
+      ) : (
       <div className="border-t border-border p-4 space-y-2">
         {/* Pending files preview */}
         {pendingFiles.length > 0 && (
@@ -546,6 +556,7 @@ export default function ChatPage() {
           Images, videos, PDF, documents — max 25 Mo
         </p>
       </div>
+      )}
     </div>
   );
 }

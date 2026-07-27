@@ -2,15 +2,35 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useProjectById, useAddProjectMember, useRemoveProjectMember, useRegenerateInviteToken, useDeleteProject } from '@/lib/hooks/useProjects';
+import {
+  useProjectById,
+  useAddProjectMember,
+  useRemoveProjectMember,
+  useRegenerateInviteToken,
+  useDeleteProject,
+  useUpdateMemberRole,
+  useTransferOwnership,
+} from '@/lib/hooks/useProjects';
 import { useUsers } from '@/lib/hooks/useAuth';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import Spinner from '@/components/ui/Spinner';
+import ProjectRoleBadge from '@/components/projects/ProjectRoleBadge';
 import { toast } from '@/lib/stores/toast.store';
-import { Copy, UserPlus, Trash2, RotateCcw, AlertTriangle } from 'lucide-react';
+import { ProjectRole } from '@/lib/types/project.types';
+import {
+  AssignableProjectRole,
+  PROJECT_ROLE_DESCRIPTIONS,
+  PROJECT_ROLE_LABELS,
+  assignableRolesFor,
+  canActOnMember,
+  canManage,
+  isOwner as isOwnerRole,
+  resolveMyRole,
+} from '@/lib/utils/project-permissions';
+import { Copy, UserPlus, Trash2, RotateCcw, AlertTriangle, Crown } from 'lucide-react';
 
 export default function ProjectSettingsPage() {
   const params = useParams();
@@ -25,10 +45,17 @@ export default function ProjectSettingsPage() {
   const removeMemberMutation = useRemoveProjectMember();
   const regenerateTokenMutation = useRegenerateInviteToken();
   const deleteProjectMutation = useDeleteProject();
+  const updateMemberRoleMutation = useUpdateMemberRole();
+  const transferOwnershipMutation = useTransferOwnership();
 
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
+  // OWNER exclu : il ne s'attribue pas, il se transfère.
+  const [selectedRole, setSelectedRole] = useState<AssignableProjectRole>(
+    ProjectRole.MEMBER
+  );
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [transferTargetId, setTransferTargetId] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   if (isLoadingProject) {
@@ -39,9 +66,15 @@ export default function ProjectSettingsPage() {
     return <div className="p-6 text-text-secondary">Projet non trouvé</div>;
   }
 
-  const isOwner = currentUser?.id === project.ownerId || currentUser?.id === project.createdBy;
+  // Le rôle vient du serveur : source unique, alignée sur ses propres règles.
+  const myRole = resolveMyRole(project, currentUser?.id);
+  const isOwner = isOwnerRole(myRole);
+  const canManageProject = canManage(myRole);
+  const grantableRoles = assignableRolesFor(myRole);
+
   const memberIds = project.members?.map((m) => m.userId) || [];
   const availableUsers = allUsers?.filter((u) => !memberIds.includes(u.id)) || [];
+  const transferTarget = project.members?.find((m) => m.userId === transferTargetId);
 
   const handleAddMember = () => {
     if (!selectedUserId) {
@@ -49,65 +82,78 @@ export default function ProjectSettingsPage() {
       return;
     }
 
-    console.log(` Adding member ${selectedUserId} to project ${projectId}`);
-
     addMemberMutation.mutate(
-      { projectId, userId: selectedUserId },
+      { projectId, userId: selectedUserId, role: selectedRole },
       {
         onSuccess: () => {
-          console.log(' Member added successfully');
           setShowAddMemberModal(false);
           setSelectedUserId('');
+          setSelectedRole(ProjectRole.MEMBER);
         },
-        onError: (err) => {
-          console.error(' Failed to add member:', err);
-          toast.error('Impossible d\'ajouter le membre');
+        onError: () => {
+          toast.error("Impossible d'ajouter le membre");
         },
       }
     );
   };
 
   const handleRemoveMember = (userId: string) => {
-    console.log(` Removing member ${userId} from project ${projectId}`);
-
     removeMemberMutation.mutate(
       { projectId, userId },
       {
-        onSuccess: () => {
-          console.log(' Member removed successfully');
-        },
-        onError: (err) => {
-          console.error(' Failed to remove member:', err);
+        onError: () => {
           toast.error('Impossible de retirer le membre');
         },
       }
     );
   };
 
-  const handleRegenerateToken = () => {
-    console.log(`🔄 Regenerating invite token for project ${projectId}`);
+  const handleChangeRole = (userId: string, role: ProjectRole) => {
+    updateMemberRoleMutation.mutate(
+      // OWNER n'est jamais proposé dans la liste : le transfert a son propre flux.
+      { projectId, userId, role: role as Exclude<ProjectRole, ProjectRole.OWNER> },
+      {
+        onSuccess: () => {
+          toast.success(`Rôle mis à jour : ${PROJECT_ROLE_LABELS[role]}`);
+        },
+        onError: () => {
+          toast.error('Impossible de changer le rôle');
+        },
+      }
+    );
+  };
 
+  const handleTransferOwnership = () => {
+    if (!transferTargetId) return;
+
+    transferOwnershipMutation.mutate(
+      { projectId, newOwnerId: transferTargetId },
+      {
+        onSuccess: () => {
+          setTransferTargetId(null);
+          toast.success('Propriété du projet transférée');
+        },
+        onError: () => {
+          toast.error('Impossible de transférer la propriété');
+        },
+      }
+    );
+  };
+
+  const handleRegenerateToken = () => {
     regenerateTokenMutation.mutate(projectId, {
-      onSuccess: () => {
-        console.log(' Invite token regenerated');
-      },
-      onError: (err) => {
-        console.error(' Failed to regenerate token:', err);
+      onError: () => {
         toast.error('Impossible de régénérer le token');
       },
     });
   };
 
   const handleDeleteProject = () => {
-    console.log(` Deleting project ${projectId}`);
-
     deleteProjectMutation.mutate(projectId, {
       onSuccess: () => {
-        console.log(' Project deleted successfully');
         router.push('/projects');
       },
-      onError: (err) => {
-        console.error(' Failed to delete project:', err);
+      onError: () => {
         toast.error('Impossible de supprimer le projet');
       },
     });
@@ -122,10 +168,28 @@ export default function ProjectSettingsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-text-primary">Paramètres du projet</h1>
-        <p className="text-text-secondary mt-1">Gestion des membres, invitation et options du projet</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-text-primary">Paramètres du projet</h1>
+          <p className="text-text-secondary mt-1">Gestion des membres, invitation et options du projet</p>
+        </div>
+        {myRole && (
+          <div className="text-right">
+            <p className="text-xs text-text-secondary mb-1">Votre rôle</p>
+            <ProjectRoleBadge role={myRole} />
+          </div>
+        )}
       </div>
+
+      {/* Lecture seule : on annonce la limite plutôt que de laisser deviner */}
+      {!canManageProject && (
+        <Card className="p-4 flex items-start gap-2 border-warning/30 bg-warning/5">
+          <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+          <p className="text-sm text-text-secondary">
+            Votre rôle sur ce projet ne permet pas d&apos;en modifier les paramètres ni de gérer les membres.
+          </p>
+        </Card>
+      )}
 
       {/* Invitation Section */}
       <Card className="p-6 space-y-4">
@@ -174,7 +238,7 @@ export default function ProjectSettingsPage() {
         </div>
 
         {/* Regenerate Token Button */}
-        {isOwner && (
+        {canManageProject && (
           <div className="pt-2 border-t border-border">
             <Button
               variant="secondary"
@@ -196,7 +260,7 @@ export default function ProjectSettingsPage() {
       <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-text-primary">Membres ({project.members?.length || 0})</h2>
-          {isOwner && (
+          {canManageProject && (
             <Button
               variant="primary"
               size="sm"
@@ -215,44 +279,84 @@ export default function ProjectSettingsPage() {
             project.members.map((member) => {
               const user = member.user;
               const isCurrentUser = currentUser?.id === user.id;
+              // `role` est absent tant qu'une API antérieure au RBAC répond.
+              const memberRole =
+                member.role ??
+                (member.userId === project.ownerId
+                  ? ProjectRole.OWNER
+                  : ProjectRole.MEMBER);
+              // Miroir des garde-fous serveur : on n'affiche une action que
+              // si elle a une chance d'aboutir.
+              const canActOnThisMember =
+                canManageProject && !isCurrentUser && canActOnMember(myRole, memberRole);
+
               return (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between p-3 bg-bg-surface-hover rounded-lg border border-border"
+                  className="flex flex-wrap items-center justify-between gap-3 p-3 bg-bg-surface-hover rounded-lg border border-border"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold text-primary">
-                        {user.firstName?.[0]}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-text-primary">
-                          {user.firstName} {user.lastName}
-                        </p>
-                        <p className="text-xs text-text-secondary">
-                          {user.jobTitle || 'Aucun titre'}
-                        </p>
-                      </div>
-                      {member.userId === project.ownerId && (
-                        <span className="ml-auto mr-3 text-xs px-2 py-1 bg-primary/10 text-primary rounded-full font-medium">
-                          Propriétaire
-                        </span>
-                      )}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                      {user.firstName?.[0]}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text-primary truncate">
+                        {user.firstName} {user.lastName}
+                        {isCurrentUser && (
+                          <span className="text-text-secondary font-normal"> (vous)</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-text-secondary truncate">
+                        {user.jobTitle || 'Aucun titre'}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Remove button */}
-                  {isOwner && !isCurrentUser && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleRemoveMember(member.userId)}
-                      isLoading={removeMemberMutation.isPending}
-                      className="text-critical hover:bg-critical/10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2 ml-auto">
+                    {canActOnThisMember ? (
+                      <select
+                        value={memberRole}
+                        onChange={(e) => handleChangeRole(member.userId, e.target.value as ProjectRole)}
+                        disabled={updateMemberRoleMutation.isPending}
+                        aria-label={`Rôle de ${user.firstName} ${user.lastName}`}
+                        className="px-2 py-1 text-xs border border-border rounded-lg bg-bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                      >
+                        {grantableRoles.map((role) => (
+                          <option key={role} value={role}>
+                            {PROJECT_ROLE_LABELS[role]}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <ProjectRoleBadge role={memberRole} />
+                    )}
+
+                    {/* Transfert de propriété : réservé au propriétaire */}
+                    {isOwner && !isCurrentUser && memberRole !== ProjectRole.OWNER && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setTransferTargetId(member.userId)}
+                        title="Transférer la propriété du projet"
+                        aria-label={`Transférer la propriété à ${user.firstName} ${user.lastName}`}
+                      >
+                        <Crown className="w-4 h-4" />
+                      </Button>
+                    )}
+
+                    {canActOnThisMember && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleRemoveMember(member.userId)}
+                        isLoading={removeMemberMutation.isPending}
+                        className="text-critical hover:bg-critical/10"
+                        aria-label={`Retirer ${user.firstName} ${user.lastName} du projet`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               );
             })
@@ -339,6 +443,64 @@ export default function ProjectSettingsPage() {
               <p className="text-xs text-text-secondary">Tous les utilisateurs sont déjà membres</p>
             )}
           </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-text-primary" htmlFor="new-member-role">
+              Rôle dans le projet
+            </label>
+            <select
+              id="new-member-role"
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value as AssignableProjectRole)}
+              className="w-full px-3 py-2 border border-border rounded-lg bg-bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              {grantableRoles.map((role) => (
+                <option key={role} value={role}>
+                  {PROJECT_ROLE_LABELS[role]}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-text-secondary">
+              {PROJECT_ROLE_DESCRIPTIONS[selectedRole]}
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Transfer Ownership Modal */}
+      <Modal
+        isOpen={!!transferTargetId}
+        onClose={() => setTransferTargetId(null)}
+        title="Transférer la propriété"
+        size="sm"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setTransferTargetId(null)}>
+              Annuler
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleTransferOwnership}
+              isLoading={transferOwnershipMutation.isPending}
+            >
+              Transférer
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-text-primary">
+            Transférer la propriété du projet à{' '}
+            <span className="font-semibold">
+              {transferTarget?.user.firstName} {transferTarget?.user.lastName}
+            </span>
+            &nbsp;?
+          </p>
+          <p className="text-sm text-text-secondary">
+            Vous perdrez le rôle de propriétaire et deviendrez administrateur du projet.
+            Vous ne pourrez plus le supprimer ni reprendre la propriété par vous-même.
+          </p>
         </div>
       </Modal>
 

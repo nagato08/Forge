@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useProjectById } from '@/lib/hooks/useProjects';
-import { useAuthStore } from '@/lib/stores/auth.store';
 import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
 import Badge, { getPriorityBadge } from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
+import ProjectRoleBadge from '@/components/projects/ProjectRoleBadge';
+import { useAuthStore } from '@/lib/stores/auth.store';
+import { canManage, resolveMyRole } from '@/lib/utils/project-permissions';
 import {
   LayoutGrid,
   TrendingUp,
@@ -34,7 +36,8 @@ interface Tab {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  ownerOnly?: boolean;
+  /** Onglet réservé aux gestionnaires du projet (ADMIN projet et au-dessus). */
+  managerOnly?: boolean;
 }
 
 const tabs: Tab[] = [
@@ -45,7 +48,7 @@ const tabs: Tab[] = [
   { href: '/workload', label: 'Charge', icon: Zap },
   { href: '/chat', label: 'Chat', icon: MessageSquare },
   { href: '/documents', label: 'Documents', icon: FileText },
-  { href: '/settings', label: 'Paramètres', icon: Settings, ownerOnly: true },
+  { href: '/settings', label: 'Paramètres', icon: Settings, managerOnly: true },
 ];
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -113,14 +116,9 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
     );
   }
 
-  const isOwner = project.createdBy === userId || project.ownerId === userId;
-  console.log('🔍 Debug isOwner:', {
-    userId,
-    createdBy: project.createdBy,
-    ownerId: project.ownerId,
-    owner: project.owner,
-    isOwner,
-  });
+  // Rôle projet calculé par le serveur : autorité unique sur les permissions.
+  const myRole = resolveMyRole(project, userId);
+  const canManageProject = canManage(myRole);
   const status = statusConfig[project.status] || { label: project.status, color: 'info', icon: '📁' };
   const members = project.members || [];
   const membersCount = project._count?.members ?? members.length ?? 0;
@@ -145,11 +143,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
                 {status.label}
               </Badge>
               {getPriorityBadge(project.priority)}
-              {isOwner && (
-                <Badge variant="info" size="sm">
-                  Propriétaire
-                </Badge>
-              )}
+              {myRole && <ProjectRoleBadge role={myRole} />}
             </div>
             {project.description && (
               <p className="text-text-secondary mt-2 text-sm leading-relaxed">
@@ -160,26 +154,26 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
 
           {/* Actions */}
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => router.push(`/projects/${projectId}/kanban?createTask=true`)}
-              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1.5"
-              title="Créer une nouvelle tâche"
-            >
-              <Plus className="w-4 h-4" />
-              Nouvelle tâche
-            </button>
+            {/* Créer une tâche exige ADMIN projet, comme côté serveur */}
+            {canManageProject && (
+              <button
+                onClick={() => router.push(`/projects/${projectId}/kanban?createTask=true`)}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1.5"
+                title="Créer une nouvelle tâche"
+              >
+                <Plus className="w-4 h-4" />
+                Nouvelle tâche
+              </button>
+            )}
             <button
               onClick={() => setShowDetails(!showDetails)}
               className="px-3 py-1.5 text-xs font-medium rounded-lg bg-bg-surface-hover text-text-secondary hover:text-text-primary hover:bg-border transition-colors"
             >
               {showDetails ? 'Moins' : 'Détails'}
             </button>
-            {isOwner && (
+            {canManageProject && (
               <button
-                onClick={() => {
-                  console.log('📋 Toggling project code visibility');
-                  setShowCode(!showCode);
-                }}
+                onClick={() => setShowCode(!showCode)}
                 className="px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors whitespace-nowrap"
               >
                 {showCode ? 'Masquer code' : 'Inviter'}
@@ -312,7 +306,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
         )}
 
         {/* Invite code panel (owner only) */}
-        {showCode && isOwner && (
+        {showCode && canManageProject && (
           <div className="pt-4 border-t border-border space-y-3">
             <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
               Invitation
@@ -361,7 +355,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
       <div className="border-b border-border overflow-x-auto -mx-6 px-6">
         <div className="flex gap-1 min-w-min">
           {tabs
-            .filter((tab) => !tab.ownerOnly || isOwner)
+            .filter((tab) => !tab.managerOnly || canManageProject)
             .map((tab) => {
               const TabIcon = tab.icon;
               const isActive = pathname.includes(tab.href);

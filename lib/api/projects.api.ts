@@ -6,6 +6,9 @@ import {
   JoinProjectByCodeRequest,
   JoinProjectByTokenRequest,
   AddProjectMemberRequest,
+  UpdateMemberRoleRequest,
+  TransferOwnershipRequest,
+  ProjectMember,
   RegenerateTokenResponse,
 } from '@/lib/types/project.types';
 
@@ -85,6 +88,36 @@ export const projectsApi = {
     const response = await api.delete<Project>(
       `${BASE_URL}/${projectId}/members`,
       { data: { userId } }
+    );
+    return response.data;
+  },
+
+  /**
+   * Changer le rôle projet d'un membre
+   * PATCH /projects/:id/members/role (JWT requis, ADMIN projet)
+   */
+  updateMemberRole: async (
+    projectId: string,
+    data: UpdateMemberRoleRequest
+  ): Promise<ProjectMember> => {
+    const response = await api.patch<ProjectMember>(
+      `${BASE_URL}/${projectId}/members/role`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Transférer la propriété du projet à un autre membre
+   * PATCH /projects/:id/transfer-ownership (JWT requis, OWNER)
+   */
+  transferOwnership: async (
+    projectId: string,
+    data: TransferOwnershipRequest
+  ): Promise<Project> => {
+    const response = await api.patch<Project>(
+      `${BASE_URL}/${projectId}/transfer-ownership`,
+      data
     );
     return response.data;
   },

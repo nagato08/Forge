@@ -9,8 +9,18 @@ import {
   JoinProjectByCodeRequest,
   JoinProjectByTokenRequest,
   AddProjectMemberRequest,
+  UpdateMemberRoleRequest,
+  TransferOwnershipRequest,
 } from '@/lib/types/project.types';
 import { getApiError } from '@/lib/utils/api-error';
+import {
+  canContribute,
+  canManage,
+  canView,
+  isOwner,
+  resolveMyRole,
+} from '@/lib/utils/project-permissions';
+import { useAuthStore } from '@/lib/stores/auth.store';
 
 const CACHE_KEYS = {
   all: ['projects'],
@@ -39,6 +49,27 @@ export function useProjectById(projectId: string | null) {
     enabled: !!projectId,
     staleTime: 5 * 60 * 1000, // 5 min
   });
+}
+
+/**
+ * Rôle de l'utilisateur courant sur un projet, avec les permissions dérivées.
+ *
+ * Source unique pour conditionner l'affichage des actions. Le serveur reste
+ * l'autorité : ceci masque l'UI, ça ne remplace pas ses vérifications.
+ */
+export function useProjectRole(projectId: string | null) {
+  const { data: project, isLoading } = useProjectById(projectId);
+  const currentUserId = useAuthStore((state) => state.user?.id);
+  const role = project ? resolveMyRole(project, currentUserId) : null;
+
+  return {
+    role,
+    isLoading,
+    canView: canView(role),
+    canContribute: canContribute(role),
+    canManage: canManage(role),
+    isOwner: isOwner(role),
+  };
 }
 
 /**
@@ -107,13 +138,58 @@ export function useAddProjectMember() {
     mutationFn: ({
       projectId,
       userId,
+      role,
     }: {
       projectId: string;
       userId: string;
-    }) => projectsApi.addProjectMember(projectId, { userId }),
+      role?: AddProjectMemberRequest['role'];
+    }) => projectsApi.addProjectMember(projectId, { userId, role }),
     onSuccess: (_, { projectId }) => {
       // Invalider le projet
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(projectId) });
+    },
+  });
+}
+
+/**
+ * Hook pour changer le rôle projet d'un membre
+ */
+export function useUpdateMemberRole() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      userId,
+      role,
+    }: {
+      projectId: string;
+    } & UpdateMemberRoleRequest) =>
+      projectsApi.updateMemberRole(projectId, { userId, role }),
+    onSuccess: (_, { projectId }) => {
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(projectId) });
+    },
+  });
+}
+
+/**
+ * Hook pour transférer la propriété du projet.
+ * Le rôle de l'utilisateur courant change : on invalide aussi la liste.
+ */
+export function useTransferOwnership() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      newOwnerId,
+    }: {
+      projectId: string;
+    } & TransferOwnershipRequest) =>
+      projectsApi.transferOwnership(projectId, { newOwnerId }),
+    onSuccess: (_, { projectId }) => {
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(projectId) });
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.myProjects });
     },
   });
 }
