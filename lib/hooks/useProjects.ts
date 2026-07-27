@@ -11,6 +11,7 @@ import {
   AddProjectMemberRequest,
   UpdateMemberRoleRequest,
   TransferOwnershipRequest,
+  InviteProjectMemberRequest,
 } from '@/lib/types/project.types';
 import { getApiError } from '@/lib/utils/api-error';
 import {
@@ -148,6 +149,20 @@ export function useAddProjectMember() {
       // Invalider le projet
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(projectId) });
     },
+  });
+}
+
+/**
+ * Hook pour inviter par email : envoie le lien d'invitation du projet.
+ * N'ajoute pas de membre immédiatement, donc pas d'invalidation nécessaire.
+ */
+export function useInviteProjectMember() {
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      email,
+    }: { projectId: string } & InviteProjectMemberRequest) =>
+      projectsApi.inviteMember(projectId, { email }),
   });
 }
 

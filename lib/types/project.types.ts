@@ -93,6 +93,15 @@ export interface JoinProjectByTokenRequest {
   inviteToken: string;
 }
 
+export interface InviteProjectMemberRequest {
+  email: string;
+}
+
+export interface InviteProjectMemberResponse {
+  message: string;
+  email: string;
+}
+
 export interface AddProjectMemberRequest {
   userId: string;
   /** MEMBER par défaut côté serveur. OWNER est refusé (voir transfert de propriété). */

@@ -9,6 +9,7 @@ import {
   describeAction,
   formatAuditDate,
   formatRelative,
+  formatUserAgent,
   metadataLabel,
   metadataValue,
   targetTypeLabel,
@@ -135,30 +136,44 @@ export default function AuditLogDetail({ log, onClose }: AuditLogDetailProps) {
             </Field>
           )}
 
-          <Field label="Adresse IP" mono>
-            {log.ip ?? '—'}
-          </Field>
-
-          <Field label="Navigateur" mono>
-            {log.userAgent ?? '—'}
-          </Field>
-
-          <Field label="Identifiant de requête" mono>
-            {log.requestId ?? '—'}
-          </Field>
-
-          <Field label="Identifiant d’entrée" mono>
-            {log.id}
-          </Field>
         </dl>
 
-        {log.requestId && (
-          <p className="text-xs text-text-secondary">
-            Cet identifiant de requête figure dans les logs applicatifs du
-            serveur : il permet de retrouver toutes les traces techniques de la
-            même opération.
-          </p>
-        )}
+        {/*
+          Origine et corrélation sont repliées : ces champs servent à l'enquête,
+          pas à la lecture courante. Ils restent enregistrés en base dans tous
+          les cas — seul leur affichage est mis au second plan.
+        */}
+        <details className="group border border-border rounded-lg">
+          <summary className="px-3 py-2 text-xs font-medium text-text-secondary cursor-pointer select-none hover:text-text-primary transition-colors">
+            Détails techniques
+          </summary>
+
+          <div className="px-3 pb-3">
+            <dl>
+              <Field label="Adresse IP" mono>
+                {log.ip ?? '—'}
+              </Field>
+
+              {/* Chaîne brute au survol : lisible par défaut, complète si besoin */}
+              <Field label="Navigateur">
+                <span title={log.userAgent ?? undefined}>
+                  {formatUserAgent(log.userAgent)}
+                </span>
+              </Field>
+
+              <Field label="Identifiant de requête" mono>
+                {log.requestId ?? '—'}
+              </Field>
+            </dl>
+
+            {log.requestId && (
+              <p className="text-xs text-text-secondary mt-2">
+                Cet identifiant figure dans les logs du serveur : il permet de
+                retrouver toutes les traces techniques de la même opération.
+              </p>
+            )}
+          </div>
+        </details>
       </div>
     </Modal>
   );

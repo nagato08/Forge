@@ -24,3 +24,18 @@ export function isProtectedRoute(pathname: string): boolean {
     pathname.startsWith(route)
   ) && pathname !== '/';
 }
+
+/**
+ * Valide un `callbackUrl` avant d'y rediriger après login/register.
+ *
+ * Le proxy pose ce paramètre pour ramener l'utilisateur sur la page qu'il
+ * visait (ex. un lien d'invitation). Sans validation, un lien fabriqué avec
+ * `callbackUrl=https://site-malveillant.example` détournerait la redirection
+ * post-connexion vers un site externe (open redirect) : on n'accepte donc
+ * qu'un chemin relatif simple, jamais une URL absolue ni un `//host`.
+ */
+export function getSafeCallbackUrl(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith('/') || raw.startsWith('//')) return null;
+  return raw;
+}

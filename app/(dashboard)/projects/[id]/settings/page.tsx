@@ -10,11 +10,13 @@ import {
   useDeleteProject,
   useUpdateMemberRole,
   useTransferOwnership,
+  useInviteProjectMember,
 } from '@/lib/hooks/useProjects';
 import { useUsers } from '@/lib/hooks/useAuth';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import Spinner from '@/components/ui/Spinner';
 import ProjectRoleBadge from '@/components/projects/ProjectRoleBadge';
@@ -30,7 +32,7 @@ import {
   isOwner as isOwnerRole,
   resolveMyRole,
 } from '@/lib/utils/project-permissions';
-import { Copy, UserPlus, Trash2, RotateCcw, AlertTriangle, Crown } from 'lucide-react';
+import { Copy, UserPlus, Trash2, RotateCcw, AlertTriangle, Crown, Mail } from 'lucide-react';
 
 export default function ProjectSettingsPage() {
   const params = useParams();
@@ -47,7 +49,9 @@ export default function ProjectSettingsPage() {
   const deleteProjectMutation = useDeleteProject();
   const updateMemberRoleMutation = useUpdateMemberRole();
   const transferOwnershipMutation = useTransferOwnership();
+  const inviteMemberMutation = useInviteProjectMember();
 
+  const [inviteEmail, setInviteEmail] = useState('');
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   // OWNER exclu : il ne s'attribue pas, il se transfère.
@@ -135,6 +139,26 @@ export default function ProjectSettingsPage() {
         },
         onError: () => {
           toast.error('Impossible de transférer la propriété');
+        },
+      }
+    );
+  };
+
+  const handleInviteByEmail = () => {
+    if (!inviteEmail.trim()) {
+      toast.error('Veuillez saisir une adresse email');
+      return;
+    }
+
+    inviteMemberMutation.mutate(
+      { projectId, email: inviteEmail.trim() },
+      {
+        onSuccess: () => {
+          toast.success(`Invitation envoyée à ${inviteEmail.trim()}`);
+          setInviteEmail('');
+        },
+        onError: () => {
+          toast.error("Impossible d'envoyer l'invitation");
         },
       }
     );
@@ -236,6 +260,38 @@ export default function ProjectSettingsPage() {
           </div>
           <p className="text-xs text-text-secondary">Lien d&apos;invitation unique pour les membres externes</p>
         </div>
+
+        {/* Invite by Email */}
+        {canManageProject && (
+          <div className="space-y-2 pt-2 border-t border-border">
+            <label className="text-sm font-medium text-text-primary" htmlFor="invite-email">
+              Inviter par email
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="invite-email"
+                type="email"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="collegue@exemple.fr"
+                className="flex-1"
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleInviteByEmail}
+                isLoading={inviteMemberMutation.isPending}
+                className="flex items-center gap-2 shrink-0"
+              >
+                <Mail className="w-4 h-4" />
+                Envoyer
+              </Button>
+            </div>
+            <p className="text-xs text-text-secondary">
+              Envoie le lien d&apos;invitation ci-dessus par email. Fonctionne même si la personne n&apos;a pas encore de compte.
+            </p>
+          </div>
+        )}
 
         {/* Regenerate Token Button */}
         {canManageProject && (

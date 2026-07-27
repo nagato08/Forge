@@ -50,6 +50,20 @@ export const AUDIT_ACTIONS: Record<string, ActionDescriptor> = {
     severity: 'warning',
     category: 'Membres',
   },
+  'project.invite.send': {
+    label: 'Invitation envoyée',
+    description:
+      'Le lien d’invitation du projet a été envoyé par email à une adresse.',
+    severity: 'info',
+    category: 'Membres',
+  },
+  'project.member.join': {
+    label: 'Adhésion au projet',
+    description:
+      'Un utilisateur a rejoint le projet lui-même, via un code ou un lien d’invitation.',
+    severity: 'info',
+    category: 'Membres',
+  },
   'project.member.role.update': {
     label: 'Changement de rôle',
     description:
@@ -247,6 +261,50 @@ export function metadataValue(value: unknown, key?: string): string {
   if (Array.isArray(value)) return value.join(', ');
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
+}
+
+/**
+ * Condense un User-Agent en « Navigateur Version · Système ».
+ *
+ * La chaîne brute est illisible et n'apporte rien tel quel ; ce qui compte
+ * dans une enquête est de distinguer un navigateur d'un mobile ou d'un
+ * script. La chaîne complète reste consultable au survol.
+ */
+export function formatUserAgent(userAgent: string | null): string {
+  if (!userAgent) return '—';
+
+  const browsers: [RegExp, string][] = [
+    // Edge et Opera doivent passer avant Chrome : leur UA contient « Chrome ».
+    [/Edg\/(\d+)/, 'Edge'],
+    [/OPR\/(\d+)/, 'Opera'],
+    [/Chrome\/(\d+)/, 'Chrome'],
+    [/Firefox\/(\d+)/, 'Firefox'],
+    // Safari n'expose pas son numéro dans « Safari/… » : on lit « Version/… ».
+    [/Version\/(\d+).*Safari/, 'Safari'],
+  ];
+
+  let browser = 'Navigateur inconnu';
+  for (const [pattern, name] of browsers) {
+    const match = userAgent.match(pattern);
+    if (match) {
+      browser = `${name} ${match[1]}`;
+      break;
+    }
+  }
+
+  const systems: [RegExp, string][] = [
+    [/Windows NT 10/, 'Windows'],
+    [/Windows/, 'Windows'],
+    [/Android/, 'Android'],
+    // iPhone/iPad avant « Mac OS X » : leur UA contient « like Mac OS X ».
+    [/iPhone|iPad/, 'iOS'],
+    [/Mac OS X/, 'macOS'],
+    [/Linux/, 'Linux'],
+  ];
+
+  const system = systems.find(([pattern]) => pattern.test(userAgent))?.[1];
+
+  return system ? `${browser} · ${system}` : browser;
 }
 
 /** Date complète en français, ex. « 27 juillet 2026 à 08:14:32 ». */

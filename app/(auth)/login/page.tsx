@@ -1,18 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLogin } from '@/lib/hooks/useAuth';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { Button, Input, Card } from '@/components/ui';
 import { getApiError } from '@/lib/utils/api-error';
 import { toast } from '@/lib/stores/toast.store';
 import { Eye, EyeOff } from 'lucide-react';
-import { ROLE_ROUTES } from '@/lib/utils/auth-routes';
+import { ROLE_ROUTES, getSafeCallbackUrl } from '@/lib/utils/auth-routes';
 
 const loginSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -23,9 +23,23 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+// `useSearchParams` (pour `callbackUrl`) exige une frontière Suspense en App
+// Router, faute de quoi le pré-rendu statique échoue au build.
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const loginMutation = useLogin();
+  // Propagé vers "S'inscrire" pour ne pas perdre la destination (ex. invitation)
+  // si le visiteur n'a pas encore de compte.
+  const registerCallbackUrl = getSafeCallbackUrl(searchParams.get('callbackUrl'));
 
   const {
     register,
@@ -43,7 +57,10 @@ export default function LoginPage() {
           const userRole = useAuthStore.getState().role;
           const dashboardUrl = userRole ? ROLE_ROUTES[userRole] : '/dashboard';
           toast.success('Connexion réussie');
-          router.push(dashboardUrl);
+          // Ramène vers la page visée avant redirection au login (ex. un
+          // lien d'invitation), sinon vers le dashboard du rôle.
+          const callbackUrl = getSafeCallbackUrl(searchParams.get('callbackUrl'));
+          router.push(callbackUrl ?? dashboardUrl);
         },
         onError: (error) => {
           toast.error(getApiError(error), { title: 'Erreur de connexion' });
@@ -160,7 +177,11 @@ export default function LoginPage() {
             <p className="text-[var(--text-secondary)]">
               Pas encore de compte?{' '}
               <Link
-                href="/register"
+                href={
+                  registerCallbackUrl
+                    ? `/register?callbackUrl=${encodeURIComponent(registerCallbackUrl)}`
+                    : '/register'
+                }
                 className="text-[var(--primary)] hover:text-[var(--primary)]/80 font-medium transition-colors"
               >
                 S&apos;inscrire

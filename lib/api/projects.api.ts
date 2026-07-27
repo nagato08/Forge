@@ -8,6 +8,8 @@ import {
   AddProjectMemberRequest,
   UpdateMemberRoleRequest,
   TransferOwnershipRequest,
+  InviteProjectMemberRequest,
+  InviteProjectMemberResponse,
   ProjectMember,
   RegenerateTokenResponse,
 } from '@/lib/types/project.types';
@@ -123,13 +125,33 @@ export const projectsApi = {
   },
 
   /**
+   * Inviter par email : envoie le lien d'invitation du projet à une adresse.
+   * POST /projects/:id/invite (JWT requis, ADMIN projet)
+   */
+  inviteMember: async (
+    projectId: string,
+    data: InviteProjectMemberRequest
+  ): Promise<InviteProjectMemberResponse> => {
+    const response = await api.post<InviteProjectMemberResponse>(
+      `${BASE_URL}/${projectId}/invite`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
    * Rejoindre un projet via code
    * POST /projects/join/code (JWT requis)
    */
+  // Le backend renvoie le ProjectMember créé, pas le Project complet
+  // (voir project.service.ts:joinByProjectCode → addMemberToProject).
   joinProjectByCode: async (
     data: JoinProjectByCodeRequest
-  ): Promise<Project> => {
-    const response = await api.post<Project>(`${BASE_URL}/join/code`, data);
+  ): Promise<ProjectMember> => {
+    const response = await api.post<ProjectMember>(
+      `${BASE_URL}/join/code`,
+      data
+    );
     return response.data;
   },
 
@@ -137,10 +159,14 @@ export const projectsApi = {
    * Rejoindre un projet via token d'invitation
    * POST /projects/join/token (JWT requis)
    */
+  // Idem : ProjectMember, pas Project complet.
   joinProjectByToken: async (
     data: JoinProjectByTokenRequest
-  ): Promise<Project> => {
-    const response = await api.post<Project>(`${BASE_URL}/join/token`, data);
+  ): Promise<ProjectMember> => {
+    const response = await api.post<ProjectMember>(
+      `${BASE_URL}/join/token`,
+      data
+    );
     return response.data;
   },
 

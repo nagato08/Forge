@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useRegister } from '@/lib/hooks/useAuth';
 import { useGetDepartmentEnums } from '@/lib/hooks';
 import { useAuthStore } from '@/lib/stores/auth.store';
@@ -13,7 +13,7 @@ import { Button, Input, Select, Card } from '@/components/ui';
 import { toast } from '@/lib/stores/toast.store';
 import { getApiError } from '@/lib/utils/api-error';
 import { Department } from '@/lib/types/user.types';
-import { ROLE_ROUTES } from '@/lib/utils/auth-routes';
+import { ROLE_ROUTES, getSafeCallbackUrl } from '@/lib/utils/auth-routes';
 import { Eye, EyeOff } from 'lucide-react';
 
 const registerSchema = z
@@ -34,10 +34,22 @@ const registerSchema = z
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterPageContent />
+    </Suspense>
+  );
+}
+
+// `useSearchParams` (pour `callbackUrl`) exige une frontière Suspense en App
+// Router, faute de quoi le pré-rendu statique échoue au build.
+function RegisterPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const registerMutation = useRegister();
+  const loginCallbackUrl = getSafeCallbackUrl(searchParams.get('callbackUrl'));
   const { data: departments, isLoading: deptLoading } = useGetDepartmentEnums();
 
   const departmentOptions = departments?.map((dept) => ({
@@ -67,7 +79,8 @@ export default function RegisterPage() {
         onSuccess: () => {
           const userRole = useAuthStore.getState().role;
           const dashboardUrl = userRole ? ROLE_ROUTES[userRole] : '/dashboard';
-          router.push(dashboardUrl);
+          const callbackUrl = getSafeCallbackUrl(searchParams.get('callbackUrl'));
+          router.push(callbackUrl ?? dashboardUrl);
         },
         onError: (error) => {
           console.error('Registration error:', getApiError(error));
@@ -208,7 +221,11 @@ export default function RegisterPage() {
             <p className="text-[var(--text-secondary)]">
               Vous avez déjà un compte?{' '}
               <Link
-                href="/login"
+                href={
+                  loginCallbackUrl
+                    ? `/login?callbackUrl=${encodeURIComponent(loginCallbackUrl)}`
+                    : '/login'
+                }
                 className="text-[var(--primary)] hover:text-[var(--primary)]/80 font-medium transition-colors"
               >
                 Se connecter

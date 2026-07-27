@@ -115,10 +115,3 @@ export {
   useAnalyzePert,
   useAnalyzeDelays,
 } from './useAI';
-
-export {
-  useProjectMessages,
-  useSendProjectMessage,
-  useDeleteMessage,
-  useMessageById,
-} from './useMessages';
