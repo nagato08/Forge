@@ -54,7 +54,6 @@ export default function RegisterPage() {
   });
 
   const onSubmit = async (data: RegisterForm) => {
-    console.log('Register form submitted:', data.email);
     registerMutation.mutate(
       {
         firstName: data.firstName,
@@ -68,7 +67,6 @@ export default function RegisterPage() {
         onSuccess: () => {
           const userRole = useAuthStore.getState().role;
           const dashboardUrl = userRole ? ROLE_ROUTES[userRole] : '/dashboard';
-          console.log('Registration successful, role:', userRole, '→ redirecting to:', dashboardUrl);
           router.push(dashboardUrl);
         },
         onError: (error) => {

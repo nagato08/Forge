@@ -9,6 +9,7 @@ import {
   Clock,
   Settings,
   Users,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { useUIStore } from '@/lib/stores/ui.store';
@@ -34,6 +35,7 @@ const mainNavItems = [
 
 const adminNavItems = [
   { href: '/settings/users', label: 'Utilisateurs', icon: Users },
+  { href: '/settings/audit-logs', label: 'Journal d’audit', icon: ShieldCheck },
 ];
 
 const settingsNavItems = [

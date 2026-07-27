@@ -34,7 +34,6 @@ export default function AIAssistantPage() {
       return;
     }
 
-    console.log('🤖 Interpreting message:', inputMessage);
 
     interpretMutation.mutate(
       {
@@ -43,7 +42,6 @@ export default function AIAssistantPage() {
       },
       {
         onSuccess: (response) => {
-          console.log(' AI interpretation:', response);
           setConversationHistory([
             ...conversationHistory,
             { role: 'user', message: inputMessage, timestamp: new Date() },
@@ -61,7 +59,6 @@ export default function AIAssistantPage() {
   const handleExecuteAction = () => {
     if (!suggestedAction) return;
 
-    console.log('⚡ Executing action:', suggestedAction);
 
     executeMutation.mutate(
       {
@@ -70,8 +67,7 @@ export default function AIAssistantPage() {
         params: suggestedAction.params || {},
       },
       {
-        onSuccess: (result) => {
-          console.log(' Action executed:', result);
+        onSuccess: () => {
           toast.success('Action exécutée avec succès !');
           setConversationHistory([
             ...conversationHistory,
@@ -98,7 +94,6 @@ export default function AIAssistantPage() {
       return;
     }
 
-    console.log('🤖 AI Act (interpret + execute):', inputMessage);
 
     actMutation.mutate(
       {
@@ -107,7 +102,6 @@ export default function AIAssistantPage() {
       },
       {
         onSuccess: (response) => {
-          console.log(' AI Act result:', response);
           setConversationHistory([
             ...conversationHistory,
             { role: 'user', message: inputMessage, timestamp: new Date() },
@@ -135,11 +129,9 @@ export default function AIAssistantPage() {
       return;
     }
 
-    console.log(' Analyzing Gantt:', projectId);
 
     analyzeGanttMutation.mutate(undefined, {
       onSuccess: (response) => {
-        console.log(' Gantt analysis:', response);
         setAnalysisResults({ ...analysisResults, gantt: response.analysis });
         toast.success('Analyse Gantt terminée!');
       },
@@ -156,11 +148,9 @@ export default function AIAssistantPage() {
       return;
     }
 
-    console.log('🔗 Analyzing PERT:', projectId);
 
     analyzePertMutation.mutate(undefined, {
       onSuccess: (response) => {
-        console.log(' PERT analysis:', response);
         setAnalysisResults({ ...analysisResults, pert: response.analysis });
         toast.success('Analyse PERT terminée!');
       },
@@ -177,11 +167,9 @@ export default function AIAssistantPage() {
       return;
     }
 
-    console.log(' Analyzing delays:', projectId);
 
     analyzeDelaysMutation.mutate(undefined, {
       onSuccess: (response) => {
-        console.log(' Delays analysis:', response);
         setAnalysisResults({ ...analysisResults, delays: response.analysis });
         toast.success('Analyse des retards terminée!');
       },

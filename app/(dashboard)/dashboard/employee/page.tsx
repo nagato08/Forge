@@ -21,10 +21,6 @@ export default function EmployeeDashboardPage() {
     return <Spinner centered size="lg" label="Chargement de votre tableau de bord..." />;
   }
 
-  console.log('👥 Employee dashboard loaded:', {
-    tasks: myTasks?.length || 0,
-    totalTime: timeStats?.totalMinutes || 0,
-  });
 
   const tasksByStatus = {
     TODO: myTasks?.filter((t) => t.status === 'TODO').length || 0,
@@ -181,7 +177,7 @@ export default function EmployeeDashboardPage() {
           <h2 className="text-lg font-semibold text-text-primary">
             📝 Tâches récentes
           </h2>
-          <Link href="/my-tasks" onClick={() => console.log('🔗 Navigating to all my tasks')}>
+          <Link href="/my-tasks">
             <Button variant="secondary" size="sm">
               Voir toutes
             </Button>
@@ -269,7 +265,7 @@ export default function EmployeeDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-4">
           <p className="text-sm font-medium text-text-primary mb-3">📋 Mes tâches</p>
-          <Link href="/my-tasks" onClick={() => console.log('🔗 Navigating to my tasks (quick action)')}>
+          <Link href="/my-tasks">
             <Button variant="secondary" size="sm" className="w-full">
               Voir toutes
             </Button>
@@ -277,7 +273,7 @@ export default function EmployeeDashboardPage() {
         </Card>
         <Card className="p-4">
           <p className="text-sm font-medium text-text-primary mb-3">⏱ Temps</p>
-          <Link href="/time-tracking" onClick={() => console.log('🔗 Navigating to time tracking (quick action)')}>
+          <Link href="/time-tracking">
             <Button variant="secondary" size="sm" className="w-full">
               Suivi du temps
             </Button>
@@ -285,7 +281,7 @@ export default function EmployeeDashboardPage() {
         </Card>
         <Card className="p-4">
           <p className="text-sm font-medium text-text-primary mb-3">⚙ Profil</p>
-          <Link href="/settings/profile" onClick={() => console.log('🔗 Navigating to profile settings')}>
+          <Link href="/settings/profile">
             <Button variant="secondary" size="sm" className="w-full">
               Paramètres
             </Button>

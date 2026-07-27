@@ -20,7 +20,6 @@ export function useProjectMessages(projectId: string | null) {
   // Écouter les nouveaux messages via WebSocket
   useSocketEvent('project:message:new', (message) => {
     if (message.projectId === projectId) {
-      console.log('📨 New project message received via socket:', message.id);
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.projectMessages(projectId!),
       });
@@ -52,7 +51,6 @@ export function useSendProjectMessage() {
       data: CreateMessageRequest;
     }) => messagesApi.sendMessage(projectId, data),
     onSuccess: (message) => {
-      console.log('✅ Message sent successfully:', message.id);
       // Invalider la liste des messages
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.projectMessages(message.projectId),
@@ -73,7 +71,6 @@ export function useDeleteMessage() {
   return useMutation({
     mutationFn: (messageId: string) => messagesApi.deleteMessage(messageId),
     onSuccess: () => {
-      console.log('✅ Message deleted successfully');
       // Invalider toutes les listes de messages
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.projectMessages(''),

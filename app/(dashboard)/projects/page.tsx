@@ -57,7 +57,6 @@ export default function ProjectsPage() {
           <Button
             variant="secondary"
             onClick={() => {
-              console.log('🔗 Opening join project modal');
               setJoinModalOpen(true);
             }}
           >
@@ -66,7 +65,6 @@ export default function ProjectsPage() {
           {canCreateProject && (
             <Button
               onClick={() => {
-                console.log('➕ Opening create project modal');
                 setCreateModalOpen(true);
               }}
             >
@@ -179,7 +177,6 @@ export default function ProjectsPage() {
               <Button
                 variant="secondary"
                 onClick={() => {
-                  console.log('🔍 Clearing filter');
                   setStatusFilter(null);
                 }}
               >
@@ -188,7 +185,6 @@ export default function ProjectsPage() {
             )}
             {canCreateProject ? (
               <Button onClick={() => {
-                console.log('➕ Opening create project modal (empty state)');
                 setCreateModalOpen(true);
               }}>
                 Créer un projet
@@ -197,7 +193,6 @@ export default function ProjectsPage() {
               <Button
                 variant="secondary"
                 onClick={() => {
-                  console.log('🔗 Opening join project modal (empty state)');
                   setJoinModalOpen(true);
                 }}
               >

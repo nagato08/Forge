@@ -42,7 +42,6 @@ export default function CompanySettingsPage() {
   }
 
   const handleChange = (field: string, value: string) => {
-    console.log(` Field changed: ${field} =`, value);
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 

@@ -55,10 +55,8 @@ export default function JoinProjectModal({
   });
 
   const onSubmitCode = (data: JoinByCodeForm) => {
-    console.log('🔗 Joining project by code:', data.projectCode);
     joinByCodeMutation.mutate(data, {
       onSuccess: () => {
-        console.log(' Joined project by code successfully');
         resetCode();
         onClose();
       },
@@ -69,10 +67,8 @@ export default function JoinProjectModal({
   };
 
   const onSubmitToken = (data: JoinByTokenForm) => {
-    console.log('🔗 Joining project by token');
     joinByTokenMutation.mutate(data, {
       onSuccess: () => {
-        console.log(' Joined project by token successfully');
         resetToken();
         onClose();
       },

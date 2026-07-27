@@ -76,12 +76,6 @@ export default function KanbanPage() {
     );
   }
 
-  console.log(
-    ' Kanban loaded:',
-    tasks?.length || 0,
-    'tasks for project:',
-    projectId
-  );
 
   const todoTasks = tasks?.filter((t) => t.status === TaskStatus.TODO) || [];
   const doingTasks = tasks?.filter((t) => t.status === TaskStatus.DOING) || [];
@@ -91,7 +85,6 @@ export default function KanbanPage() {
     activeTaskId && tasks ? tasks.find((t) => t.id === activeTaskId) : null;
 
   const handleDragStart = (event: DragStartEvent) => {
-    console.log('🔄 Drag started:', event.active.id);
     setActiveTaskId(event.active.id as string);
   };
 
@@ -101,7 +94,6 @@ export default function KanbanPage() {
     setActiveTaskId(null);
 
     if (!over || active.id === over.id) {
-      console.log('🔄 Drag cancelled (same position)');
       return;
     }
 
@@ -148,12 +140,10 @@ export default function KanbanPage() {
       }
     }
 
-    console.log('Drag ended:', taskId, task.status, '->', newStatus);
     updateStatus.mutate({ taskId, status: { status: newStatus } });
   };
 
   const handleDragCancel = () => {
-    console.log('🔄 Drag cancelled');
     setActiveTaskId(null);
   };
 

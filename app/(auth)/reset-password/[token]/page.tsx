@@ -52,10 +52,8 @@ export default function ResetPasswordTokenPage() {
   useEffect(() => {
     if (token && !hasVerified.current) {
       hasVerified.current = true;
-      console.log('🔑 Verifying reset token:', token.substring(0, 8) + '...');
       verifyMutation.mutate(token, {
         onSuccess: (data) => {
-          console.log(' Token verification result:', data.valid);
           setTokenValid(data.valid);
         },
         onError: (err) => {
@@ -68,12 +66,10 @@ export default function ResetPasswordTokenPage() {
   }, [token]);
 
   const onSubmit = async (data: ResetForm) => {
-    console.log('🔒 Resetting password with token:', token.substring(0, 8) + '...');
     resetMutation.mutate(
       { token, password: data.password },
       {
         onSuccess: () => {
-          console.log(' Password reset successful');
           setSuccess(true);
         },
         onError: (error) => {

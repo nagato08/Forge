@@ -85,12 +85,10 @@ export default function ProjectCard({ project }: ProjectCardProps) {
     : null;
 
   const handleStatusChange = (newStatus: string) => {
-    console.log(`🔄 Changing project status: ${project.status} → ${newStatus}`);
     updateProjectMutation.mutate(
       { projectId: project.id, data: { status: newStatus as any } },
       {
         onSuccess: () => {
-          console.log(` Project status updated to ${newStatus}`);
           setConfirmTransition(null);
           setMenuOpen(false);
         },

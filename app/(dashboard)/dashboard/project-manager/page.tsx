@@ -25,10 +25,6 @@ export default function ProjectManagerDashboardPage() {
     return <Spinner centered size="lg" label="Chargement du tableau de bord..." />;
   }
 
-  console.log(' Project manager dashboard loaded:', {
-    projects: projects?.length || 0,
-    tasks: myTasks?.length || 0,
-  });
 
   const tasksByStatus = {
     TODO: myTasks?.filter((t) => t.status === 'TODO').length || 0,
@@ -124,7 +120,7 @@ export default function ProjectManagerDashboardPage() {
             <FolderKanban className="w-5 h-5 text-text-secondary" />
             Mes projets récents
           </h2>
-          <Link href="/projects" onClick={() => console.log('🔗 Navigating to all projects')}>
+          <Link href="/projects">
             <Button variant="secondary" size="sm">
               Voir tous
             </Button>
@@ -141,7 +137,6 @@ export default function ProjectManagerDashboardPage() {
               <Link
                 key={project.id}
                 href={`/projects/${project.id}/kanban`}
-                onClick={() => console.log('🔗 Opening project kanban:', project.id, project.name)}
               >
                 <div className="p-4 rounded-lg border border-border hover:border-primary hover:bg-bg-surface-hover transition-all cursor-pointer">
                   <div className="flex items-start justify-between">
@@ -240,7 +235,7 @@ export default function ProjectManagerDashboardPage() {
           </div>
 
           <div className="mt-4 pt-4 border-t border-border">
-            <Link href="/my-tasks" onClick={() => console.log('🔗 Navigating to my tasks details')}>
+            <Link href="/my-tasks">
               <Button variant="primary" size="sm" className="w-full">
                 Voir mes tâches en détail
               </Button>
@@ -255,7 +250,7 @@ export default function ProjectManagerDashboardPage() {
           <p className="text-sm font-medium text-text-primary mb-3 flex items-center gap-1.5">
             <Plus className="w-4 h-4" /> Actions
           </p>
-          <Link href="/projects" onClick={() => console.log('🔗 Navigating to projects (quick action)')}>
+          <Link href="/projects">
             <Button variant="secondary" size="sm" className="w-full">
               Nouveau projet
             </Button>
@@ -265,7 +260,7 @@ export default function ProjectManagerDashboardPage() {
           <p className="text-sm font-medium text-text-primary mb-3 flex items-center gap-1.5">
             <BarChart3 className="w-4 h-4" /> Suivi
           </p>
-          <Button variant="secondary" size="sm" className="w-full" onClick={() => console.log(' View reports clicked')}>
+          <Button variant="secondary" size="sm" className="w-full">
             Voir rapports
           </Button>
         </Card>
@@ -273,7 +268,7 @@ export default function ProjectManagerDashboardPage() {
           <p className="text-sm font-medium text-text-primary mb-3 flex items-center gap-1.5">
             <Clock className="w-4 h-4" /> Temps
           </p>
-          <Link href="/time-tracking" onClick={() => console.log('🔗 Navigating to time tracking')}>
+          <Link href="/time-tracking">
             <Button variant="secondary" size="sm" className="w-full">
               Suivi du temps
             </Button>

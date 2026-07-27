@@ -24,7 +24,6 @@ export function initializeSocket(): void {
   }
 
   if (socket?.connected) {
-    console.log('Socket already connected');
     return;
   }
 
@@ -45,11 +44,9 @@ export function initializeSocket(): void {
 
   // Événements de connexion
   socket.on('connect', () => {
-    console.log('✅ Socket connecté');
   });
 
   socket.on('disconnect', () => {
-    console.log('❌ Socket déconnecté');
   });
 
   socket.on('error', (error) => {
@@ -69,7 +66,6 @@ export function disconnectSocket(): void {
   if (socket) {
     socket.disconnect();
     socket = null;
-    console.log('Socket déconnecté');
   }
 }
 

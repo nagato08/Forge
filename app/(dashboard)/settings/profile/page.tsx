@@ -193,7 +193,6 @@ export default function ProfileSettingsPage() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('Camera button clicked, opening file picker');
                   fileInputRef.current?.click();
                 }}
                 className="absolute -bottom-1 -right-1 w-9 h-9 bg-primary text-white rounded-full hover:bg-primary/90 active:bg-primary/80 flex items-center justify-center shadow-lg border-2 border-bg-surface transition z-20"

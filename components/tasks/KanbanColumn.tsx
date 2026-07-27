@@ -28,7 +28,6 @@ export default function KanbanColumn({
 }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
-  console.log('Column rendered:', status, tasks.length, 'tasks');
 
   return (
     <div

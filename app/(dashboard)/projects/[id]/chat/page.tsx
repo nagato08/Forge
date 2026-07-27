@@ -284,11 +284,6 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  useEffect(() => {
-    if (!isLoading && !error && messages) {
-      console.log('Chat loaded:', messages.length, 'messages');
-    }
-  }, [projectId, messages, isLoading, error]);
 
   if (isLoading) {
     return <Spinner centered size="lg" label="Chargement du chat..." />;

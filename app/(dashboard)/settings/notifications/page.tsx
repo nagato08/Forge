@@ -30,13 +30,10 @@ export default function NotificationsSettingsPage() {
   }, [settings]);
 
   const handleToggle = (field: 'email' | 'realtime') => {
-    const newValue = !formData[field];
-    console.log(`🔀 Toggling ${field}:`, newValue);
     setFormData((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
   const handleSave = () => {
-    console.log('💾 Sauvegarde des paramètres de notification');
 
     updateMutation.mutate(
       {
@@ -45,7 +42,6 @@ export default function NotificationsSettingsPage() {
       },
       {
         onSuccess: () => {
-          console.log(' Paramètres de notification mis à jour');
           toast.success('Paramètres mis à jour avec succès');
         },
         onError: (err) => {

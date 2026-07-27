@@ -47,27 +47,19 @@ export const useAuthStore = create<AuthStore>()(
       isLoading: false,
 
       login: (token, user) => {
-        console.log('🔐 Auth store login() called:', {
-          userId: user.id,
-          role: user.role,
-          tokenLength: token.length,
-        });
         set({
           user,
           token,
           role: user.role,
           isLoading: false,
         });
-        console.log('✅ Auth state updated, token stored in Zustand');
         // Initialiser socket après login
         if (typeof window !== 'undefined') {
-          console.log('🔌 Initializing socket...');
           initializeSocket();
         }
       },
 
       logout: () => {
-        console.log('🔐 Auth store logout() called');
         set({
           user: null,
           token: null,
@@ -79,7 +71,6 @@ export const useAuthStore = create<AuthStore>()(
         // Supprimer le cookie
         if (typeof window !== 'undefined') {
           document.cookie = 'auth-token=; path=/; max-age=0';
-          console.log('🍪 Cookie auth-token supprimé');
         }
         // Déconnecter socket
         if (typeof window !== 'undefined') {
@@ -109,7 +100,6 @@ export const useAuthStore = create<AuthStore>()(
       onRehydrateStorage: () => (state) => {
         // Réinitialiser le socket après rehydratation si un token existe
         if (state?.token && typeof window !== 'undefined') {
-          console.log('🔌 Rehydrating socket after page refresh...');
           initializeSocket();
         }
       },

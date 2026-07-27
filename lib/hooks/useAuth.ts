@@ -25,24 +25,16 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: (data: LoginRequest) => {
-      console.log('🔓 Login: calling API with', data.email);
       return authApi.login(data);
     },
     onSuccess: (response: AuthResponse) => {
-      console.log('✅ Login API success:', {
-        userId: response.user.id,
-        role: response.user.role,
-        tokenLength: response.access_token.length,
-      });
       // Stocker token + user dans Zustand + localStorage
       login(response.access_token, response.user);
-      console.log('✅ Zustand login() called, token stored');
 
       // 🍪 Créer un cookie pour le middleware (30 jours)
       if (typeof window !== 'undefined') {
         const thirtyDays = 30 * 24 * 60 * 60;
         document.cookie = `auth-token=${response.access_token}; path=/; max-age=${thirtyDays}; SameSite=Lax`;
-        console.log('🍪 Cookie auth-token créé');
       }
     },
     onError: (error) => {
@@ -59,23 +51,16 @@ export function useRegister() {
 
   return useMutation({
     mutationFn: (data: RegisterRequest) => {
-      console.log('📝 Register: calling API with', data.email);
       return authApi.register(data);
     },
     onSuccess: (response: AuthResponse) => {
-      console.log('✅ Register API success:', {
-        userId: response.user.id,
-        role: response.user.role,
-      });
       // Auto-login après inscription
       login(response.access_token, response.user);
-      console.log('✅ Zustand login() called after registration');
 
       // 🍪 Créer un cookie pour le middleware (30 jours)
       if (typeof window !== 'undefined') {
         const thirtyDays = 30 * 24 * 60 * 60;
         document.cookie = `auth-token=${response.access_token}; path=/; max-age=${thirtyDays}; SameSite=Lax`;
-        console.log('🍪 Cookie auth-token créé');
       }
     },
     onError: (error) => {
@@ -93,7 +78,6 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      console.log('🔓 Logout: révocation de la session côté serveur...');
       // Révoque le refresh token en base + efface le cookie httpOnly.
       // On n'échoue jamais le logout local si l'appel serveur échoue.
       try {
@@ -107,7 +91,6 @@ export function useLogout() {
       logout();
       // Invalider tous les caches
       queryClient.clear();
-      console.log('✅ Logout complete, caches cleared');
     },
   });
 }
@@ -160,11 +143,9 @@ export function useDeleteUser() {
 
   return useMutation({
     mutationFn: (params: { userId: string; reassignTo?: string }) => {
-      console.log('🗑️ Deleting user (soft delete):', params.userId);
       return authApi.deleteUser(params.userId, params.reassignTo);
     },
     onSuccess: () => {
-      console.log('✅ User deleted successfully');
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.users });
     },
     onError: (error) => {
@@ -250,7 +231,6 @@ export function useUploadAvatar() {
       setUser(updatedUser);
       // Invalider le profil
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.profile });
-      console.log('✅ Avatar uploaded successfully');
     },
     onError: (error) => {
       console.error('❌ Avatar upload error:', getApiError(error));

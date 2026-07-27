@@ -33,10 +33,8 @@ export default function ResetPasswordPage() {
   const email = watch('email');
 
   const onSubmit = async (data: ResetForm) => {
-    console.log('📧 Requesting password reset for:', data.email);
     resetMutation.mutate(data, {
       onSuccess: () => {
-        console.log(' Password reset email sent to:', data.email);
         setSubmitted(true);
       },
       onError: (error) => {

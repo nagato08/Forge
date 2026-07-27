@@ -83,7 +83,6 @@ export function useCreateTask() {
   return useMutation({
     mutationFn: (data: CreateTaskRequest) => tasksApi.createTask(data),
     onSuccess: (task) => {
-      console.log('✅ Task created successfully:', task.id);
       // Invalider liste tâches du projet
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.projectTasks(task.projectId),
@@ -111,7 +110,6 @@ export function useUpdateTask() {
       data: UpdateTaskRequest;
     }) => tasksApi.updateTask(taskId, data),
     onSuccess: (task, { taskId }) => {
-      console.log('✅ Task updated successfully:', taskId);
       // Mettre à jour immédiatement le cache
       queryClient.setQueryData(CACHE_KEYS.byId(taskId), task);
       // Invalider aussi les listes pour se rafraîchir
@@ -134,11 +132,9 @@ export function useDeleteTask() {
 
   return useMutation({
     mutationFn: (taskId: string) => {
-      console.log('🗑️ Deleting task:', taskId);
       return tasksApi.deleteTask(taskId);
     },
     onSuccess: () => {
-      console.log('✅ Task deleted successfully');
       // Invalider toutes les listes
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.all });
     },
@@ -162,8 +158,7 @@ export function useUpdateTaskStatus() {
       taskId: string;
       status: UpdateTaskStatusRequest;
     }) => tasksApi.updateTaskStatus(taskId, status),
-    onSuccess: (task, { taskId, status }) => {
-      console.log('✅ Status updated successfully:', taskId, '→', status.status);
+    onSuccess: (task, { taskId }) => {
       queryClient.setQueryData(CACHE_KEYS.byId(taskId), task);
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.projectTasks(task.projectId),
@@ -193,8 +188,6 @@ export function useAssignTask() {
       userIds: string[];
     }) => tasksApi.assignTask(taskId, { userIds }),
     onSuccess: async (task, { taskId }) => {
-      console.log('✅ Users assigned successfully:', taskId);
-      console.log('📦 Assign response assignedUsers:', JSON.stringify(task.assignedUsers));
       // Forcer un refetch complet pour obtenir les relations
       await queryClient.refetchQueries({ queryKey: CACHE_KEYS.byId(taskId) });
       queryClient.invalidateQueries({
@@ -223,7 +216,6 @@ export function useUnassignTask() {
       userId: string;
     }) => tasksApi.unassignTask(taskId, userId),
     onSuccess: async (task, { taskId }) => {
-      console.log('✅ User removed successfully:', taskId);
       // Forcer un refetch complet pour obtenir les relations
       await queryClient.refetchQueries({ queryKey: CACHE_KEYS.byId(taskId) });
       queryClient.invalidateQueries({
@@ -253,7 +245,6 @@ export function useAddTaskDependency() {
     }) =>
       tasksApi.addDependency(taskId, { blockedTaskId }),
     onSuccess: (task, { taskId, blockedTaskId }) => {
-      console.log('✅ Dependency added:', taskId, '→', blockedTaskId);
       // Mettre à jour immédiatement le cache de la tâche
       queryClient.setQueryData(CACHE_KEYS.byId(taskId), task);
       // Invalider la tâche bloquée
@@ -282,7 +273,6 @@ export function useRemoveTaskDependency() {
       blockedTaskId: string;
     }) => tasksApi.removeDependency(taskId, blockedTaskId),
     onSuccess: (task, { taskId, blockedTaskId }) => {
-      console.log('✅ Dependency removed:', taskId, '↛', blockedTaskId);
       // Mettre à jour immédiatement le cache de la tâche
       queryClient.setQueryData(CACHE_KEYS.byId(taskId), task);
       // Invalider la tâche bloquée
@@ -311,7 +301,6 @@ export function useAddTaskComment() {
       mentions?: string[];
     }) => tasksApi.addComment(taskId, { content, mentions }),
     onSuccess: (_, { taskId }) => {
-      console.log('✅ Comment added:', taskId);
       // Invalider la tâche pour rafraîchir les commentaires
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(taskId) });
     },
@@ -330,7 +319,6 @@ export function useDeleteTaskComment() {
   return useMutation({
     mutationFn: (commentId: string) => tasksApi.deleteComment(commentId),
     onSuccess: () => {
-      console.log('✅ Comment deleted');
       // Invalider toutes les tâches (on ne sait pas laquelle)
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.all });
     },

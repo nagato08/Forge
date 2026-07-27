@@ -86,7 +86,6 @@ export default function DocumentsPage() {
     );
   }
 
-  console.log('Documents loaded:', documents?.length || 0, 'for project:', projectId);
 
   const handleCreateDocument = () => {
     if (!newDocName.trim()) {
@@ -98,13 +97,11 @@ export default function DocumentsPage() {
       return;
     }
 
-    console.log('Creating document:', newDocName, 'with file:', newDocFile.name);
 
     createMutation.mutate(
       { projectId, name: newDocName },
       {
         onSuccess: (createdDoc) => {
-          console.log('Document created:', createdDoc.id, '— uploading version');
           // Set selected doc so detail modal can display it
           setSelectedDocId(createdDoc.id);
           // Upload file as first version
@@ -112,7 +109,6 @@ export default function DocumentsPage() {
             { documentId: createdDoc.id, file: newDocFile },
             {
               onSuccess: () => {
-                console.log('Version uploaded');
                 setNewDocName('');
                 setNewDocFile(null);
                 setShowCreateModal(false);
@@ -135,20 +131,17 @@ export default function DocumentsPage() {
   };
 
   const handleSelectDocument = (docId: string) => {
-    console.log('Document selected:', docId);
     setSelectedDocId(docId);
     setShowDetailModal(true);
   };
 
   const handleRenameDocument = () => {
     if (!doc || !renameName.trim()) return;
-    console.log('Renaming document:', doc.id, '->', renameName);
 
     updateMutation.mutate(
       { documentId: doc.id, name: renameName },
       {
         onSuccess: () => {
-          console.log('Document renamed');
           setRenaming(false);
           setRenameName('');
         },
@@ -162,13 +155,11 @@ export default function DocumentsPage() {
 
   const handleUploadVersion = (file: File) => {
     if (!doc) return;
-    console.log('Uploading version for doc:', doc.id, file.name);
 
     uploadMutation.mutate(
       { documentId: doc.id, file },
       {
         onSuccess: () => {
-          console.log('Version uploaded');
           if (fileInputRef.current) fileInputRef.current.value = '';
         },
         onError: (err) => {
@@ -181,13 +172,11 @@ export default function DocumentsPage() {
 
   const handleAddComment = () => {
     if (!doc || !commentText.trim()) return;
-    console.log('Adding comment to doc:', doc.id);
 
     addCommentMutation.mutate(
       { documentId: doc.id, content: commentText },
       {
         onSuccess: () => {
-          console.log('Comment added');
           setCommentText('');
         },
         onError: (err) => {
@@ -200,11 +189,9 @@ export default function DocumentsPage() {
 
   const handleDeleteDocument = () => {
     if (!doc) return;
-    console.log('Deleting document:', doc.id);
 
     deleteMutation.mutate(doc.id, {
       onSuccess: () => {
-        console.log('Document deleted');
         setShowDetailModal(false);
         setSelectedDocId(null);
         setConfirmDelete(false);

@@ -85,12 +85,10 @@ export default function ProjectModal({
     };
 
     if (isEditing && project) {
-      console.log('📝 Updating project:', project.id, data.name);
       updateMutation.mutate(
         { projectId: project.id, data },
         {
           onSuccess: () => {
-            console.log(' Project updated:', project.id);
             reset();
             onClose();
           },

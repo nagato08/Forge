@@ -19,7 +19,6 @@ export function useMessages(projectId: string | null) {
   // Écouter les nouveaux messages en temps réel
   useSocketEvent('message:new', (message) => {
     if (message.projectId === projectId) {
-      console.log('💬 New message received via socket:', message.id);
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.messages(projectId!),
       });
@@ -88,7 +87,6 @@ export function useSendMessage() {
 
     // En cas de succès : refetch pour avoir le vrai message avec l'ID serveur
     onSuccess: (_, variables) => {
-      console.log('✅ Message sent, refetching...');
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.messages(variables.projectId),
       });
@@ -168,7 +166,6 @@ export function useSendFileMessage() {
     },
 
     onSuccess: (_, variables) => {
-      console.log('✅ File message sent, refetching...');
       queryClient.invalidateQueries({
         queryKey: CACHE_KEYS.messages(variables.projectId),
       });

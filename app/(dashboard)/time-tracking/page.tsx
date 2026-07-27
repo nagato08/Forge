@@ -127,11 +127,9 @@ export default function TimeTrackingPage() {
       }
     }
 
-    console.log('Starting timer for task:', manualForm.taskId);
 
     startMutation.mutate(manualForm.taskId, {
-      onSuccess: (timer) => {
-        console.log(' Timer started:', timer.id);
+      onSuccess: () => {
         setManualForm({ ...manualForm, taskId: '' });
       },
       onError: (err) => {
@@ -142,12 +140,8 @@ export default function TimeTrackingPage() {
   };
 
   const handleStopTimer = () => {
-    console.log('Stopping active timer');
 
     stopMutation.mutate(undefined, {
-      onSuccess: (entry) => {
-        console.log(' Timer stopped:', entry.id);
-      },
       onError: (err) => {
         console.error(' Stop timer error:', getApiError(err));
         toast.error(getApiError(err), { title: 'Échec' });
@@ -189,7 +183,6 @@ export default function TimeTrackingPage() {
       }
     }
 
-    console.log('Adding manual time entry:', manualForm.taskId);
 
     const data: any = {
       taskId: manualForm.taskId,
@@ -204,7 +197,6 @@ export default function TimeTrackingPage() {
 
     addManualMutation.mutate(data, {
       onSuccess: () => {
-        console.log(' Manual entry added');
         setManualForm({ taskId: '', startTime: '', endTime: '', duration: '' });
         setShowManualModal(false);
       },
@@ -216,11 +208,9 @@ export default function TimeTrackingPage() {
   };
 
   const handleDeleteEntry = (entryId: string) => {
-    console.log('Deleting time entry:', entryId);
 
     deleteMutation.mutate(entryId, {
       onSuccess: () => {
-        console.log(' Entry deleted');
       },
       onError: (err) => {
         console.error(' Delete entry error:', getApiError(err));
@@ -233,7 +223,6 @@ export default function TimeTrackingPage() {
     return <Spinner centered size="lg" label="Chargement du suivi du temps..." />;
   }
 
-  console.log('Time tracking loaded:', entries?.length || 0, 'entries');
 
   const hours = Math.floor(elapsedSeconds / 3600);
   const minutes = Math.floor((elapsedSeconds % 3600) / 60);

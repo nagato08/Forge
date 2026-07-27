@@ -46,7 +46,6 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
   const handleCardClick = (e: React.MouseEvent) => {
     // Empêcher le drag si on clique normalement
     if (!isDragging) {
-      console.log('TaskCard clicked, navigating to detail');
       router.push(`/projects/${task.projectId}/tasks/${task.id}`);
     }
   };

@@ -321,7 +321,6 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(project.projectCode);
-                      console.log('📋 Project code copied:', project.projectCode);
                     }}
                     className="text-xs text-primary hover:text-primary/80 transition-colors"
                   >
@@ -338,7 +337,6 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(project.inviteToken);
-                      console.log('📋 Invite token copied');
                     }}
                     className="text-xs text-primary hover:text-primary/80 transition-colors shrink-0"
                   >

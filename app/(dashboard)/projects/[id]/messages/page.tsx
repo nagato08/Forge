@@ -71,7 +71,6 @@ export default function ProjectMessagesPage() {
     const content = inputValue.trim();
     if (!content) return;
 
-    console.log('📨 Sending message to project:', projectId, 'content:', content);
 
     // Extraire les mentions (@username)
     const mentionRegex = /@(\w+)/g;
@@ -91,7 +90,6 @@ export default function ProjectMessagesPage() {
       },
       {
         onSuccess: () => {
-          console.log(' Message sent successfully');
           setInputValue('');
           toast.success('Message envoyé');
         },
@@ -106,10 +104,8 @@ export default function ProjectMessagesPage() {
   const handleDelete = (messageId: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce message?')) return;
 
-    console.log(' Deleting message:', messageId);
     deleteMutation.mutate(messageId, {
       onSuccess: () => {
-        console.log(' Message deleted');
         toast.success('Message supprimé');
       },
       onError: (error) => {

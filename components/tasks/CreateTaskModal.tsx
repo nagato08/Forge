@@ -31,6 +31,7 @@ interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectId: string;
+  /** NOTE : actuellement ignoré — la tâche est toujours créée en TODO. */
   initialStatus: TaskStatus;
 }
 
@@ -38,7 +39,6 @@ export default function CreateTaskModal({
   isOpen,
   onClose,
   projectId,
-  initialStatus,
 }: CreateTaskModalProps) {
   const createMutation = useCreateTask();
 
@@ -55,7 +55,6 @@ export default function CreateTaskModal({
   });
 
   const onSubmit = (data: CreateTaskForm) => {
-    console.log(' Creating task:', data.title, 'priority:', data.priority, 'status:', initialStatus);
 
     createMutation.mutate(
       {
@@ -71,8 +70,7 @@ export default function CreateTaskModal({
         projectId,
       },
       {
-        onSuccess: (task) => {
-          console.log(' Task created successfully:', task.id);
+        onSuccess: () => {
           reset();
           onClose();
         },

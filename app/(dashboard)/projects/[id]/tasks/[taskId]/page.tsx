@@ -90,8 +90,6 @@ export default function TaskDetailPage() {
     return <div className="p-6 text-text-secondary">Impossible de charger la tâche</div>;
   }
 
-  console.log('📋 Task detail data:', taskId, 'assignments:', JSON.stringify(task.assignments), 'keys:', Object.keys(task));
-  console.log('📋 blockedBy structure:', JSON.stringify(task.blockedBy));
   // Backend retourne 'assignments', pas 'assignedUsers'
   const assignedUsers = task.assignments?.map((a: TaskAssignment) => a.user) || [];
   const comments = task.comments || [];
@@ -115,12 +113,10 @@ export default function TaskDetailPage() {
     // Utiliser la valeur passée en paramètre ou editValue
     updateData[field] = value !== undefined ? value : editValue;
 
-    console.log(`Updating task field: ${field} =`, updateData[field]);
     updateMutation.mutate(
       { taskId, data: updateData },
       {
         onSuccess: async () => {
-          console.log(`Task ${field} updated, refetching...`);
           await refetchTask();
           setEditingField(null);
           setEditValue('');
@@ -156,12 +152,10 @@ export default function TaskDetailPage() {
       }
     }
 
-    console.log(`Changing status: ${task.status} -> ${newStatus}`);
     updateStatusMutation.mutate(
       { taskId, status: { status: newStatus } },
       {
         onSuccess: async () => {
-          console.log(`Status updated to ${newStatus}, refetching...`);
           await refetchTask();
         },
         onError: (err) => {
@@ -173,13 +167,11 @@ export default function TaskDetailPage() {
   };
 
   const handleConfirmComplete = () => {
-    console.log(`Confirming completion of task ${taskId}`);
     setShowCompleteConfirm(false);
     updateStatusMutation.mutate(
       { taskId, status: { status: TaskStatus.DONE } },
       {
         onSuccess: async () => {
-          console.log('Task marked as DONE');
           await refetchTask();
         },
         onError: (err) => {
@@ -196,13 +188,11 @@ export default function TaskDetailPage() {
       return;
     }
 
-    console.log(` Assigning user ${selectedUserId} to task ${taskId}`);
 
     assignMutation.mutate(
       { taskId, userIds: [...assignedUsers.map((u) => u.id), selectedUserId] },
       {
         onSuccess: async () => {
-          console.log('User assigned, refetching task...');
           await refetchTask();
           setShowAssignModal(false);
           setSelectedUserId('');
@@ -216,12 +206,10 @@ export default function TaskDetailPage() {
   };
 
   const handleUnassignUser = (userId: string) => {
-    console.log(`Unassigning user ${userId} from task ${taskId}`);
     unassignMutation.mutate(
       { taskId, userId },
       {
         onSuccess: async () => {
-          console.log('User unassigned, refetching task...');
           await refetchTask();
         },
         onError: (err) => {
@@ -240,13 +228,11 @@ export default function TaskDetailPage() {
 
     // API: POST /tasks/:selectedId/dependencies { blockedTaskId: taskId }
     // selectedDependencyId bloque notre tâche (taskId)
-    console.log(`Adding dependency: ${selectedDependencyId} blocks ${taskId}`);
 
     addDependencyMutation.mutate(
       { taskId: selectedDependencyId, blockedTaskId: taskId },
       {
         onSuccess: async () => {
-          console.log('Dependency added, refetching task...');
           await refetchTask();
           setShowAddDependencyModal(false);
           setSelectedDependencyId('');
@@ -266,12 +252,10 @@ export default function TaskDetailPage() {
     }
     // API: DELETE /tasks/:blockingTaskId/dependencies/:blockedTaskId
     // blockingTaskId bloque notre tâche (taskId)
-    console.log(`Removing dependency: ${blockingTaskId} no longer blocks ${taskId}`);
     removeDependencyMutation.mutate(
       { taskId: blockingTaskId, blockedTaskId: taskId },
       {
         onSuccess: async () => {
-          console.log('Dependency removed, refetching task...');
           await refetchTask();
         },
         onError: (err) => {
@@ -288,13 +272,11 @@ export default function TaskDetailPage() {
       return;
     }
 
-    console.log(`Adding comment to task ${taskId}`);
 
     addCommentMutation.mutate(
       { taskId, content: commentText },
       {
         onSuccess: async () => {
-          console.log('Comment added, refetching...');
           await refetchTask();
           setCommentText('');
         },
@@ -307,10 +289,8 @@ export default function TaskDetailPage() {
   };
 
   const handleDeleteTask = () => {
-    console.log(` Deleting task ${taskId}`);
     deleteMutation.mutate(taskId, {
       onSuccess: () => {
-        console.log(' Task deleted');
         router.push(`/projects/${projectId}/kanban`);
       },
       onError: (err) => {

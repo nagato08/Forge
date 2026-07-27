@@ -35,7 +35,6 @@ export default function MyTasksPage() {
     return <Spinner centered size="lg" label="Chargement de vos taches..." />;
   }
 
-  console.log('My tasks loaded:', allTasks?.length || 0, 'tasks');
 
   // Filter + sort tasks (DOING en premier, puis TODO, puis DONE)
   const statusOrder: Record<string, number> = { DOING: 0, TODO: 1, DONE: 2 };

@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { planningApi } from '@/lib/api/planning.api';
 import {
@@ -44,11 +43,6 @@ export function useGantt(projectId: string | null) {
     staleTime: 10 * 60 * 1000, // 10 min
   });
 
-  useEffect(() => {
-    if (query.data) {
-      console.log('Gantt data loaded:', query.data.length, 'tasks');
-    }
-  }, [query.data]);
 
   return query;
 }
@@ -64,11 +58,6 @@ export function usePert(projectId: string | null) {
     staleTime: 10 * 60 * 1000, // 10 min
   });
 
-  useEffect(() => {
-    if (query.data && query.data.nodes && query.data.criticalPath) {
-      console.log('🔗 PERT data loaded:', query.data.nodes.length, 'nodes,', query.data.criticalPath.length, 'in critical path');
-    }
-  }, [query.data]);
 
   return query;
 }
@@ -91,11 +80,6 @@ export function useBurndown(
     staleTime: 5 * 60 * 1000, // 5 min
   });
 
-  useEffect(() => {
-    if (query.data && query.data.dates) {
-      console.log('📈 Burndown data loaded:', query.data.dates.length, 'dates');
-    }
-  }, [query.data]);
 
   return query;
 }
@@ -119,11 +103,6 @@ export function useWorkload(params: {
     staleTime: 10 * 60 * 1000, // 10 min
   });
 
-  useEffect(() => {
-    if (query.data && query.data.entries) {
-      console.log('⚙️ Workload data loaded:', query.data.entries.length, 'entries, total:', query.data.totalHours, 'hours');
-    }
-  }, [query.data]);
 
   return query;
 }
@@ -139,11 +118,6 @@ export function useStatusDonut(projectId: string | null) {
     staleTime: 5 * 60 * 1000, // 5 min
   });
 
-  useEffect(() => {
-    if (query.data && typeof query.data.TODO === 'number') {
-      console.log('🍩 Status donut loaded: TODO:', query.data.TODO, 'DOING:', query.data.DOING, 'DONE:', query.data.DONE);
-    }
-  }, [query.data]);
 
   return query;
 }
@@ -159,11 +133,6 @@ export function useEisenhower(projectId: string | null) {
     staleTime: 5 * 60 * 1000, // 5 min
   });
 
-  useEffect(() => {
-    if (query.data && query.data.urgent_important) {
-      console.log('⚔️ Eisenhower matrix loaded:', query.data.urgent_important.length, 'urgent+important,', query.data.urgent_not_important.length, 'urgent');
-    }
-  }, [query.data]);
 
   return query;
 }
