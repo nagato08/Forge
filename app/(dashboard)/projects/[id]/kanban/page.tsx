@@ -18,6 +18,9 @@ import { DragOverlay } from '@dnd-kit/core';
 import { useParams } from 'next/navigation';
 import { TaskStatus } from '@/lib/types/task.types';
 import { useTasks, useUpdateTaskStatus } from '@/lib/hooks/useTasks';
+import { useProjectRole } from '@/lib/hooks/useProjects';
+import { useAuthStore } from '@/lib/stores/auth.store';
+import { canWriteTask, isAssignedToTask } from '@/lib/utils/project-permissions';
 import { toast } from '@/lib/stores/toast.store';
 import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
@@ -32,6 +35,8 @@ export default function KanbanPage() {
   const projectId = params.id as string;
   const { data: tasks, isLoading, error } = useTasks(projectId);
   const updateStatus = useUpdateTaskStatus();
+  const { role: myRole } = useProjectRole(projectId);
+  const currentUserId = useAuthStore((state) => state.user?.id);
 
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [createModalStatus, setCreateModalStatus] = useState<TaskStatus | null>(
@@ -118,14 +123,13 @@ export default function KanbanPage() {
       return;
     }
 
-    // Empêcher de déplacer une tâche non assignée
-    const isAssigned =
-      (task.assignedUsers && task.assignedUsers.length > 0) ||
-      (task.assignments && task.assignments.length > 0);
-    if (!isAssigned) {
-      toast.error('Impossible de déplacer une tâche non assignée', {
-        title: 'Tâche non assignée',
-      });
+    // Un contributeur ne déplace que ses propres tâches ; les gestionnaires
+    // du projet déplacent tout. Même règle que le serveur.
+    if (!canWriteTask(myRole, isAssignedToTask(task, currentUserId))) {
+      toast.error(
+        'Vous ne pouvez déplacer que les tâches qui vous sont assignées',
+        { title: 'Action non autorisée' }
+      );
       return;
     }
 

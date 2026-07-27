@@ -15,6 +15,40 @@ const ROLE_DASHBOARD: Record<string, string> = {
   EMPLOYEE: '/dashboard/employee',
 };
 
+interface JwtPayload {
+  role?: string;
+  exp?: number;
+}
+
+/**
+ * Decode le payload d'un JWT, SANS verifier la signature.
+ *
+ * Le secret n'existe pas cote navigateur/edge : ce decodage sert uniquement a
+ * choisir une redirection d'interface. Il n'a AUCUNE valeur de securite — un
+ * utilisateur peut fabriquer un jeton pour atteindre une page, mais l'API
+ * rejettera ses appels. Toute autorisation reelle reste cote serveur.
+ *
+ * Le payload d'un JWT est encode en base64url : `-` et `_` remplacent `+` et
+ * `/`, et le padding `=` est omis. `atob` attend du base64 standard et echoue
+ * sur ces caracteres — un jeton parfaitement valide etait donc parfois traite
+ * comme malforme, deconnectant l'utilisateur au hasard.
+ */
+function decodeJwtPayload(token: string): JwtPayload | null {
+  const segment = token.split('.')[1];
+  if (!segment) return null;
+
+  try {
+    const base64 = segment.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(
+      base64.length + ((4 - (base64.length % 4)) % 4),
+      '='
+    );
+    return JSON.parse(atob(padded)) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Proxy Next.js 16 — protection des routes et redirection par role JWT
  *
@@ -30,19 +64,15 @@ export function proxy(request: NextRequest) {
   // Lire le cookie auth-token (pose lors du login dans useAuth.ts)
   const token = request.cookies.get('auth-token')?.value;
 
-  // Decoder le role depuis le JWT (payload base64 sans verification crypto)
-  let role: string | null = null;
-  if (token) {
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      role = payload.role || null;
-    } catch {
-      // Token malformed → traiter comme non-connecte
-      role = null;
-    }
-  }
+  const payload = token ? decodeJwtPayload(token) : null;
+  const role = payload?.role ?? null;
 
-  const isAuthenticated = !!token && !!role;
+  // Un access token expire ne sert a rien : sans ce controle, l'utilisateur
+  // atterrit sur un dashboard qui echoue ensuite en 401. On le renvoie au login.
+  const isExpired =
+    typeof payload?.exp === 'number' && payload.exp * 1000 <= Date.now();
+
+  const isAuthenticated = !!token && !!role && !isExpired;
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
   // 1. Route racine → login ou dashboard

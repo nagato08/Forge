@@ -18,8 +18,15 @@ import {
 } from '@/lib/hooks/useTasks';
 import { useUsers } from '@/lib/hooks/useAuth';
 import { useProjectById } from '@/lib/hooks/useProjects';
+import { useAuthStore } from '@/lib/stores/auth.store';
 import { TaskStatus, Priority, TaskAssignment } from '@/lib/types/task.types';
 import { getApiError } from '@/lib/utils/api-error';
+import {
+  canManage,
+  canWriteTask,
+  isAssignedToTask,
+  resolveMyRole,
+} from '@/lib/utils/project-permissions';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -51,6 +58,7 @@ export default function TaskDetailPage() {
   const { data: projectTasks } = useTasks(projectId);
   const { data: allUsers } = useUsers();
   const { data: project } = useProjectById(projectId);
+  const currentUserId = useAuthStore((state) => state.user?.id);
 
   const updateMutation = useUpdateTask();
   const deleteMutation = useDeleteTask();
@@ -89,8 +97,15 @@ export default function TaskDetailPage() {
   const comments = task.comments || [];
   const blockedBy = task.blockedBy || [];
 
+  // Permissions : mêmes règles que le serveur. Les gestionnaires agissent sur
+  // toutes les tâches, un contributeur seulement sur celles qui lui sont assignées.
+  const myRole = resolveMyRole(project, currentUserId);
+  const canManageProject = canManage(myRole);
+  const canEditTask = canWriteTask(myRole, isAssignedToTask(task, currentUserId));
+
   // Edit handlers
   const handleEditStart = (field: string, value: string) => {
+    if (!canEditTask) return;
     setEditingField(field);
     setEditValue(value || '');
   };
@@ -606,6 +621,7 @@ export default function TaskDetailPage() {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-text-primary">Assignés</h2>
+              {canManageProject && (
               <Button
                 variant="primary"
                 size="sm"
@@ -615,6 +631,7 @@ export default function TaskDetailPage() {
                 <UserPlus className="w-4 h-4" />
                 Ajouter
               </Button>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -634,6 +651,7 @@ export default function TaskDetailPage() {
                         {user.firstName} {user.lastName}
                       </span>
                     </div>
+                    {canManageProject && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -643,6 +661,7 @@ export default function TaskDetailPage() {
                     >
                       <X className="w-3 h-3" />
                     </Button>
+                    )}
                   </div>
                 ))
               )}
@@ -656,6 +675,7 @@ export default function TaskDetailPage() {
                 <Link2 className="w-5 h-5" />
                 Bloquée par
               </h2>
+              {canManageProject && (
               <Button
                 variant="primary"
                 size="sm"
@@ -665,6 +685,7 @@ export default function TaskDetailPage() {
                 <Link2 className="w-4 h-4" />
                 Ajouter
               </Button>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -702,7 +723,8 @@ export default function TaskDetailPage() {
             </div>
           </Card>
 
-          {/* Danger Zone */}
+          {/* Danger Zone — suppression réservée aux gestionnaires du projet */}
+          {canManageProject && (
           <Card className="p-6 border-critical/30 bg-critical/5">
             <h2 className="text-lg font-semibold text-critical mb-3 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
@@ -717,6 +739,7 @@ export default function TaskDetailPage() {
               Supprimer la tâche
             </Button>
           </Card>
+          )}
         </div>
       </div>
 

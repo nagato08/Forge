@@ -29,8 +29,12 @@ export function initializeSocket(): void {
   }
 
   socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000', {
-    auth: {
-      token: `Bearer ${token}`,
+    // Callback plutôt qu'objet figé : il est rejoué à CHAQUE tentative de
+    // connexion. Le serveur vérifie le JWT au handshake et l'access token ne
+    // vit que 15 min — un jeton capturé une fois ferait échouer toutes les
+    // reconnexions ultérieures.
+    auth: (cb) => {
+      cb({ token: `Bearer ${useAuthStore.getState().token ?? ''}` });
     },
     reconnection: true,
     reconnectionDelay: 1000,

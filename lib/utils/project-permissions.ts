@@ -1,4 +1,5 @@
 import { Project, ProjectRole } from '@/lib/types/project.types';
+import { Task } from '@/lib/types/task.types';
 
 /**
  * Rang de chaque rôle projet. Miroir exact du backend
@@ -48,9 +49,13 @@ export const ASSIGNABLE_PROJECT_ROLES: readonly AssignableProjectRole[] = [
  * À supprimer une fois le backend RBAC déployé partout.
  */
 export function resolveMyRole(
-  project: Pick<Project, 'myRole' | 'ownerId' | 'createdBy' | 'members'>,
+  project:
+    | Pick<Project, 'myRole' | 'ownerId' | 'createdBy' | 'members'>
+    | undefined
+    | null,
   currentUserId: string | undefined
 ): ProjectRole | null {
+  if (!project) return null;
   if (project.myRole !== undefined) return project.myRole;
 
   if (!currentUserId) return null;
@@ -88,6 +93,32 @@ export const canManage = (role: ProjectRole | null | undefined) =>
 /** Peut supprimer le projet ou transférer la propriété. */
 export const isOwner = (role: ProjectRole | null | undefined) =>
   hasProjectRole(role, ProjectRole.OWNER);
+
+/**
+ * Droit de modifier une tâche précise (statut, dates, contenu).
+ *
+ * Miroir de `requireTaskWriteAccess` côté serveur : les gestionnaires agissent
+ * sur toutes les tâches du projet, un MEMBER uniquement sur les siennes.
+ */
+export function canWriteTask(
+  role: ProjectRole | null | undefined,
+  isAssignedToMe: boolean
+): boolean {
+  if (!canContribute(role)) return false;
+  return canManage(role) || isAssignedToMe;
+}
+
+/** L'utilisateur figure-t-il parmi les assignés de la tâche ? */
+export function isAssignedToTask(
+  task: Pick<Task, 'assignedUsers' | 'assignments'>,
+  currentUserId: string | undefined
+): boolean {
+  if (!currentUserId) return false;
+  return (
+    (task.assignedUsers?.some((u) => u.id === currentUserId) ?? false) ||
+    (task.assignments?.some((a) => a.userId === currentUserId) ?? false)
+  );
+}
 
 /**
  * Reproduit les garde-fous anti-escalade du serveur : on n'agit que sur un
