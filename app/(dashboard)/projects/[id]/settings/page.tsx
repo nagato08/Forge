@@ -25,6 +25,7 @@ import Spinner from '@/components/ui/Spinner';
 import ProjectRoleBadge from '@/components/projects/ProjectRoleBadge';
 import { toast } from '@/lib/stores/toast.store';
 import { InvitationStatus, ProjectRole } from '@/lib/types/project.types';
+import { useCreateTemplateFromProject } from '@/lib/hooks/useTemplates';
 
 /** Libellés des états d'invitation. */
 const INVITATION_STATUS_LABELS: Record<InvitationStatus, string> = {
@@ -42,7 +43,7 @@ import {
   isOwner as isOwnerRole,
   resolveMyRole,
 } from '@/lib/utils/project-permissions';
-import { Copy, UserPlus, Trash2, RotateCcw, AlertTriangle, Crown, Mail, X } from 'lucide-react';
+import { Copy, UserPlus, Trash2, RotateCcw, AlertTriangle, Crown, Mail, X, LayoutTemplate } from 'lucide-react';
 
 export default function ProjectSettingsPage() {
   const params = useParams();
@@ -63,6 +64,10 @@ export default function ProjectSettingsPage() {
   const revokeInvitationMutation = useRevokeInvitation();
   const { data: invitations } = useProjectInvitations(projectId);
 
+  const createTemplate = useCreateTemplateFromProject();
+
+  const [templateName, setTemplateName] = useState('');
+  const [templateShared, setTemplateShared] = useState(true);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<AssignableProjectRole>(
     ProjectRole.MEMBER
@@ -175,6 +180,25 @@ export default function ProjectSettingsPage() {
         onError: (err) => {
           toast.error(getApiError(err), { title: 'Invitation refusée' });
         },
+      }
+    );
+  };
+
+  const handleSaveAsTemplate = () => {
+    createTemplate.mutate(
+      {
+        projectId,
+        name: templateName.trim() || `Modèle — ${project.name}`,
+        isShared: templateShared,
+      },
+      {
+        onSuccess: (template) => {
+          toast.success(
+            `Modèle créé avec ${template._count.tasks} tâche${template._count.tasks > 1 ? 's' : ''}`
+          );
+          setTemplateName('');
+        },
+        onError: (err) => toast.error(getApiError(err), { title: 'Échec' }),
       }
     );
   };
@@ -508,6 +532,49 @@ export default function ProjectSettingsPage() {
           )}
         </div>
       </Card>
+
+      {/* Capture du projet comme modele reutilisable */}
+      {canManageProject && (
+        <Card className="p-6 space-y-3">
+          <div>
+            <h2 className="text-xl font-semibold text-text-primary">Modèle</h2>
+            <p className="text-sm text-text-secondary mt-1">
+              Enregistre la structure du projet — tâches, durées, dépendances,
+              listes de contrôle — pour la réutiliser plus tard à n&apos;importe
+              quelle date.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              placeholder={`Modèle — ${project.name}`}
+              className="flex-1 min-w-[200px]"
+              aria-label="Nom du modèle"
+            />
+            <label className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer">
+              <input
+                type="checkbox"
+                checked={templateShared}
+                onChange={(e) => setTemplateShared(e.target.checked)}
+                className="rounded border-border"
+              />
+              Partager avec l&apos;équipe
+            </label>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleSaveAsTemplate}
+              isLoading={createTemplate.isPending}
+              className="flex items-center gap-2 shrink-0"
+            >
+              <LayoutTemplate className="w-4 h-4" />
+              Enregistrer comme modèle
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* Danger Zone */}
       {isOwner && (

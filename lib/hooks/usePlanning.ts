@@ -14,13 +14,12 @@ import {
 const CACHE_KEYS = {
   gantt: (projectId: string) => ['planning', 'gantt', projectId],
   pert: (projectId: string) => ['planning', 'pert', projectId],
-  burndown: (projectId: string, startDate?: string, endDate?: string) => [
-    'planning',
-    'burndown',
-    projectId,
-    startDate,
-    endDate,
-  ],
+  burndown: (
+    projectId: string,
+    startDate?: string,
+    endDate?: string,
+    sprintId?: string
+  ) => ['planning', 'burndown', projectId, startDate, endDate, sprintId],
   workload: (startDate: string, endDate: string, projectId?: string) => [
     'planning',
     'workload',
@@ -67,13 +66,14 @@ export function usePert(projectId: string | null) {
  */
 export function useBurndown(
   projectId: string | null,
-  params?: { startDate?: string; endDate?: string }
+  params?: { startDate?: string; endDate?: string; sprintId?: string }
 ) {
   const query = useQuery({
     queryKey: CACHE_KEYS.burndown(
       projectId || '',
       params?.startDate,
-      params?.endDate
+      params?.endDate,
+      params?.sprintId
     ),
     queryFn: () => planningApi.getBurndown(projectId!, params),
     enabled: !!projectId,

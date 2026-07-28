@@ -1,6 +1,7 @@
 // Types pour les tâches (miroir du backend)
 
 import { User } from './user.types';
+import { ChecklistItem, TaskRecurrence } from './planning.types';
 
 export enum TaskStatus {
   TODO = 'TODO',
@@ -39,6 +40,16 @@ export interface Task {
   pessimisticDays?: number;
   // Burndown
   storyPoints?: number;
+  // Sprint de rattachement. Absent = tâche au backlog.
+  sprintId?: string | null;
+  // Baseline : dates de référence figées à la validation du planning.
+  baselineStart?: string | null;
+  baselineEnd?: string | null;
+  // Récurrence : présente si la tâche se régénère à son achèvement.
+  recurrence?: TaskRecurrence | null;
+  /** Tâche modèle dont celle-ci est une occurrence générée. */
+  recurrenceOfId?: string | null;
+  checklist?: ChecklistItem[];
   // Relations
   parentId?: string;
   assignedUsers?: User[];

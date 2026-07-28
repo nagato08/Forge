@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useBurndown } from '@/lib/hooks/usePlanning';
+import { useSprints } from '@/lib/hooks/useSprints';
+import { SprintStatus } from '@/lib/types/planning.types';
+import Select from '@/components/ui/Select';
 import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
 import Card from '@/components/ui/Card';
@@ -11,7 +14,22 @@ import { TrendingDown, Target, CheckCircle2, CalendarRange } from 'lucide-react'
 
 export default function BurndownPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const projectId = params.id as string;
+
+  const { data: sprints } = useSprints(projectId);
+  // La page Sprints renvoie ici avec le sprint pre-selectionne.
+  const [sprintId, setSprintId] = useState<string>(
+    () => searchParams.get('sprintId') ?? ''
+  );
+
+  // A defaut de choix explicite, on ouvre sur le sprint en cours : c'est
+  // celui que l'equipe regarde au quotidien.
+  useEffect(() => {
+    if (sprintId || !sprints) return;
+    const active = sprints.find((s) => s.status === SprintStatus.ACTIVE);
+    if (active) setSprintId(active.id);
+  }, [sprints, sprintId]);
 
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -24,8 +42,9 @@ export default function BurndownPage() {
   });
 
   const { data: burndownData, isLoading, error } = useBurndown(projectId, {
-    startDate,
-    endDate,
+    // Un sprint impose sa propre periode : les dates manuelles sont alors
+    // ignorees cote serveur, on evite de les envoyer.
+    ...(sprintId ? { sprintId } : { startDate, endDate }),
   });
 
   if (isLoading) {
@@ -71,25 +90,56 @@ export default function BurndownPage() {
         </div>
       </div>
 
-      <Card className="p-6">
-        <div className="flex items-center gap-2 mb-4">
+      <Card className="p-6 space-y-4">
+        <div className="flex items-center gap-2">
           <CalendarRange className="w-4 h-4 text-text-secondary" />
-          <h2 className="text-sm font-semibold text-text-primary">Periode</h2>
+          <h2 className="text-sm font-semibold text-text-primary">Perimetre</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            label="Date de debut"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-          <Input
-            label="Date de fin"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-        </div>
+
+        <Select
+          label="Sprint"
+          value={sprintId}
+          onChange={(e) => setSprintId(e.target.value)}
+          placeholder="Projet entier (periode libre)"
+          options={(sprints ?? []).map((s) => ({
+            value: s.id,
+            label: `${s.name} (${new Date(s.startDate).toLocaleDateString('fr-FR')} - ${new Date(s.endDate).toLocaleDateString('fr-FR')})`,
+          }))}
+        />
+
+        {/* Les dates ne servent que hors sprint : un sprint porte les siennes. */}
+        {!sprintId && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input
+              label="Date de debut"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+            <Input
+              label="Date de fin"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+        )}
+
+        {burndownData?.sprint && (
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+            <p className="text-sm font-medium text-text-primary">
+              {burndownData.sprint.name}
+            </p>
+            {burndownData.sprint.goal && (
+              <p className="text-sm text-text-secondary mt-0.5">
+                {burndownData.sprint.goal}
+              </p>
+            )}
+            <p className="text-xs text-text-weak mt-1">
+              La courbe ne porte que sur les taches de ce sprint.
+            </p>
+          </div>
+        )}
       </Card>
 
       <Card className="p-6 overflow-x-auto">

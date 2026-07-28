@@ -32,6 +32,8 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
 import Modal from '@/components/ui/Modal';
+import TaskChecklist from '@/components/tasks/TaskChecklist';
+import TaskRecurrenceCard from '@/components/tasks/TaskRecurrence';
 import Spinner from '@/components/ui/Spinner';
 import { toast } from '@/lib/stores/toast.store';
 import {
@@ -702,6 +704,16 @@ export default function TaskDetailPage() {
               )}
             </div>
           </Card>
+
+          {/* Liste de controle : decoupe la tache sans creer de sous-taches */}
+          <TaskChecklist taskId={taskId} canEdit={canEditTask} />
+
+          {/* Repetition : reservee aux gestionnaires */}
+          <TaskRecurrenceCard
+            taskId={taskId}
+            recurrence={task.recurrence}
+            canManage={canManageProject}
+          />
 
           {/* Danger Zone — suppression réservée aux gestionnaires du projet */}
           {canManageProject && (

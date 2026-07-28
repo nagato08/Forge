@@ -1,5 +1,10 @@
 import api from './client';
 import {
+  ChecklistItem,
+  RecurrenceFrequency,
+  TaskRecurrence,
+} from '@/lib/types/planning.types';
+import {
   Task,
   CreateTaskRequest,
   UpdateTaskRequest,
@@ -154,5 +159,64 @@ export const tasksApi = {
    */
   deleteComment: async (commentId: string): Promise<void> => {
     await api.delete(`${BASE_URL}/comments/${commentId}`);
+  },
+};
+
+// --- Liste de contrôle & récurrence (phase 5) ---
+
+export const checklistApi = {
+  list: async (taskId: string): Promise<ChecklistItem[]> => {
+    const response = await api.get<ChecklistItem[]>(`/tasks/${taskId}/checklist`);
+    return response.data;
+  },
+
+  add: async (taskId: string, label: string): Promise<ChecklistItem> => {
+    const response = await api.post<ChecklistItem>(
+      `/tasks/${taskId}/checklist`,
+      { label }
+    );
+    return response.data;
+  },
+
+  update: async (
+    itemId: string,
+    data: { label?: string; done?: boolean }
+  ): Promise<ChecklistItem> => {
+    const response = await api.patch<ChecklistItem>(
+      `/tasks/checklist/${itemId}`,
+      data
+    );
+    return response.data;
+  },
+
+  remove: async (itemId: string): Promise<{ message: string }> => {
+    const response = await api.delete<{ message: string }>(
+      `/tasks/checklist/${itemId}`
+    );
+    return response.data;
+  },
+
+  /** Définit la répétition. Réservé aux gestionnaires du projet. */
+  setRecurrence: async (
+    taskId: string,
+    data: {
+      frequency: RecurrenceFrequency;
+      interval?: number;
+      until?: string;
+      active?: boolean;
+    }
+  ): Promise<TaskRecurrence> => {
+    const response = await api.put<TaskRecurrence>(
+      `/tasks/${taskId}/recurrence`,
+      data
+    );
+    return response.data;
+  },
+
+  removeRecurrence: async (taskId: string): Promise<{ message: string }> => {
+    const response = await api.delete<{ message: string }>(
+      `/tasks/${taskId}/recurrence`
+    );
+    return response.data;
   },
 };

@@ -5,6 +5,7 @@ import { useAuthStore } from '@/lib/stores/auth.store';
 import { useLogout } from '@/lib/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { NotificationBell } from './NotificationBell';
+import GlobalSearch from './GlobalSearch';
 import Button from '@/components/ui/Button';
 import { Moon, Sun } from 'lucide-react';
 
@@ -98,6 +99,11 @@ export default function Header() {
           <h1 className="text-xl font-semibold text-[var(--text-primary)]">
             Forge
           </h1>
+        </div>
+
+        {/* Center: recherche transverse */}
+        <div className="hidden md:flex flex-1 justify-center px-4">
+          <GlobalSearch />
         </div>
 
         {/* Right: Actions */}

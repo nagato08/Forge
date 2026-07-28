@@ -9,6 +9,7 @@ import Alert from '@/components/ui/Alert';
 import Badge, { getPriorityBadge } from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import ProjectRoleBadge from '@/components/projects/ProjectRoleBadge';
+import ProjectExportMenu from '@/components/projects/ProjectExportMenu';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { canManage, resolveMyRole } from '@/lib/utils/project-permissions';
 import {
@@ -17,6 +18,7 @@ import {
   Network,
   BarChart3,
   Zap,
+  Repeat,
   MessageSquare,
   FileText,
   Settings,
@@ -44,6 +46,7 @@ const tabs: Tab[] = [
   { href: '/kanban', label: 'Kanban', icon: LayoutGrid },
   { href: '/gantt', label: 'Gantt', icon: TrendingUp },
   { href: '/pert', label: 'PERT', icon: Network },
+  { href: '/sprints', label: 'Sprints', icon: Repeat },
   { href: '/burndown', label: 'Burndown', icon: BarChart3 },
   { href: '/workload', label: 'Charge', icon: Zap },
   { href: '/chat', label: 'Chat', icon: MessageSquare },
@@ -165,6 +168,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
                 Nouvelle tâche
               </button>
             )}
+            <ProjectExportMenu projectId={projectId} />
             <button
               onClick={() => setShowDetails(!showDetails)}
               className="px-3 py-1.5 text-xs font-medium rounded-lg bg-bg-surface-hover text-text-secondary hover:text-text-primary hover:bg-border transition-colors"

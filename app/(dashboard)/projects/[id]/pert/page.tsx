@@ -48,11 +48,12 @@ export default function PertPage() {
     );
   }
 
-  const criticalTasks = (pertData.nodes || []).filter((n) =>
-    pertData.criticalPath?.includes(n.id)
-  );
+  const criticalTasks = (pertData.nodes || []).filter((n) => n.isCritical);
 
-  const totalCriticalDuration = criticalTasks.reduce((sum, t) => sum + (t.expectedTime || 0), 0);
+  const totalCriticalDuration = criticalTasks.reduce(
+    (sum, t) => sum + (t.expectedDays || 0),
+    0
+  );
 
   return (
     <div className="space-y-6">
@@ -110,12 +111,13 @@ export default function PertPage() {
                   <div>
                     <p className="font-medium text-text-primary">{task.title}</p>
                     <p className="text-xs text-text-secondary mt-1">
-                      Duree estimee: <span className="font-semibold">{task.expectedTime} jours</span>
+                      Duree estimee: <span className="font-semibold">{task.expectedDays} jours</span>
                     </p>
                   </div>
                   <div className="text-xs text-text-secondary text-right">
                     <p>Te = ({task.optimisticDays} + 4x{task.probableDays} + {task.pessimisticDays})/6</p>
-                    {task.variance != null && <p className="mt-1">Variance: {task.variance.toFixed(2)}</p>}
+                    {/* Marge nulle sur le chemin critique : tout retard decale le projet */}
+                    <p className="mt-1 text-critical font-medium">Marge : 0 j</p>
                   </div>
                 </div>
               </div>
@@ -131,7 +133,9 @@ export default function PertPage() {
         </h2>
         <div className="space-y-2">
           {pertData.nodes.map((task) => {
-            const isCritical = pertData.criticalPath.includes(task.id);
+            // isCritical vient des marges : il capture les chemins critiques
+            // paralleles, que la liste criticalPath seule manquerait.
+            const isCritical = task.isCritical;
             return (
               <div
                 key={task.id}
@@ -149,9 +153,18 @@ export default function PertPage() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-primary">{task.expectedTime}j</p>
-                    {isCritical && (
+                    <p className="text-sm font-semibold text-primary">{task.expectedDays}j</p>
+                    {isCritical ? (
                       <p className="text-xs text-critical font-medium">Critique</p>
+                    ) : (
+                      task.slackDays !== null && (
+                        <p
+                          className="text-xs text-text-secondary"
+                          title="Retard absorbable sans decaler la fin du projet"
+                        >
+                          Marge : {task.slackDays} j
+                        </p>
+                      )
                     )}
                   </div>
                 </div>

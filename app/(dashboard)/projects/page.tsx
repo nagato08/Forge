@@ -7,6 +7,7 @@ import { useAuthStore } from '@/lib/stores/auth.store';
 import ProjectCard from '@/components/projects/ProjectCard';
 import ProjectModal from '@/components/projects/ProjectModal';
 import JoinProjectModal from '@/components/projects/JoinProjectModal';
+import TemplatePickerModal from '@/components/projects/TemplatePickerModal';
 import Button from '@/components/ui/Button';
 import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
@@ -21,6 +22,7 @@ const statusLabels: Record<string, string> = {
 export default function ProjectsPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [includeArchived, setIncludeArchived] = useState(false);
 
@@ -63,13 +65,21 @@ export default function ProjectsPage() {
             Rejoindre
           </Button>
           {canCreateProject && (
-            <Button
-              onClick={() => {
-                setCreateModalOpen(true);
-              }}
-            >
-              Nouveau projet
-            </Button>
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => setTemplateModalOpen(true)}
+              >
+                Depuis un modèle
+              </Button>
+              <Button
+                onClick={() => {
+                  setCreateModalOpen(true);
+                }}
+              >
+                Nouveau projet
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -82,6 +92,10 @@ export default function ProjectsPage() {
       <JoinProjectModal
         isOpen={joinModalOpen}
         onClose={() => setJoinModalOpen(false)}
+      />
+      <TemplatePickerModal
+        isOpen={templateModalOpen}
+        onClose={() => setTemplateModalOpen(false)}
       />
 
       {/* Error state */}
