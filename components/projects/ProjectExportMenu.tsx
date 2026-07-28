@@ -30,23 +30,25 @@ const formatDate = (iso: string | null) =>
  * les colonnes, il produit le fichier.
  */
 const TASK_COLUMNS: ExportColumn<ProjectExportTask>[] = [
-  { header: 'Tâche', value: (t) => t.title, width: 36 },
+  // Les libelles de taches sont longs : on leur donne trois fois la place.
+  { header: 'Tâche', value: (t) => t.title, width: 36, pdfWeight: 3 },
   { header: 'Statut', value: (t) => STATUS_LABELS[t.status] ?? t.status, width: 12 },
   { header: 'Priorité', value: (t) => t.priority, width: 12 },
-  { header: 'Sprint', value: (t) => t.sprint, width: 20 },
+  { header: 'Sprint', value: (t) => t.sprint, width: 20, pdfWeight: 1.5 },
   { header: 'Début', value: (t) => formatDate(t.startDate), width: 12 },
   { header: 'Fin', value: (t) => formatDate(t.endDate), width: 12 },
   { header: 'Échéance', value: (t) => formatDate(t.deadline), width: 12 },
-  { header: 'Points', value: (t) => t.storyPoints, width: 8 },
-  { header: 'Assignés', value: (t) => t.assignees, width: 28 },
+  { header: 'Points', value: (t) => t.storyPoints, width: 8, pdfWeight: 0.7 },
+  { header: 'Assignés', value: (t) => t.assignees, width: 28, pdfWeight: 2 },
   { header: 'Checklist', value: (t) => t.checklistProgress, width: 10 },
-  { header: 'Temps passé (h)', value: (t) => t.timeSpentHours, width: 14 },
+  { header: 'Temps passé (h)', value: (t) => t.timeSpentHours, width: 14, pdfWeight: 0.9 },
   {
     header: 'Dérive (j)',
     // Signe explicite : « +3 » se lit mieux que « 3 » pour un retard.
     value: (t) =>
       t.driftDays === null ? '' : t.driftDays > 0 ? `+${t.driftDays}` : t.driftDays,
     width: 10,
+    pdfWeight: 0.8,
   },
 ];
 

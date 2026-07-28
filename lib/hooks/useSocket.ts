@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getSocket, SocketEventMap } from '@/lib/socket/socket.client';
 
 /**
@@ -105,9 +105,52 @@ export function useSocketEvents(
 }
 
 /**
- * Hook pour vérifier si le socket est connecté
+ * État de connexion du socket, réactif.
+ *
+ * Le socket est créé de façon asynchrone à la réhydratation du store d'auth :
+ * au premier rendu d'une page il n'existe généralement pas encore. On attend
+ * donc son apparition avant de s'abonner, sinon l'indicateur reste bloqué sur
+ * « déconnecté » alors que la connexion est bien établie.
  */
 export function useSocketConnected(): boolean {
-  const socket = getSocket();
-  return socket?.connected ?? false;
+  const [connected, setConnected] = useState(
+    () => getSocket()?.connected ?? false
+  );
+
+  useEffect(() => {
+    const cleanups: Array<() => void> = [];
+
+    const setup = (socket: any) => {
+      const onConnect = () => setConnected(true);
+      const onDisconnect = () => setConnected(false);
+      socket.on('connect', onConnect);
+      socket.on('disconnect', onDisconnect);
+      cleanups.push(() => {
+        socket.off('connect', onConnect);
+        socket.off('disconnect', onDisconnect);
+      });
+      setConnected(socket.connected);
+    };
+
+    const socket = getSocket();
+    if (socket) {
+      setup(socket);
+    } else {
+      let attempts = 0;
+      const interval = setInterval(() => {
+        attempts++;
+        const s = getSocket();
+        if (s) {
+          clearInterval(interval);
+          setup(s);
+        }
+        if (attempts >= 15) clearInterval(interval);
+      }, 200);
+      cleanups.push(() => clearInterval(interval));
+    }
+
+    return () => cleanups.forEach((fn) => fn());
+  }, []);
+
+  return connected;
 }

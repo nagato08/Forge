@@ -26,14 +26,14 @@ import { FileDown, FileSpreadsheet, FileText } from 'lucide-react';
  * un fichier d'audit sert de pièce justificative, il doit être auto-portant.
  */
 const EXPORT_COLUMNS: ExportColumn<AuditLog>[] = [
-  { header: 'Date', value: (l) => formatAuditDateShort(l.createdAt), width: 18 },
-  { header: 'Action', value: (l) => describeAction(l.action).label, width: 26 },
-  { header: 'Code action', value: (l) => l.action, width: 26 },
+  { header: 'Date', value: (l) => formatAuditDateShort(l.createdAt), width: 18, pdfWeight: 1.2 },
+  { header: 'Action', value: (l) => describeAction(l.action).label, width: 26, pdfWeight: 1.6 },
+  { header: 'Code action', value: (l) => l.action, width: 26, excelOnly: true },
   { header: 'Catégorie', value: (l) => describeAction(l.action).category, width: 14 },
-  { header: 'Auteur', value: (l) => actorName(l), width: 24 },
-  { header: 'Email auteur', value: (l) => l.userEmail, width: 28 },
+  { header: 'Auteur', value: (l) => actorName(l), width: 24, pdfWeight: 1.3 },
+  { header: 'Email auteur', value: (l) => l.userEmail, width: 28, pdfWeight: 1.6 },
   { header: 'Type d’objet', value: (l) => targetTypeLabel(l.targetType), width: 14 },
-  { header: 'Identifiant objet', value: (l) => l.targetId, width: 26 },
+  { header: 'Identifiant objet', value: (l) => l.targetId, width: 26, excelOnly: true },
   {
     header: 'Contexte',
     value: (l) =>
@@ -43,9 +43,11 @@ const EXPORT_COLUMNS: ExportColumn<AuditLog>[] = [
         )
         .join(' | '),
     width: 40,
+    // Colonne la plus dense : elle porte le detail metier de chaque action.
+    pdfWeight: 3,
   },
-  { header: 'Adresse IP', value: (l) => l.ip, width: 16 },
-  { header: 'Requête', value: (l) => l.requestId, width: 30 },
+  { header: 'Adresse IP', value: (l) => l.ip, width: 16, excelOnly: true },
+  { header: 'Requête', value: (l) => l.requestId, width: 30, excelOnly: true },
 ];
 
 interface AuditExportMenuProps {

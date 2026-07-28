@@ -6,7 +6,7 @@ import { useMessages, useSendMessage, useSendFileMessage } from '@/lib/hooks/use
 import { ChatAttachment } from '@/lib/api/chat.api';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { useProjectById, useProjectRole } from '@/lib/hooks/useProjects';
-import { useSocketEvent } from '@/lib/hooks/useSocket';
+import { useSocketConnected, useSocketEvent } from '@/lib/hooks/useSocket';
 import { usePresence } from '@/lib/hooks/usePresence';
 import { getSocket, emitSocketEvent } from '@/lib/socket/socket.client';
 import { getApiError } from '@/lib/utils/api-error';
@@ -273,7 +273,6 @@ export default function ChatPage() {
   const [inputValue, setInputValue] = useState('');
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [socketConnected, setSocketConnected] = useState(() => !!getSocket()?.connected);
   /** Texte saisi après un « @ », ou null si l'autocomplétion est fermée. */
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -291,20 +290,8 @@ export default function ChatPage() {
       .slice(0, 5);
   }, [mentionQuery, members, currentUser?.id]);
 
-  // Suivre l'état de connexion socket pour l'indicateur UI
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-    const onConnect = () => setSocketConnected(true);
-    const onDisconnect = () => setSocketConnected(false);
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    setSocketConnected(socket.connected);
-    return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-    };
-  }, []);
+  // Le socket naissant apres le premier rendu, le hook attend son apparition.
+  const socketConnected = useSocketConnected();
 
   // Rejoindre la room du projet + re-join à chaque reconnexion socket
   useEffect(() => {

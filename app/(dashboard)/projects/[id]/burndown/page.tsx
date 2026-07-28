@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useBurndown } from '@/lib/hooks/usePlanning';
 import { useSprints } from '@/lib/hooks/useSprints';
@@ -25,8 +25,14 @@ export default function BurndownPage() {
 
   // A defaut de choix explicite, on ouvre sur le sprint en cours : c'est
   // celui que l'equipe regarde au quotidien.
+  //
+  // Le drapeau est indispensable : sans lui, choisir « Projet entier » remet
+  // sprintId a vide, ce qui relance cet effet et re-selectionne aussitot le
+  // sprint actif. L'option devenait impossible a choisir.
+  const didAutoSelect = useRef(false);
   useEffect(() => {
-    if (sprintId || !sprints) return;
+    if (didAutoSelect.current || sprintId || !sprints) return;
+    didAutoSelect.current = true;
     const active = sprints.find((s) => s.status === SprintStatus.ACTIVE);
     if (active) setSprintId(active.id);
   }, [sprints, sprintId]);

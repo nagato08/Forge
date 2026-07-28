@@ -14,8 +14,28 @@ export interface ExportColumn<T> {
   header: string;
   /** Valeur de la cellule pour une ligne donnée. */
   value: (row: T) => string | number | null | undefined;
-  /** Largeur indicative, en caractères (Excel) ou en points (PDF). */
+  /**
+   * Largeur de colonne dans Excel, en caractères.
+   *
+   * N'est PAS appliquée au PDF : une largeur en caractères interprétée en
+   * points y écrasait le texte en colonnes de lettres. Le PDF répartit
+   * automatiquement la largeur disponible entre les colonnes.
+   */
   width?: number;
+  /**
+   * Poids relatif de la colonne dans le PDF. Par défaut 1 : toutes les
+   * colonnes se partagent la place à parts égales. Monter à 2 ou 3 pour un
+   * libellé long, descendre en dessous de 1 n'a pas d'effet utile.
+   */
+  pdfWeight?: number;
+  /**
+   * Exclut la colonne du PDF sans la retirer d'Excel.
+   *
+   * À réserver aux colonnes techniques (identifiants, requestId, IP) : elles
+   * sont indispensables à une exploitation machine mais volent une place que
+   * le PDF, lu par un humain, ne peut pas se permettre.
+   */
+  excelOnly?: boolean;
 }
 
 export interface ExportOptions {
@@ -121,7 +141,7 @@ export async function exportToExcel<T>(
  */
 export async function exportToPdf<T>(
   rows: T[],
-  columns: ExportColumn<T>[],
+  allColumns: ExportColumn<T>[],
   options: ExportOptions
 ): Promise<void> {
   const [{ jsPDF }, autoTableModule] = await Promise.all([
@@ -130,8 +150,20 @@ export async function exportToPdf<T>(
   ]);
   const autoTable = autoTableModule.default;
 
+  const columns = allColumns.filter((column) => !column.excelOnly);
+
   const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
+  // Largeur réellement disponible pour le tableau, marges déduites.
+  const usableWidth = pageWidth - 80;
+  const totalWeight = columns.reduce(
+    (sum, column) => sum + (column.pdfWeight ?? 1),
+    0
+  );
+  // Largeur d'une colonne de poids 1. Toutes les colonnes sont dimensionnées
+  // explicitement : laisser autoTable improviser sur une partie seulement
+  // produisait des colonnes d'une lettre de large.
+  const unitWidth = totalWeight > 0 ? usableWidth / totalWeight : usableWidth;
 
   doc.setFontSize(14);
   doc.text(options.title ?? options.filename, 40, 40);
@@ -149,14 +181,27 @@ export async function exportToPdf<T>(
     body: rows.map((row) =>
       columns.map((column) => String(cellValue(column, row)))
     ),
-    styles: { fontSize: 7, cellPadding: 4, overflow: 'linebreak' },
-    headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 8 },
+    styles: {
+      fontSize: 7,
+      cellPadding: 4,
+      overflow: 'linebreak',
+      valign: 'top',
+    },
+    headStyles: {
+      fillColor: [37, 99, 235],
+      textColor: 255,
+      fontSize: 8,
+      // Sans quoi un en-tête long se coupe au lieu de passer à la ligne.
+      overflow: 'linebreak',
+      valign: 'middle',
+    },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     margin: { left: 40, right: 40 },
+    tableWidth: usableWidth,
     columnStyles: Object.fromEntries(
       columns.map((column, index) => [
         index,
-        column.width ? { cellWidth: column.width } : {},
+        { cellWidth: unitWidth * (column.pdfWeight ?? 1) },
       ])
     ),
   });
