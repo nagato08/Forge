@@ -27,6 +27,8 @@ import Alert from '@/components/ui/Alert';
 import KanbanColumn from '@/components/tasks/KanbanColumn';
 import TaskCard from '@/components/tasks/TaskCard';
 import CreateTaskModal from '@/components/tasks/CreateTaskModal';
+import SprintScopeFilter from '@/components/planning/SprintScopeFilter';
+import { useSprintScope } from '@/lib/hooks/useSprintScope';
 import { ListTodo, Play, CheckCircle2 } from 'lucide-react';
 
 export default function KanbanPage() {
@@ -37,6 +39,7 @@ export default function KanbanPage() {
   const updateStatus = useUpdateTaskStatus();
   const { role: myRole } = useProjectRole(projectId);
   const currentUserId = useAuthStore((state) => state.user?.id);
+  const { scope, setScope, filterTasks, sprints } = useSprintScope(projectId);
 
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [createModalStatus, setCreateModalStatus] = useState<TaskStatus | null>(
@@ -77,9 +80,13 @@ export default function KanbanPage() {
   }
 
 
-  const todoTasks = tasks?.filter((t) => t.status === TaskStatus.TODO) || [];
-  const doingTasks = tasks?.filter((t) => t.status === TaskStatus.DOING) || [];
-  const doneTasks = tasks?.filter((t) => t.status === TaskStatus.DONE) || [];
+  // La portee de sprint s'applique avant la repartition par colonne : les
+  // trois colonnes doivent decrire le meme perimetre.
+  const scopedTasks = filterTasks(tasks ?? []);
+
+  const todoTasks = scopedTasks.filter((t) => t.status === TaskStatus.TODO);
+  const doingTasks = scopedTasks.filter((t) => t.status === TaskStatus.DOING);
+  const doneTasks = scopedTasks.filter((t) => t.status === TaskStatus.DONE);
 
   const activeTask =
     activeTaskId && tasks ? tasks.find((t) => t.id === activeTaskId) : null;
@@ -149,6 +156,16 @@ export default function KanbanPage() {
 
   return (
     <>
+      <div className="mb-4">
+        <SprintScopeFilter
+          sprints={sprints}
+          scope={scope}
+          onScopeChange={setScope}
+          visibleCount={scopedTasks.length}
+          totalCount={tasks?.length ?? 0}
+        />
+      </div>
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}

@@ -10,6 +10,7 @@ import Badge, { getPriorityBadge } from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import ProjectRoleBadge from '@/components/projects/ProjectRoleBadge';
 import ProjectExportMenu from '@/components/projects/ProjectExportMenu';
+import SprintBanner from '@/components/planning/SprintBanner';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { canManage, resolveMyRole } from '@/lib/utils/project-permissions';
 import {
@@ -352,6 +353,9 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
           </div>
         )}
       </Card>
+
+      {/* Sprint en cours : visible depuis n'importe quel onglet du projet */}
+      <SprintBanner projectId={projectId} />
 
       {/* Navigation tabs */}
       <div className="border-b border-border overflow-x-auto -mx-6 px-6">
