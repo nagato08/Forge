@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useUIStore } from '@/lib/stores/ui.store';
 import { Toaster } from '@/components/ui';
+import SocketProvider from '@/components/providers/SocketProvider';
 import './globals.css';
 
 // Créer client QueryClient (stable entre re-renders)
@@ -41,6 +42,7 @@ export default function RootLayout({
       <body className="h-full antialiased">
         <QueryClientProvider client={queryClient}>
           <ThemeHydrator />
+          <SocketProvider />
           {children}
           <Toaster />
         </QueryClientProvider>

@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { initializeSocket, disconnectSocket } from '@/lib/socket/socket.client';
 
 export enum Role {
   ADMIN = 'ADMIN',
@@ -53,10 +52,8 @@ export const useAuthStore = create<AuthStore>()(
           role: user.role,
           isLoading: false,
         });
-        // Initialiser socket après login
-        if (typeof window !== 'undefined') {
-          initializeSocket();
-        }
+        // La connexion temps reel est ouverte par SocketProvider, qui observe
+        // le jeton : la rebrancher ici recreerait le cycle d'imports.
       },
 
       logout: () => {
@@ -71,10 +68,6 @@ export const useAuthStore = create<AuthStore>()(
         // Supprimer le cookie
         if (typeof window !== 'undefined') {
           document.cookie = 'auth-token=; path=/; max-age=0';
-        }
-        // Déconnecter socket
-        if (typeof window !== 'undefined') {
-          disconnectSocket();
         }
       },
 
@@ -105,12 +98,6 @@ export const useAuthStore = create<AuthStore>()(
         token: state.token,
         role: state.role,
       }),
-      onRehydrateStorage: () => (state) => {
-        // Réinitialiser le socket après rehydratation si un token existe
-        if (state?.token && typeof window !== 'undefined') {
-          initializeSocket();
-        }
-      },
     }
   )
 );
