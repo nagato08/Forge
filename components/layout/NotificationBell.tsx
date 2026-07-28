@@ -21,7 +21,10 @@ import {
 export function NotificationBell() {
   const [panelOpen, setPanelOpen] = useState(false);
   const { data: unreadData } = useUnreadCount();
-  const { data: notifications, isLoading } = useNotifications(false);
+  // Le panneau n'affiche qu'un aperçu : inutile de rapatrier l'historique
+  // complet, qui peut compter des milliers d'entrées.
+  const { data, isLoading } = useNotifications(false, { take: 20 });
+  const notifications = data?.items;
   const markAllReadMutation = useMarkAllNotificationsAsRead();
 
   const unreadCount = unreadData?.count || 0;

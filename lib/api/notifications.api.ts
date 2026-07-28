@@ -1,4 +1,5 @@
 import api from './client';
+import { Paginated } from '@/lib/types/pagination.types';
 
 export enum NotificationType {
   TASK_ASSIGNED = 'TASK_ASSIGNED',
@@ -38,9 +39,15 @@ export const notificationsApi = {
    * GET /notifications (JWT requis)
    * Query: unreadOnly?: 'true'|'false'
    */
-  getNotifications: async (unreadOnly?: boolean): Promise<Notification[]> => {
-    const response = await api.get<Notification[]>(`${BASE_URL}`, {
-      params: unreadOnly !== undefined ? { unreadOnly } : {},
+  getNotifications: async (
+    unreadOnly?: boolean,
+    pagination?: { skip?: number; take?: number }
+  ): Promise<Paginated<Notification>> => {
+    const response = await api.get<Paginated<Notification>>(`${BASE_URL}`, {
+      params: {
+        ...(unreadOnly !== undefined ? { unreadOnly } : {}),
+        ...(pagination ?? {}),
+      },
     });
     return response.data;
   },

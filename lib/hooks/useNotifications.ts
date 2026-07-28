@@ -13,7 +13,10 @@ const CACHE_KEYS = {
 /**
  * Hook pour récupérer les notifications
  */
-export function useNotifications(unreadOnly?: boolean) {
+export function useNotifications(
+  unreadOnly?: boolean,
+  pagination?: { skip?: number; take?: number }
+) {
   const queryClient = useQueryClient();
 
   // Écouter les nouvelles notifications en temps réel
@@ -24,8 +27,10 @@ export function useNotifications(unreadOnly?: boolean) {
   });
 
   return useQuery({
-    queryKey: [...CACHE_KEYS.all, unreadOnly],
-    queryFn: () => notificationsApi.getNotifications(unreadOnly),
+    // La pagination fait partie de la clé : deux pages sont deux entrées de
+    // cache distinctes, sans quoi elles se remplaceraient l'une l'autre.
+    queryKey: [...CACHE_KEYS.all, unreadOnly, pagination?.skip, pagination?.take],
+    queryFn: () => notificationsApi.getNotifications(unreadOnly, pagination),
     staleTime: 1 * 60 * 1000, // 1 min
   });
 }
