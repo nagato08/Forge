@@ -1,7 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { getSocket, SocketEventMap } from '@/lib/socket/socket.client';
+import {
+  getSocket,
+  onSocketAvailable,
+  SocketEventMap,
+} from '@/lib/socket/socket.client';
 
 /**
  * Hook pour s'abonner à un événement socket
@@ -37,23 +41,7 @@ export function useSocketEvent<K extends keyof SocketEventMap>(
       cleanups.push(() => socket.off('connect', onConnect));
     };
 
-    const socket = getSocket();
-    if (socket) {
-      setup(socket);
-    } else {
-      // Socket pas encore créé — poll jusqu'à ce qu'il apparaisse
-      let attempts = 0;
-      const interval = setInterval(() => {
-        attempts++;
-        const s = getSocket();
-        if (s) {
-          clearInterval(interval);
-          setup(s);
-        }
-        if (attempts >= 15) clearInterval(interval);
-      }, 200);
-      cleanups.push(() => clearInterval(interval));
-    }
+    cleanups.push(onSocketAvailable(setup));
 
     return () => {
       cleanups.forEach((fn) => fn());
@@ -93,10 +81,7 @@ export function useSocketEvents(
       cleanups.push(() => socket.off('connect', onConnect));
     };
 
-    const socket = getSocket();
-    if (socket) {
-      setup(socket);
-    }
+    cleanups.push(onSocketAvailable(setup));
 
     return () => {
       cleanups.forEach((fn) => fn());
@@ -132,22 +117,7 @@ export function useSocketConnected(): boolean {
       setConnected(socket.connected);
     };
 
-    const socket = getSocket();
-    if (socket) {
-      setup(socket);
-    } else {
-      let attempts = 0;
-      const interval = setInterval(() => {
-        attempts++;
-        const s = getSocket();
-        if (s) {
-          clearInterval(interval);
-          setup(s);
-        }
-        if (attempts >= 15) clearInterval(interval);
-      }, 200);
-      cleanups.push(() => clearInterval(interval));
-    }
+    cleanups.push(onSocketAvailable(setup));
 
     return () => cleanups.forEach((fn) => fn());
   }, []);

@@ -52,11 +52,15 @@ export function initializeSocket(): void {
     timeout: 10000,
   });
 
-  // Événements de connexion
+  // Ces deux traces sont volontaires : sans elles, une socket qui ne s'ouvre
+  // jamais est indiscernable d'une socket qui s'ouvre puis se fait couper, et
+  // le gateway ne journalise que les rejets.
   socket.on('connect', () => {
+    console.info('[socket] connecte', socket?.id);
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', (reason) => {
+    console.info('[socket] deconnecte :', reason);
   });
 
   socket.on('error', (error) => {
@@ -66,6 +70,42 @@ export function initializeSocket(): void {
   socket.on('connect_error', (error) => {
     console.error('Socket connection error:', error);
   });
+}
+
+/**
+ * Execute `callback` des que la socket existe, immediatement si elle est deja
+ * la.
+ *
+ * La socket est ouverte par SocketProvider apres le premier rendu : un
+ * composant qui appelle `getSocket()` a son montage recoit `null` et, s'il
+ * abandonne la, ne s'abonne jamais. Ce piege a produit deux bugs distincts
+ * (indicateur de connexion fige, liste de presence vide) — d'ou cet unique
+ * point de passage.
+ *
+ * Renvoie une fonction d'annulation, a appeler au demontage.
+ */
+export function onSocketAvailable(
+  callback: (socket: Socket) => void
+): () => void {
+  if (socket) {
+    callback(socket);
+    return () => {};
+  }
+
+  let attempts = 0;
+  const interval = setInterval(() => {
+    attempts++;
+    if (socket) {
+      clearInterval(interval);
+      callback(socket);
+    } else if (attempts >= 25) {
+      // 5 s sans socket : l'utilisateur n'est pas authentifie, inutile
+      // d'occuper un timer indefiniment.
+      clearInterval(interval);
+    }
+  }, 200);
+
+  return () => clearInterval(interval);
 }
 
 /**
