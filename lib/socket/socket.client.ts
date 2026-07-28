@@ -23,8 +23,18 @@ export function initializeSocket(): void {
     return;
   }
 
+  // Une socket deja ouverte n'a rien a se voir remplacer.
   if (socket?.connected) {
     return;
+  }
+
+  // Une socket existante mais coupee est en boucle de reconnexion. La laisser
+  // vivre pendant qu'on en cree une seconde donne deux clients concurrents
+  // pour le meme compte : doublons de messages et presence faussee.
+  if (socket) {
+    socket.removeAllListeners();
+    socket.disconnect();
+    socket = null;
   }
 
   socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000', {
