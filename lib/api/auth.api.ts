@@ -117,6 +117,28 @@ export const authApi = {
   },
 
   /**
+   * RGPD — exporte mes propres données personnelles en JSON.
+   * GET /auth/profile/export (JWT requis)
+   */
+  exportMyData: async (): Promise<Record<string, unknown>> => {
+    const response = await api.get(`${BASE_URL}/profile/export`);
+    return response.data as Record<string, unknown>;
+  },
+
+  /**
+   * RGPD — demande la suppression de mon propre compte.
+   *
+   * Échoue en 400 si je possède des projets actifs sans remplaçant désigné :
+   * le message renvoyé par le serveur explique alors la marche à suivre.
+   * DELETE /auth/profile (JWT requis)
+   */
+  deleteMyAccount: async (reassignTo?: string): Promise<void> => {
+    await api.delete(`${BASE_URL}/profile`, {
+      data: reassignTo ? { reassignTo } : undefined,
+    });
+  },
+
+  /**
    * Demander réinitialisation de mot de passe
    * POST /auth/request-reset-password
    */

@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import { toast } from '@/lib/stores/toast.store';
 import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
+import GdprSection from '@/components/settings/GdprSection';
 import { User, Edit2, Camera, X, Loader2 } from 'lucide-react';
 
 export default function ProfileSettingsPage() {
@@ -344,6 +345,8 @@ export default function ProfileSettingsPage() {
           </div>
         </div>
       </Card>
+
+      <GdprSection />
     </div>
   );
 }

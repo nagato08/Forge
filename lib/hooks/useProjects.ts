@@ -28,6 +28,7 @@ const CACHE_KEYS = {
   myProjects: ['projects', 'my'],
   byId: (id: string) => ['projects', id],
   invitations: (id: string) => ['projects', id, 'invitations'],
+  trash: ['projects', 'trash'],
 };
 
 /**
@@ -126,6 +127,46 @@ export function useDeleteProject() {
       // Invalider liste et projet
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.myProjects });
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.byId(projectId) });
+    },
+  });
+}
+
+/**
+ * Corbeille : projets supprimés que je peux encore restaurer.
+ */
+export function useTrashedProjects() {
+  return useQuery({
+    queryKey: CACHE_KEYS.trash,
+    queryFn: () => projectsApi.getTrashedProjects(),
+    staleTime: 30 * 1000,
+  });
+}
+
+/**
+ * Restaure un projet de la corbeille.
+ */
+export function useRestoreProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (projectId: string) => projectsApi.restoreProject(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.trash });
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.myProjects });
+    },
+  });
+}
+
+/**
+ * Supprime définitivement un projet de la corbeille — irréversible.
+ */
+export function usePurgeProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (projectId: string) => projectsApi.purgeProject(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.trash });
     },
   });
 }

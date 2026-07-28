@@ -36,6 +36,21 @@ export interface ProjectMember {
   user: User;
 }
 
+/**
+ * Projet dans la corbeille : le lot renvoyé par la corbeille, plus l'urgence
+ * de restauration avant purge définitive.
+ */
+export interface TrashedProject {
+  id: string;
+  name: string;
+  status: ProjectStatus;
+  deletedAt: string;
+  owner: { id: string; firstName: string; lastName: string };
+  _count: { tasks: number; members: number; documents: number };
+  /** Jours restants avant suppression définitive automatique. */
+  daysUntilPurge: number;
+}
+
 export interface Project {
   id: string;
   name: string;

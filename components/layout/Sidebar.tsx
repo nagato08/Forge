@@ -10,6 +10,7 @@ import {
   Settings,
   Users,
   ShieldCheck,
+  Trash2,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { useUIStore } from '@/lib/stores/ui.store';
@@ -42,6 +43,13 @@ const settingsNavItems = [
   { href: '/settings/profile', label: 'Profil', icon: Settings },
 ];
 
+/**
+ * Réservée à ceux qui peuvent posséder un projet, donc en supprimer et en
+ * restaurer un. Un EMPLOYEE n'a jamais rien à y voir : la corbeille lui
+ * resterait vide en permanence.
+ */
+const trashNavItem = { href: '/settings/trash', label: 'Corbeille', icon: Trash2 };
+
 export default function Sidebar() {
   const pathname = usePathname();
   const sidebarOpen = useUIStore((state) => state.sidebarOpen);
@@ -56,6 +64,8 @@ export default function Sidebar() {
   };
 
   const isAdmin = mounted && role === 'ADMIN';
+  const canOwnProjects =
+    mounted && (role === 'ADMIN' || role === 'PROJECT_MANAGER');
 
   const handleNavClick = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -166,7 +176,10 @@ export default function Sidebar() {
 
           {/* Settings section */}
           <div className="space-y-1 pt-3 border-t border-[var(--border)] mt-3">
-            {settingsNavItems.map((item) => {
+            {[
+              ...settingsNavItems,
+              ...(canOwnProjects ? [trashNavItem] : []),
+            ].map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
               return (

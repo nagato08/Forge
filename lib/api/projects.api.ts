@@ -16,6 +16,8 @@ import {
   RegenerateTokenResponse,
 } from '@/lib/types/project.types';
 
+import { TrashedProject } from '@/lib/types/project.types';
+
 const BASE_URL = '/projects';
 
 export const projectsApi = {
@@ -64,6 +66,39 @@ export const projectsApi = {
    */
   deleteProject: async (projectId: string): Promise<void> => {
     await api.delete(`${BASE_URL}/${projectId}`);
+  },
+
+  /**
+   * Corbeille : projets supprimés encore restaurables.
+   * GET /projects/trash (JWT requis)
+   */
+  getTrashedProjects: async (): Promise<TrashedProject[]> => {
+    const response = await api.get<TrashedProject[]>(`${BASE_URL}/trash`);
+    return response.data;
+  },
+
+  /**
+   * Restaure un projet de la corbeille.
+   * POST /projects/:id/restore (propriétaire ou ADMIN global)
+   */
+  restoreProject: async (
+    projectId: string
+  ): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>(
+      `${BASE_URL}/${projectId}/restore`
+    );
+    return response.data;
+  },
+
+  /**
+   * Supprime définitivement un projet déjà dans la corbeille.
+   * DELETE /projects/:id/purge (propriétaire ou ADMIN global) — irréversible.
+   */
+  purgeProject: async (projectId: string): Promise<{ message: string }> => {
+    const response = await api.delete<{ message: string }>(
+      `${BASE_URL}/${projectId}/purge`
+    );
+    return response.data;
   },
 
   /**

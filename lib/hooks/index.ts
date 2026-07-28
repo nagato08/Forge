@@ -17,6 +17,8 @@ export {
   useVerifyResetToken,
   useResetPassword,
   useGetDepartmentEnums,
+  useExportMyData,
+  useDeleteMyAccount,
 } from './useAuth';
 
 export {

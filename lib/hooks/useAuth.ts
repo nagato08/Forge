@@ -155,6 +155,51 @@ export function useDeleteUser() {
 }
 
 /**
+ * RGPD — télécharge l'export de mes données personnelles en JSON.
+ *
+ * Le fichier est construit côté client à partir de la réponse : le serveur
+ * renvoie des données structurées, pas un fichier, pour rester consultable
+ * sans téléchargement si un usage futur le demande (page de consultation).
+ */
+export function useExportMyData() {
+  return useMutation({
+    mutationFn: async () => {
+      const data = await authApi.exportMyData();
+      const { downloadBlob, exportTimestamp } = await import(
+        '@/lib/utils/export'
+      );
+      downloadBlob(
+        new Blob([JSON.stringify(data, null, 2)], {
+          type: 'application/json',
+        }),
+        `mes-donnees-forge-${exportTimestamp()}.json`
+      );
+    },
+    onError: (error) => {
+      console.error('❌ Export RGPD error:', getApiError(error));
+    },
+  });
+}
+
+/**
+ * RGPD — demande la suppression de mon propre compte.
+ *
+ * Déconnecte immédiatement en cas de succès : un compte qui vient de
+ * demander sa propre suppression ne doit pas rester dans une session
+ * authentifiée face à des données qui n'existent plus.
+ */
+export function useDeleteMyAccount() {
+  const { logout } = useAuthStore();
+
+  return useMutation({
+    mutationFn: (reassignTo?: string) => authApi.deleteMyAccount(reassignTo),
+    onSuccess: () => {
+      logout();
+    },
+  });
+}
+
+/**
  * Hook pour mettre à jour le profil
  */
 export function useUpdateProfile() {
