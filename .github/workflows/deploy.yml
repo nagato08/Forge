@@ -11,7 +11,10 @@ env:
 
 jobs:
   # ───────────────────────────────
-  # 1. Qualité : lint + build check
+  # 1. Qualité : lint + typecheck + build check
+  #
+  # Bloquant : build-push dépend de ce job, rien ne part en production si
+  # l'une de ces étapes échoue.
   # ───────────────────────────────
   quality:
     runs-on: ubuntu-latest
@@ -27,6 +30,12 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      # `next build` tolère des erreurs de types selon la configuration, et
+      # plusieurs régressions de cette semaine n'ont été vues que par un
+      # `tsc` lancé à la main. Le pipeline le lance désormais lui-même.
+      - name: Vérification des types
+        run: npm run typecheck
 
       - name: Build check
         run: npm run build
