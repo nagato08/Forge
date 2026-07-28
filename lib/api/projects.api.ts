@@ -9,7 +9,9 @@ import {
   UpdateMemberRoleRequest,
   TransferOwnershipRequest,
   InviteProjectMemberRequest,
-  InviteProjectMemberResponse,
+  ProjectInvitation,
+  InvitationPreview,
+  InvitationStatus,
   ProjectMember,
   RegenerateTokenResponse,
 } from '@/lib/types/project.types';
@@ -131,10 +133,58 @@ export const projectsApi = {
   inviteMember: async (
     projectId: string,
     data: InviteProjectMemberRequest
-  ): Promise<InviteProjectMemberResponse> => {
-    const response = await api.post<InviteProjectMemberResponse>(
+  ): Promise<ProjectInvitation> => {
+    const response = await api.post<ProjectInvitation>(
       `${BASE_URL}/${projectId}/invite`,
       data
+    );
+    return response.data;
+  },
+
+  /**
+   * Lister les invitations du projet
+   * GET /projects/:id/invitations (JWT requis, ADMIN projet)
+   */
+  listInvitations: async (projectId: string): Promise<ProjectInvitation[]> => {
+    const response = await api.get<ProjectInvitation[]>(
+      `${BASE_URL}/${projectId}/invitations`
+    );
+    return response.data;
+  },
+
+  /**
+   * Révoquer une invitation en attente
+   * DELETE /projects/:id/invitations/:invitationId (JWT requis, ADMIN projet)
+   */
+  revokeInvitation: async (
+    projectId: string,
+    invitationId: string
+  ): Promise<{ id: string; email: string; status: InvitationStatus }> => {
+    const response = await api.delete<{
+      id: string;
+      email: string;
+      status: InvitationStatus;
+    }>(`${BASE_URL}/${projectId}/invitations/${invitationId}`);
+    return response.data;
+  },
+
+  /**
+   * Détails publics d'une invitation, sans authentification.
+   * GET /invitations/:token
+   */
+  previewInvitation: async (token: string): Promise<InvitationPreview> => {
+    const response = await api.get<InvitationPreview>(`/invitations/${token}`);
+    return response.data;
+  },
+
+  /**
+   * Accepter une invitation nominative.
+   * POST /projects/invitations/accept (JWT requis)
+   */
+  acceptInvitation: async (token: string): Promise<ProjectMember> => {
+    const response = await api.post<ProjectMember>(
+      `${BASE_URL}/invitations/accept`,
+      { token }
     );
     return response.data;
   },

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { chatApi, ChatMessage, encodeAttachment } from '@/lib/api/chat.api';
+import { chatApi, ChatMessage } from '@/lib/api/chat.api';
 import { useSocketEvent } from '@/lib/hooks/useSocket';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { getApiError } from '@/lib/utils/api-error';
@@ -45,13 +45,15 @@ export function useSendMessage() {
     mutationFn: ({
       projectId,
       content,
+      mentions,
     }: {
       projectId: string;
       content: string;
-    }) => chatApi.sendMessage(projectId, content),
+      mentions?: string[];
+    }) => chatApi.sendMessage(projectId, content, { mentions }),
 
     // Optimistic update : ajouter le message localement avant la réponse API
-    onMutate: async ({ projectId, content }) => {
+    onMutate: async ({ projectId, content, mentions }) => {
       await queryClient.cancelQueries({
         queryKey: CACHE_KEYS.messages(projectId),
       });
@@ -74,7 +76,8 @@ export function useSendMessage() {
             }
           : { id: '', firstName: 'Moi', lastName: '' },
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        mentions: mentions ?? [],
+        attachments: [],
       };
 
       queryClient.setQueryData<ChatMessage[]>(
@@ -118,13 +121,15 @@ export function useSendFileMessage() {
       projectId,
       file,
       textContent,
+      mentions,
     }: {
       projectId: string;
       file: File;
       textContent?: string;
-    }) => chatApi.sendFileMessage(projectId, file, textContent),
+      mentions?: string[];
+    }) => chatApi.sendFileMessage(projectId, file, textContent, mentions),
 
-    onMutate: async ({ projectId, file, textContent }) => {
+    onMutate: async ({ projectId, file, textContent, mentions }) => {
       await queryClient.cancelQueries({
         queryKey: CACHE_KEYS.messages(projectId),
       });
@@ -133,16 +138,9 @@ export function useSendFileMessage() {
         CACHE_KEYS.messages(projectId)
       );
 
-      const attachment = encodeAttachment({
-        name: file.name,
-        url: '',
-        size: file.size,
-        type: file.type,
-      });
-
       const optimisticMessage: ChatMessage = {
         id: `optimistic-file-${Date.now()}`,
-        content: textContent ? `${textContent}\n${attachment}` : attachment,
+        content: textContent ?? '',
         projectId,
         userId: currentUser?.id || '',
         user: currentUser
@@ -154,7 +152,18 @@ export function useSendFileMessage() {
             }
           : { id: '', firstName: 'Moi', lastName: '' },
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        mentions: mentions ?? [],
+        // L'URL n'existe qu'après téléversement : on affiche le nom et la
+        // taille en attendant, l'invalidation remplacera par la vraie entrée.
+        attachments: [
+          {
+            id: `optimistic-att-${Date.now()}`,
+            name: file.name,
+            url: '',
+            size: file.size,
+            mimeType: file.type,
+          },
+        ],
       };
 
       queryClient.setQueryData<ChatMessage[]>(

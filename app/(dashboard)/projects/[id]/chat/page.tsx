@@ -1,12 +1,13 @@
 'use client';
 
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { useMessages, useSendMessage, useSendFileMessage } from '@/lib/hooks/useChat';
-import { parseAttachments, ChatAttachment } from '@/lib/api/chat.api';
+import { ChatAttachment } from '@/lib/api/chat.api';
 import { useAuthStore } from '@/lib/stores/auth.store';
-import { useProjectRole } from '@/lib/hooks/useProjects';
+import { useProjectById, useProjectRole } from '@/lib/hooks/useProjects';
 import { useSocketEvent } from '@/lib/hooks/useSocket';
+import { usePresence } from '@/lib/hooks/usePresence';
 import { getSocket, emitSocketEvent } from '@/lib/socket/socket.client';
 import { getApiError } from '@/lib/utils/api-error';
 import Spinner from '@/components/ui/Spinner';
@@ -56,7 +57,7 @@ function AttachmentCard({ attachment, isOwn }: { attachment: ChatAttachment; isO
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   const fullUrl = attachment.url.startsWith('http') ? attachment.url : `${apiUrl}${attachment.url}`;
 
-  if (isImageType(attachment.type) && attachment.url) {
+  if (isImageType(attachment.mimeType) && attachment.url) {
     return (
       <a href={fullUrl} target="_blank" rel="noopener noreferrer" className="block">
         <div className="rounded-lg overflow-hidden max-w-[280px] border border-border">
@@ -77,7 +78,7 @@ function AttachmentCard({ attachment, isOwn }: { attachment: ChatAttachment; isO
     );
   }
 
-  if (isVideoType(attachment.type) && attachment.url) {
+  if (isVideoType(attachment.mimeType) && attachment.url) {
     return (
       <div className="rounded-lg overflow-hidden max-w-[320px] border border-border">
         <video
@@ -109,7 +110,7 @@ function AttachmentCard({ attachment, isOwn }: { attachment: ChatAttachment; isO
           : 'border-border bg-bg-surface hover:bg-bg-surface-hover'
       }`}
     >
-      <FileIcon type={attachment.type} className={`w-6 h-6 ${isOwn ? 'text-white/80' : 'text-text-secondary'}`} />
+      <FileIcon type={attachment.mimeType} className={`w-6 h-6 ${isOwn ? 'text-white/80' : 'text-text-secondary'}`} />
       <div className="flex-1 min-w-0">
         <p className={`text-sm font-medium truncate ${isOwn ? 'text-white' : 'text-text-primary'}`}>
           {attachment.name}
@@ -159,14 +160,62 @@ function FilePreview({ file, onRemove }: { file: File; onRemove: () => void }) {
 
 // --- Message bubble content ---
 
-function MessageContent({ content, isOwn }: { content: string; isOwn: boolean }) {
-  const { text, attachments } = parseAttachments(content);
+/**
+ * Surligne les `@Prénom Nom` présents dans le texte.
+ *
+ * On reconstruit le rendu à partir des noms des membres mentionnés plutôt que
+ * d'analyser le texte à l'aveugle : seul un nom réellement mentionné est mis
+ * en valeur, écrire « @quelqu'un » au hasard ne produit aucun surlignage.
+ */
+function MessageContent({
+  content,
+  attachments,
+  mentionNames,
+  isOwn,
+}: {
+  content: string;
+  attachments: ChatAttachment[];
+  mentionNames: string[];
+  isOwn: boolean;
+}) {
+  const renderText = () => {
+    if (!content) return null;
+    if (mentionNames.length === 0) {
+      return <p className="whitespace-pre-wrap break-words">{content}</p>;
+    }
+
+    // Les noms les plus longs d'abord : « @Jean Dupont » doit primer sur « @Jean ».
+    const sorted = [...mentionNames].sort((a, b) => b.length - a.length);
+    const escaped = sorted.map((name) =>
+      name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    );
+    const parts = content.split(new RegExp(`(@(?:${escaped.join('|')}))`, 'g'));
+
+    return (
+      <p className="whitespace-pre-wrap break-words">
+        {parts.map((part, i) =>
+          part.startsWith('@') && sorted.includes(part.slice(1)) ? (
+            <span
+              key={i}
+              className={`font-medium rounded px-1 ${
+                isOwn ? 'bg-white/25' : 'bg-primary/15 text-primary'
+              }`}
+            >
+              {part}
+            </span>
+          ) : (
+            part
+          )
+        )}
+      </p>
+    );
+  };
 
   return (
     <div className="space-y-2">
-      {text && <p className="whitespace-pre-wrap break-words">{text}</p>}
-      {attachments.map((att, i) => (
-        <AttachmentCard key={i} attachment={att} isOwn={isOwn} />
+      {renderText()}
+      {attachments.map((att) => (
+        <AttachmentCard key={att.id} attachment={att} isOwn={isOwn} />
       ))}
     </div>
   );
@@ -189,20 +238,58 @@ export default function ChatPage() {
   const params = useParams();
   const projectId = params.id as string;
 
+  const currentUser = useAuthStore((state) => state.user);
   const { data: messages, isLoading, error } = useMessages(projectId);
   // Poster exige MEMBER minimum, comme côté serveur.
   const { canContribute: canContributeToProject } = useProjectRole(projectId);
+  const { data: project } = useProjectById(projectId);
+
+  // Membres du projet : cibles possibles d'une mention, et table de
+  // correspondance identifiant → nom pour le rendu des messages reçus.
+  const members = useMemo(
+    () =>
+      (project?.members ?? []).map((m) => ({
+        id: m.userId,
+        name: `${m.user.firstName} ${m.user.lastName}`,
+      })),
+    [project?.members]
+  );
+
+  const memberNameById = useMemo(
+    () => new Map(members.map((m) => [m.id, m.name])),
+    [members]
+  );
+
+  // Présence : on n'affiche que les membres de CE projet, pas tous les
+  // connectés de l'application.
+  const { isOnline } = usePresence();
+  const onlineMembers = useMemo(
+    () => members.filter((m) => m.id !== currentUser?.id && isOnline(m.id)),
+    [members, isOnline, currentUser?.id]
+  );
   const sendMutation = useSendMessage();
   const sendFileMutation = useSendFileMessage();
-  const currentUser = useAuthStore((state) => state.user);
 
   const [inputValue, setInputValue] = useState('');
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [socketConnected, setSocketConnected] = useState(() => !!getSocket()?.connected);
+  /** Texte saisi après un « @ », ou null si l'autocomplétion est fermée. */
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Membres proposés : on exclut l'auteur, personne ne se mentionne soi-même.
+  const mentionSuggestions = useMemo(() => {
+    if (mentionQuery === null) return [];
+    const query = mentionQuery.toLowerCase();
+    return members
+      .filter((m) => m.id !== currentUser?.id)
+      .filter((m) => m.name.toLowerCase().includes(query))
+      .slice(0, 5);
+  }, [mentionQuery, members, currentUser?.id]);
 
   // Suivre l'état de connexion socket pour l'indicateur UI
   useEffect(() => {
@@ -307,12 +394,17 @@ export default function ChatPage() {
       typingTimeoutRef.current = null;
     }
 
+    // Les mentions sont déduites du texte au moment de l'envoi : l'utilisateur
+    // peut avoir effacé un « @Nom » après l'avoir inséré.
+    const mentions = extractMentionIds(content);
+
     for (const file of pendingFiles) {
       try {
         await sendFileMutation.mutateAsync({
           projectId,
           file,
           textContent: pendingFiles.length === 1 ? content : undefined,
+          mentions: pendingFiles.length === 1 ? mentions : undefined,
         });
       } catch (err) {
         toast.error(getApiError(err), { title: 'Échec' });
@@ -322,7 +414,7 @@ export default function ChatPage() {
 
     if (content && (pendingFiles.length === 0 || pendingFiles.length > 1)) {
       sendMutation.mutate(
-        { projectId, content },
+        { projectId, content, mentions },
         {
           onError: (err) => toast.error(getApiError(err), { title: 'Échec' }),
         }
@@ -331,11 +423,33 @@ export default function ChatPage() {
 
     setInputValue('');
     setPendingFiles([]);
+    setMentionQuery(null);
+  };
+
+  /** Identifiants des membres dont le nom apparaît précédé de « @ ». */
+  const extractMentionIds = (text: string): string[] =>
+    members.filter((m) => text.includes(`@${m.name}`)).map((m) => m.id);
+
+  /** Remplace le « @… » en cours de frappe par le nom complet du membre. */
+  const applyMention = (member: { id: string; name: string }) => {
+    const cursor = inputValue.lastIndexOf('@');
+    if (cursor === -1) return;
+
+    const next = `${inputValue.slice(0, cursor)}@${member.name} `;
+    setInputValue(next);
+    setMentionQuery(null);
+    textareaRef.current?.focus();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setInputValue(value);
+
+    // Autocomplétion : on ouvre la liste dès qu'un « @ » est suivi d'un texte
+    // sans saut de ligne. Le `@` doit débuter un mot pour ne pas se déclencher
+    // au milieu d'une adresse email.
+    const match = /(?:^|\s)@([^\s@]*)$/.exec(value);
+    setMentionQuery(match ? match[1] : null);
 
     if (value.trim()) {
       if (!typingTimeoutRef.current) {
@@ -354,6 +468,21 @@ export default function ChatPage() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Liste de mentions ouverte : Entrée valide la première proposition au
+    // lieu d'envoyer le message, Échap referme sans rien insérer.
+    if (mentionSuggestions.length > 0) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        applyMention(mentionSuggestions[0]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setMentionQuery(null);
+        return;
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -399,9 +528,38 @@ export default function ChatPage() {
             Chat du projet
           </h2>
         </div>
-        <div className={`flex items-center gap-1.5 text-xs font-medium ${socketConnected ? 'text-success' : 'text-critical'}`}>
-          <span className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-success animate-pulse' : 'bg-critical'}`} />
-          {socketConnected ? 'En ligne' : 'Hors ligne'}
+
+        <div className="flex items-center gap-4">
+          {/* Membres connectés : pastille verte, nom au survol */}
+          {onlineMembers.length > 0 && (
+            <div className="hidden sm:flex items-center gap-1.5">
+              <span className="text-xs text-text-secondary">
+                {onlineMembers.length} en ligne
+              </span>
+              <div className="flex -space-x-1.5">
+                {onlineMembers.slice(0, 4).map((member) => (
+                  <span
+                    key={member.id}
+                    title={member.name}
+                    className="relative w-6 h-6 rounded-full bg-primary/15 border-2 border-bg-surface flex items-center justify-center text-[10px] font-bold text-primary"
+                  >
+                    {member.name[0]}
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-success border border-bg-surface" />
+                  </span>
+                ))}
+                {onlineMembers.length > 4 && (
+                  <span className="w-6 h-6 rounded-full bg-bg-surface-hover border-2 border-bg-surface flex items-center justify-center text-[10px] text-text-secondary">
+                    +{onlineMembers.length - 4}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className={`flex items-center gap-1.5 text-xs font-medium ${socketConnected ? 'text-success' : 'text-critical'}`}>
+            <span className={`w-2 h-2 rounded-full ${socketConnected ? 'bg-success animate-pulse' : 'bg-critical'}`} />
+            {socketConnected ? 'Connecté' : 'Déconnecté'}
+          </div>
         </div>
       </div>
 
@@ -472,7 +630,14 @@ export default function ChatPage() {
                           : 'bg-bg-surface-hover text-text-primary'
                       }`}
                     >
-                      <MessageContent content={message.content} isOwn={isOwn} />
+                      <MessageContent
+                        content={message.content}
+                        attachments={message.attachments ?? []}
+                        mentionNames={(message.mentions ?? [])
+                          .map((id) => memberNameById.get(id))
+                          .filter((name): name is string => Boolean(name))}
+                        isOwn={isOwn}
+                      />
                     </div>
                   </div>
                 </div>
@@ -527,14 +692,34 @@ export default function ChatPage() {
             className="hidden"
           />
 
-          <textarea
-            value={inputValue}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder="Ecrire un message... (Entree pour envoyer)"
-            className="flex-1 px-4 py-2 border border-border rounded-lg bg-bg-surface text-text-primary placeholder-text-weak text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-            rows={2}
-          />
+          <div className="flex-1 relative">
+            {/* Suggestions de mention, au-dessus du champ */}
+            {mentionSuggestions.length > 0 && (
+              <ul className="absolute bottom-full mb-1 left-0 right-0 z-10 bg-bg-surface border border-border rounded-lg shadow-lg overflow-hidden">
+                {mentionSuggestions.map((member) => (
+                  <li key={member.id}>
+                    <button
+                      type="button"
+                      onClick={() => applyMention(member)}
+                      className="w-full text-left px-3 py-2 text-sm text-text-primary hover:bg-bg-surface-hover transition-colors"
+                    >
+                      {member.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <textarea
+              ref={textareaRef}
+              value={inputValue}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Ecrire un message... (@ pour mentionner, Entree pour envoyer)"
+              className="w-full px-4 py-2 border border-border rounded-lg bg-bg-surface text-text-primary placeholder-text-weak text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary"
+              rows={2}
+            />
+          </div>
 
           <Button
             variant="primary"

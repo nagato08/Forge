@@ -93,13 +93,37 @@ export interface JoinProjectByTokenRequest {
   inviteToken: string;
 }
 
-export interface InviteProjectMemberRequest {
-  email: string;
+export enum InvitationStatus {
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  REVOKED = 'REVOKED',
 }
 
-export interface InviteProjectMemberResponse {
-  message: string;
+export interface InviteProjectMemberRequest {
   email: string;
+  /** Rôle attribué à l'acceptation. MEMBER par défaut, OWNER refusé. */
+  role?: Exclude<ProjectRole, ProjectRole.OWNER>;
+}
+
+/** Invitation nominative, telle que listée dans les paramètres du projet. */
+export interface ProjectInvitation {
+  id: string;
+  email: string;
+  role: ProjectRole;
+  status: InvitationStatus;
+  expiresAt: string;
+  createdAt: string;
+  acceptedAt: string | null;
+  invitedBy: { firstName: string; lastName: string } | null;
+}
+
+/** Vue publique d'une invitation, avant même d'avoir un compte. */
+export interface InvitationPreview {
+  projectName: string;
+  email: string;
+  status: InvitationStatus;
+  expiresAt: string;
+  isExpired: boolean;
 }
 
 export interface AddProjectMemberRequest {

@@ -27,6 +27,7 @@ const CACHE_KEYS = {
   all: ['projects'],
   myProjects: ['projects', 'my'],
   byId: (id: string) => ['projects', id],
+  invitations: (id: string) => ['projects', id, 'invitations'],
 };
 
 /**
@@ -157,12 +158,74 @@ export function useAddProjectMember() {
  * N'ajoute pas de membre immédiatement, donc pas d'invalidation nécessaire.
  */
 export function useInviteProjectMember() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({
       projectId,
       email,
+      role,
     }: { projectId: string } & InviteProjectMemberRequest) =>
-      projectsApi.inviteMember(projectId, { email }),
+      projectsApi.inviteMember(projectId, { email, role }),
+    onSuccess: (_, { projectId }) => {
+      queryClient.invalidateQueries({
+        queryKey: CACHE_KEYS.invitations(projectId),
+      });
+    },
+  });
+}
+
+/** Invitations du projet, affichées dans les paramètres. */
+export function useProjectInvitations(projectId: string | null) {
+  return useQuery({
+    queryKey: CACHE_KEYS.invitations(projectId || ''),
+    queryFn: () => projectsApi.listInvitations(projectId!),
+    enabled: !!projectId,
+  });
+}
+
+/** Révoque une invitation en attente : le lien envoyé cesse de fonctionner. */
+export function useRevokeInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      invitationId,
+    }: {
+      projectId: string;
+      invitationId: string;
+    }) => projectsApi.revokeInvitation(projectId, invitationId),
+    onSuccess: (_, { projectId }) => {
+      queryClient.invalidateQueries({
+        queryKey: CACHE_KEYS.invitations(projectId),
+      });
+    },
+  });
+}
+
+/**
+ * Détails publics d'une invitation. Ne requiert pas d'authentification :
+ * la page d'atterrissage doit pouvoir s'afficher avant même la connexion.
+ */
+export function useInvitationPreview(token: string | null) {
+  return useQuery({
+    queryKey: ['invitations', 'preview', token],
+    queryFn: () => projectsApi.previewInvitation(token!),
+    enabled: !!token,
+    retry: false,
+  });
+}
+
+/** Accepte une invitation nominative et rejoint le projet. */
+export function useAcceptInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (token: string) => projectsApi.acceptInvitation(token),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.myProjects });
+    },
   });
 }
 

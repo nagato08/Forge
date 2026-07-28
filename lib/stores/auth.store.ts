@@ -88,6 +88,14 @@ export const useAuthStore = create<AuthStore>()(
 
       refreshToken: (token) => {
         set({ token });
+        // Le cookie doit suivre le renouvellement : le proxy s'en sert pour
+        // lire le rôle et décider des redirections. Sans cette ligne il
+        // conserve indéfiniment le tout premier access token, périmé au bout
+        // de 15 minutes, et le proxy raisonne sur une donnée morte.
+        if (typeof window !== 'undefined') {
+          const thirtyDays = 30 * 24 * 60 * 60;
+          document.cookie = `auth-token=${token}; path=/; max-age=${thirtyDays}; SameSite=Lax`;
+        }
       },
     }),
     {

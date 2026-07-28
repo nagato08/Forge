@@ -140,6 +140,15 @@ export type SocketEventMap = {
     createdAt: string;
   }) => void;
 
+  /** Un utilisateur vient d'ouvrir sa première connexion. */
+  'presence:online': (data: { userId: string }) => void;
+
+  /** Un utilisateur a fermé sa dernière connexion. */
+  'presence:offline': (data: { userId: string }) => void;
+
+  /** Instantané des connectés, en réponse à une demande explicite. */
+  'presence:list': (data: { userIds: string[] }) => void;
+
   'user:typing': (data: {
     projectId: string;
     userId: string;

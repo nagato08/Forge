@@ -7,6 +7,15 @@ import type { NextRequest } from 'next/server';
 const PUBLIC_ROUTES = ['/login', '/register', '/reset-password'];
 
 /**
+ * Routes accessibles connecte OU non.
+ *
+ * Distinct de PUBLIC_ROUTES : celles-ci renvoient un visiteur deja connecte
+ * vers son dashboard, ce qui casserait un lien d'invitation. Ici on laisse
+ * passer dans les deux cas, la page gere elle-meme les deux situations.
+ */
+const HYBRID_ROUTES = ['/invite'];
+
+/**
  * Redirection par role apres login
  */
 const ROLE_DASHBOARD: Record<string, string> = {
@@ -17,7 +26,6 @@ const ROLE_DASHBOARD: Record<string, string> = {
 
 interface JwtPayload {
   role?: string;
-  exp?: number;
 }
 
 /**
@@ -67,13 +75,21 @@ export function proxy(request: NextRequest) {
   const payload = token ? decodeJwtPayload(token) : null;
   const role = payload?.role ?? null;
 
-  // Un access token expire ne sert a rien : sans ce controle, l'utilisateur
-  // atterrit sur un dashboard qui echoue ensuite en 401. On le renvoie au login.
-  const isExpired =
-    typeof payload?.exp === 'number' && payload.exp * 1000 <= Date.now();
-
-  const isAuthenticated = !!token && !!role && !isExpired;
+  // On NE rejette PAS sur l'expiration de l'access token.
+  //
+  // La duree de vie reelle de la session est celle du refresh token (7 jours,
+  // httpOnly, path=/auth), que ce proxy ne peut pas lire. Un access token
+  // expire ne signifie donc pas que la session est finie : l'intercepteur
+  // axios le renouvelle en silence au premier 401. Rejeter ici deconnectait
+  // l'utilisateur toutes les 15 minutes alors que sa session restait valide.
+  const isAuthenticated = !!token && !!role;
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+
+  // 0. Routes hybrides (invitation) : on laisse passer sans rien imposer.
+  //    La page decide elle-meme quoi afficher selon l'etat de connexion.
+  if (HYBRID_ROUTES.some((route) => pathname.startsWith(route))) {
+    return NextResponse.next();
+  }
 
   // 1. Route racine → login ou dashboard
   if (pathname === '/') {

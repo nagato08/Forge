@@ -1,5 +1,14 @@
 import api from './client';
 
+/** Fichier joint à un message, désormais une entité à part entière. */
+export interface ChatAttachment {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+  mimeType: string;
+}
+
 export interface ChatMessage {
   id: string;
   content: string;
@@ -11,43 +20,18 @@ export interface ChatMessage {
     lastName: string;
     avatar?: string;
   };
+  /** Identifiants des utilisateurs mentionnés (@). */
+  mentions: string[];
+  attachments: ChatAttachment[];
   createdAt: string;
-  updatedAt: string;
 }
 
-/** Format pour les pièces jointes dans le contenu du message */
-export interface ChatAttachment {
+/** Métadonnées d'un fichier à joindre, avant création du message. */
+export interface ChatAttachmentInput {
   name: string;
   url: string;
   size: number;
-  type: string; // MIME type
-}
-
-const ATTACHMENT_REGEX = /\[attachment:(.*?):(.*?):(.*?):(.*?)\]/g;
-
-/** Encoder une pièce jointe dans le contenu du message */
-export function encodeAttachment(attachment: ChatAttachment): string {
-  return `[attachment:${attachment.name}:${attachment.url}:${attachment.size}:${attachment.type}]`;
-}
-
-/** Extraire les pièces jointes d'un contenu de message */
-export function parseAttachments(content: string): {
-  text: string;
-  attachments: ChatAttachment[];
-} {
-  const attachments: ChatAttachment[] = [];
-  let match;
-  const regex = new RegExp(ATTACHMENT_REGEX);
-  while ((match = regex.exec(content)) !== null) {
-    attachments.push({
-      name: match[1],
-      url: match[2],
-      size: parseInt(match[3], 10),
-      type: match[4],
-    });
-  }
-  const text = content.replace(ATTACHMENT_REGEX, '').trim();
-  return { text, attachments };
+  mimeType: string;
 }
 
 const BASE_URL = '/chat';
@@ -55,17 +39,21 @@ const BASE_URL = '/chat';
 export const chatApi = {
   /**
    * Envoyer un message dans le chat d'un projet
-   * POST /chat/project/:projectId (JWT requis)
+   * POST /chat/project/:projectId (JWT requis, MEMBER minimum)
    */
   sendMessage: async (
     projectId: string,
-    content: string
+    content: string,
+    options: {
+      mentions?: string[];
+      attachments?: ChatAttachmentInput[];
+    } = {}
   ): Promise<ChatMessage> => {
-    const response = await api.post<ChatMessage>(
+    const response = await api.post<{ data: ChatMessage }>(
       `${BASE_URL}/project/${projectId}`,
-      { content }
+      { content, ...options }
     );
-    return response.data;
+    return response.data.data;
   },
 
   /**
@@ -73,9 +61,7 @@ export const chatApi = {
    * GET /chat/project/:projectId (JWT requis)
    */
   getMessages: async (projectId: string): Promise<ChatMessage[]> => {
-    const response = await api.get(
-      `${BASE_URL}/project/${projectId}`
-    );
+    const response = await api.get(`${BASE_URL}/project/${projectId}`);
     // L'API peut retourner un tableau directement ou un objet wrapper
     const data = response.data;
     if (Array.isArray(data)) return data;
@@ -85,24 +71,26 @@ export const chatApi = {
   },
 
   /**
-   * Uploader un fichier via l'API documents puis envoyer un message avec le lien
-   * 1. Créer un document dans le projet
-   * 2. Uploader le fichier comme version
-   * 3. Envoyer un message chat avec l'attachment encodé
+   * Téléverse un fichier puis publie un message qui le référence.
+   *
+   * Le fichier transite par le module Documents (stockage Cloudinary), puis
+   * ses métadonnées sont transmises comme pièce jointe structurée — et non
+   * plus encodées dans le texte du message.
    */
   sendFileMessage: async (
     projectId: string,
     file: File,
-    textContent?: string
+    textContent?: string,
+    mentions?: string[]
   ): Promise<ChatMessage> => {
-    // 1. Créer le document
+    // 1. Créer le document porteur
     const docRes = await api.post('/documents', {
       projectId,
       name: file.name,
     });
     const doc = docRes.data;
 
-    // 2. Uploader le fichier
+    // 2. Téléverser le contenu comme version
     const formData = new FormData();
     formData.append('file', file);
     const versionRes = await api.post(
@@ -116,21 +104,17 @@ export const chatApi = {
       updatedDoc.versions?.[0];
     const fileUrl = latestVersion?.fileUrl || '';
 
-    // 3. Envoyer le message avec l'attachment encodé
-    const attachment = encodeAttachment({
-      name: file.name,
-      url: fileUrl,
-      size: file.size,
-      type: file.type,
+    // 3. Publier le message avec la pièce jointe structurée
+    return chatApi.sendMessage(projectId, textContent ?? '', {
+      mentions,
+      attachments: [
+        {
+          name: file.name,
+          url: fileUrl,
+          size: file.size,
+          mimeType: file.type,
+        },
+      ],
     });
-    const content = textContent
-      ? `${textContent}\n${attachment}`
-      : attachment;
-
-    const msgRes = await api.post<ChatMessage>(
-      `${BASE_URL}/project/${projectId}`,
-      { content }
-    );
-    return msgRes.data;
   },
 };

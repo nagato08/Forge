@@ -11,7 +11,10 @@ import {
   useUpdateMemberRole,
   useTransferOwnership,
   useInviteProjectMember,
+  useProjectInvitations,
+  useRevokeInvitation,
 } from '@/lib/hooks/useProjects';
+import { getApiError } from '@/lib/utils/api-error';
 import { useUsers } from '@/lib/hooks/useAuth';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import Card from '@/components/ui/Card';
@@ -21,7 +24,14 @@ import Modal from '@/components/ui/Modal';
 import Spinner from '@/components/ui/Spinner';
 import ProjectRoleBadge from '@/components/projects/ProjectRoleBadge';
 import { toast } from '@/lib/stores/toast.store';
-import { ProjectRole } from '@/lib/types/project.types';
+import { InvitationStatus, ProjectRole } from '@/lib/types/project.types';
+
+/** Libellés des états d'invitation. */
+const INVITATION_STATUS_LABELS: Record<InvitationStatus, string> = {
+  [InvitationStatus.PENDING]: 'en attente',
+  [InvitationStatus.ACCEPTED]: 'acceptée',
+  [InvitationStatus.REVOKED]: 'révoquée',
+};
 import {
   AssignableProjectRole,
   PROJECT_ROLE_DESCRIPTIONS,
@@ -32,7 +42,7 @@ import {
   isOwner as isOwnerRole,
   resolveMyRole,
 } from '@/lib/utils/project-permissions';
-import { Copy, UserPlus, Trash2, RotateCcw, AlertTriangle, Crown, Mail } from 'lucide-react';
+import { Copy, UserPlus, Trash2, RotateCcw, AlertTriangle, Crown, Mail, X } from 'lucide-react';
 
 export default function ProjectSettingsPage() {
   const params = useParams();
@@ -50,8 +60,13 @@ export default function ProjectSettingsPage() {
   const updateMemberRoleMutation = useUpdateMemberRole();
   const transferOwnershipMutation = useTransferOwnership();
   const inviteMemberMutation = useInviteProjectMember();
+  const revokeInvitationMutation = useRevokeInvitation();
+  const { data: invitations } = useProjectInvitations(projectId);
 
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<AssignableProjectRole>(
+    ProjectRole.MEMBER
+  );
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   // OWNER exclu : il ne s'attribue pas, il se transfère.
@@ -151,15 +166,25 @@ export default function ProjectSettingsPage() {
     }
 
     inviteMemberMutation.mutate(
-      { projectId, email: inviteEmail.trim() },
+      { projectId, email: inviteEmail.trim(), role: inviteRole },
       {
         onSuccess: () => {
           toast.success(`Invitation envoyée à ${inviteEmail.trim()}`);
           setInviteEmail('');
         },
-        onError: () => {
-          toast.error("Impossible d'envoyer l'invitation");
+        onError: (err) => {
+          toast.error(getApiError(err), { title: 'Invitation refusée' });
         },
+      }
+    );
+  };
+
+  const handleRevokeInvitation = (invitationId: string) => {
+    revokeInvitationMutation.mutate(
+      { projectId, invitationId },
+      {
+        onSuccess: () => toast.success('Invitation révoquée'),
+        onError: () => toast.error('Impossible de révoquer l’invitation'),
       }
     );
   };
@@ -267,15 +292,29 @@ export default function ProjectSettingsPage() {
             <label className="text-sm font-medium text-text-primary" htmlFor="invite-email">
               Inviter par email
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Input
                 id="invite-email"
                 type="email"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 placeholder="collegue@exemple.fr"
-                className="flex-1"
+                className="flex-1 min-w-[200px]"
               />
+              <select
+                value={inviteRole}
+                onChange={(e) =>
+                  setInviteRole(e.target.value as AssignableProjectRole)
+                }
+                aria-label="Rôle de l’invité"
+                className="px-3 py-2 text-sm border border-border rounded-lg bg-bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                {grantableRoles.map((role) => (
+                  <option key={role} value={role}>
+                    {PROJECT_ROLE_LABELS[role]}
+                  </option>
+                ))}
+              </select>
               <Button
                 variant="secondary"
                 size="sm"
@@ -288,8 +327,56 @@ export default function ProjectSettingsPage() {
               </Button>
             </div>
             <p className="text-xs text-text-secondary">
-              Envoie le lien d&apos;invitation ci-dessus par email. Fonctionne même si la personne n&apos;a pas encore de compte.
+              L&apos;invitation est nominative : seul le destinataire peut
+              l&apos;utiliser, et elle expire au bout de 7 jours. Fonctionne
+              même si la personne n&apos;a pas encore de compte.
             </p>
+
+            {/* Invitations en cours */}
+            {invitations && invitations.length > 0 && (
+              <div className="pt-2 space-y-2">
+                <p className="text-xs font-medium text-text-secondary">
+                  Invitations envoyées
+                </p>
+                {invitations.map((invitation) => (
+                  <div
+                    key={invitation.id}
+                    className="flex flex-wrap items-center justify-between gap-2 p-2 bg-bg-surface-hover rounded-lg border border-border"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm text-text-primary truncate">
+                        {invitation.email}
+                      </p>
+                      <p className="text-xs text-text-secondary">
+                        {PROJECT_ROLE_LABELS[invitation.role]} ·{' '}
+                        {INVITATION_STATUS_LABELS[invitation.status]}
+                        {invitation.status === InvitationStatus.PENDING && (
+                          <>
+                            {' '}
+                            · expire le{' '}
+                            {new Date(invitation.expiresAt).toLocaleDateString(
+                              'fr-FR'
+                            )}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                    {invitation.status === InvitationStatus.PENDING && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRevokeInvitation(invitation.id)}
+                        isLoading={revokeInvitationMutation.isPending}
+                        className="text-critical"
+                        aria-label={`Révoquer l’invitation de ${invitation.email}`}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
