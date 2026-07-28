@@ -54,6 +54,9 @@ EXPOSE 3000
 
 # busybox wget (Alpine) ne supporte pas --spider : on utilise -q -O -
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD wget -q -O - http://localhost:3000/api/health || exit 1
+  # 127.0.0.1 et non localhost : busybox resout localhost en ::1 d'abord, or
+  # le serveur n'ecoute que sur 0.0.0.0 (IPv4). La sonde echouait donc en
+  # permanence sur un conteneur parfaitement sain.
+  CMD wget -q -O - http://127.0.0.1:3000/api/health || exit 1
 
 CMD ["node", "server.js"]
