@@ -26,6 +26,7 @@ import ProjectRoleBadge from '@/components/projects/ProjectRoleBadge';
 import { toast } from '@/lib/stores/toast.store';
 import { InvitationStatus, ProjectRole } from '@/lib/types/project.types';
 import { useCreateTemplateFromProject } from '@/lib/hooks/useTemplates';
+import ProjectPlanningSettings from '@/components/projects/ProjectPlanningSettings';
 
 /** Libellés des états d'invitation. */
 const INVITATION_STATUS_LABELS: Record<InvitationStatus, string> = {
@@ -263,6 +264,11 @@ export default function ProjectSettingsPage() {
           </p>
         </Card>
       )}
+
+      <ProjectPlanningSettings
+        projectId={projectId}
+        canManage={canManageProject}
+      />
 
       {/* Invitation Section */}
       <Card className="p-6 space-y-4">
