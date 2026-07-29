@@ -16,6 +16,7 @@ import { canManage, resolveMyRole } from '@/lib/utils/project-permissions';
 import {
   LayoutGrid,
   TrendingUp,
+  Milestone,
   Network,
   BarChart3,
   Zap,
@@ -46,6 +47,7 @@ interface Tab {
 const tabs: Tab[] = [
   { href: '/kanban', label: 'Kanban', icon: LayoutGrid },
   { href: '/gantt', label: 'Gantt', icon: TrendingUp },
+  { href: '/roadmap', label: 'Feuille de route', icon: Milestone },
   { href: '/pert', label: 'PERT', icon: Network },
   { href: '/sprints', label: 'Sprints', icon: Repeat },
   { href: '/burndown', label: 'Burndown', icon: BarChart3 },

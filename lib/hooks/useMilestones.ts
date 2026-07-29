@@ -5,6 +5,7 @@ import { planningApi } from '@/lib/api/planning.api';
 
 const CACHE_KEYS = {
   milestones: (projectId: string) => ['planning', 'milestones', projectId],
+  phases: (projectId: string) => ['planning', 'phases', projectId],
   gantt: (projectId: string) => ['planning', 'gantt', projectId],
   pert: (projectId: string) => ['planning', 'pert', projectId],
 };
@@ -76,5 +77,71 @@ export function useDeleteMilestone() {
       milestoneId: string;
     }) => planningApi.deleteMilestone(projectId, milestoneId),
     onSuccess: (_, { projectId }) => invalidateAll(queryClient, projectId),
+  });
+}
+
+export function usePhases(projectId: string | null) {
+  return useQuery({
+    queryKey: CACHE_KEYS.phases(projectId || ''),
+    queryFn: () => planningApi.listPhases(projectId!),
+    enabled: !!projectId,
+  });
+}
+
+export function useCreatePhase() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      ...data
+    }: {
+      projectId: string;
+      name: string;
+      description?: string;
+      startDate: string;
+      endDate: string;
+      order?: number;
+    }) => planningApi.createPhase(projectId, data),
+    onSuccess: (_, { projectId }) =>
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.phases(projectId) }),
+  });
+}
+
+export function useUpdatePhase() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      phaseId,
+      ...data
+    }: {
+      projectId: string;
+      phaseId: string;
+      name?: string;
+      description?: string;
+      startDate?: string;
+      endDate?: string;
+      order?: number;
+    }) => planningApi.updatePhase(projectId, phaseId, data),
+    onSuccess: (_, { projectId }) =>
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.phases(projectId) }),
+  });
+}
+
+export function useDeletePhase() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      phaseId,
+    }: {
+      projectId: string;
+      phaseId: string;
+    }) => planningApi.deletePhase(projectId, phaseId),
+    onSuccess: (_, { projectId }) =>
+      queryClient.invalidateQueries({ queryKey: CACHE_KEYS.phases(projectId) }),
   });
 }

@@ -42,6 +42,16 @@ export interface Milestone {
   overdue: boolean;
 }
 
+/** Phase macro de la feuille de route — conception, recette, déploiement… */
+export interface Phase {
+  id: string;
+  name: string;
+  description?: string | null;
+  startDate: string;
+  endDate: string;
+  order: number;
+}
+
 export interface GanttData {
   tasks: GanttTask[];
   milestones: Milestone[];

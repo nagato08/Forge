@@ -7,6 +7,7 @@ import {
   DashboardStatusDonut,
   EisenhowerData,
   Milestone,
+  Phase,
   RescheduleResult,
   Sprint,
   SprintStatus,
@@ -224,6 +225,48 @@ export const planningApi = {
   ): Promise<{ message: string }> => {
     const response = await api.delete<{ message: string }>(
       `${BASE_URL}/projects/${projectId}/milestones/${milestoneId}`
+    );
+    return response.data;
+  },
+
+  // --- Phases (feuille de route) ---
+
+  listPhases: async (projectId: string): Promise<Phase[]> => {
+    const response = await api.get<Phase[]>(
+      `${BASE_URL}/projects/${projectId}/phases`
+    );
+    return response.data;
+  },
+
+  createPhase: async (
+    projectId: string,
+    data: { name: string; description?: string; startDate: string; endDate: string; order?: number }
+  ): Promise<Phase> => {
+    const response = await api.post<Phase>(
+      `${BASE_URL}/projects/${projectId}/phases`,
+      data
+    );
+    return response.data;
+  },
+
+  updatePhase: async (
+    projectId: string,
+    phaseId: string,
+    data: Partial<{ name: string; description: string; startDate: string; endDate: string; order: number }>
+  ): Promise<Phase> => {
+    const response = await api.patch<Phase>(
+      `${BASE_URL}/projects/${projectId}/phases/${phaseId}`,
+      data
+    );
+    return response.data;
+  },
+
+  deletePhase: async (
+    projectId: string,
+    phaseId: string
+  ): Promise<{ message: string }> => {
+    const response = await api.delete<{ message: string }>(
+      `${BASE_URL}/projects/${projectId}/phases/${phaseId}`
     );
     return response.data;
   },
