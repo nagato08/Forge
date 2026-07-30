@@ -42,6 +42,7 @@ export interface Task {
   storyPoints?: number;
   // Sprint de rattachement. Absent = tâche au backlog.
   sprintId?: string | null;
+  phaseId?: string | null;
   // Baseline : dates de référence figées à la validation du planning.
   baselineStart?: string | null;
   baselineEnd?: string | null;
@@ -107,6 +108,7 @@ export interface CreateTaskRequest {
   storyPoints?: number;
   parentId?: string;
   assignedUserIds?: string[];
+  phaseId?: string;
 }
 
 export interface UpdateTaskRequest {
@@ -122,6 +124,7 @@ export interface UpdateTaskRequest {
   storyPoints?: number;
   parentId?: string;
   assignedUserIds?: string[];
+  phaseId?: string | null;
 }
 
 export interface UpdateTaskStatusRequest {

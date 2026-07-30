@@ -117,6 +117,12 @@ export function useUpdateTask() {
         queryKey: CACHE_KEYS.projectTasks(task.projectId),
       });
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.myTasks });
+      // Le rattachement à une phase change son avancement calculé : sans
+      // cette invalidation, la feuille de route resterait figée sur
+      // l'ancien pourcentage jusqu'au prochain rechargement complet.
+      queryClient.invalidateQueries({
+        queryKey: ['planning', 'phases', task.projectId],
+      });
     },
     onError: (error) => {
       console.error('❌ Update task error:', getApiError(error));
@@ -166,6 +172,12 @@ export function useUpdateTaskStatus() {
       queryClient.invalidateQueries({ queryKey: CACHE_KEYS.myTasks });
       // Le statut du projet peut avoir changé (PLANNING → ACTIVE) → rafraîchir
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      // Terminer une tâche change l'avancement de sa phase, calculé côté
+      // serveur : sans cette invalidation, cocher une tâche sur le Kanban
+      // ne ferait bouger la feuille de route qu'au rechargement complet.
+      queryClient.invalidateQueries({
+        queryKey: ['planning', 'phases', task.projectId],
+      });
     },
     onError: (error) => {
       console.error('❌ Update task status error:', getApiError(error));

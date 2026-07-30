@@ -27,6 +27,7 @@ import {
   Milestone as MilestoneIcon,
   Layers,
   ArrowRight,
+  AlertTriangle,
 } from 'lucide-react';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -302,12 +303,35 @@ export default function RoadmapPage() {
                 return (
                   <div key={phase.id} className="relative h-10 group">
                     <div
-                      className={`absolute top-1 bottom-1 rounded-lg border ${color} flex items-center px-3 overflow-hidden`}
+                      className={`absolute top-1 bottom-1 rounded-lg border ${color} flex items-center px-3 overflow-hidden ${
+                        phase.isLate ? 'ring-2 ring-critical' : ''
+                      }`}
                       style={{ left: `${left}%`, width: `${width}%` }}
+                      title={
+                        phase.taskCount > 0
+                          ? `${phase.doneCount}/${phase.taskCount} tâche${phase.taskCount > 1 ? 's' : ''} terminée${phase.doneCount > 1 ? 's' : ''}${phase.isLate ? ' — en retard' : ''}`
+                          : 'Aucune tâche rattachée'
+                      }
                     >
-                      <span className="text-xs font-medium text-white truncate">
+                      {/* Remplissage proportionnel à l'avancement réel,
+                          calculé sur les tâches rattachées — pas une barre
+                          purement décorative. */}
+                      <div
+                        className="absolute inset-y-0 left-0 bg-white/25"
+                        style={{ width: `${phase.progressPercent}%` }}
+                      />
+                      <span className="relative text-xs font-medium text-white truncate">
                         {phase.name}
+                        {phase.taskCount > 0 && (
+                          <span className="opacity-80">
+                            {' '}
+                            · {phase.progressPercent}%
+                          </span>
+                        )}
                       </span>
+                      {phase.isLate && (
+                        <AlertTriangle className="relative w-3.5 h-3.5 text-white shrink-0 ml-1.5" />
+                      )}
                     </div>
                     {canEdit && (
                       <div className="absolute right-0 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 bg-bg-surface border border-border rounded-lg px-1 py-0.5 shadow-sm">
@@ -358,14 +382,25 @@ export default function RoadmapPage() {
                 className="flex items-center justify-between text-sm py-2 border-b border-border last:border-0"
               >
                 <div className="min-w-0">
-                  <p className="text-text-primary font-medium truncate">
+                  <p className="text-text-primary font-medium truncate flex items-center gap-1.5">
                     {phase.name}
+                    {phase.isLate && (
+                      <AlertTriangle
+                        className="w-3.5 h-3.5 text-critical shrink-0"
+                        aria-label="En retard"
+                      />
+                    )}
                   </p>
                   {phase.description && (
                     <p className="text-text-secondary text-xs mt-0.5">
                       {phase.description}
                     </p>
                   )}
+                  <p className="text-text-secondary text-xs mt-0.5">
+                    {phase.taskCount > 0
+                      ? `${phase.doneCount}/${phase.taskCount} tâche${phase.taskCount > 1 ? 's' : ''} · ${phase.progressPercent}%`
+                      : 'Aucune tâche rattachée'}
+                  </p>
                 </div>
                 <p className="text-text-secondary text-xs whitespace-nowrap ml-4">
                   {new Date(phase.startDate).toLocaleDateString('fr-FR')} →{' '}

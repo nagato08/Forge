@@ -18,6 +18,7 @@ import {
 } from '@/lib/hooks/useTasks';
 import { useUsers } from '@/lib/hooks/useAuth';
 import { useProjectById } from '@/lib/hooks/useProjects';
+import { usePhases } from '@/lib/hooks/useMilestones';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { TaskStatus, Priority, TaskAssignment } from '@/lib/types/task.types';
 import { getApiError } from '@/lib/utils/api-error';
@@ -60,6 +61,7 @@ export default function TaskDetailPage() {
   const { data: projectTasks } = useTasks(projectId);
   const { data: allUsers } = useUsers();
   const { data: project } = useProjectById(projectId);
+  const { data: phases } = usePhases(projectId);
   const currentUserId = useAuthStore((state) => state.user?.id);
 
   const updateMutation = useUpdateTask();
@@ -110,7 +112,7 @@ export default function TaskDetailPage() {
     setEditValue(value || '');
   };
 
-  const handleEditSave = (field: string, value?: string | number) => {
+  const handleEditSave = (field: string, value?: string | number | null) => {
     const updateData: Record<string, any> = {};
     // Utiliser la valeur passée en paramètre ou editValue
     updateData[field] = value !== undefined ? value : editValue;
@@ -394,12 +396,31 @@ export default function TaskDetailPage() {
             <span className="text-sm text-text-secondary">Priorité:</span>
             <select
               value={task.priority}
-              onChange={(e) => handleEditSave('priority')}
-              className="px-3 py-1.5 text-sm border border-border rounded-lg bg-bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              onChange={(e) => handleEditSave('priority', e.target.value)}
+              disabled={!canEditTask}
+              className="px-3 py-1.5 text-sm border border-border rounded-lg bg-bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
             >
               {priorityOptions.map((p) => (
                 <option key={p} value={p}>
                   {p}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Phase de la feuille de route */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-text-secondary">Phase:</span>
+            <select
+              value={task.phaseId ?? ''}
+              onChange={(e) => handleEditSave('phaseId', e.target.value || null)}
+              disabled={!canEditTask}
+              className="px-3 py-1.5 text-sm border border-border rounded-lg bg-bg-surface text-text-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-60"
+            >
+              <option value="">Aucune phase</option>
+              {(phases ?? []).map((phase) => (
+                <option key={phase.id} value={phase.id}>
+                  {phase.name}
                 </option>
               ))}
             </select>

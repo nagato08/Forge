@@ -50,6 +50,16 @@ export interface Phase {
   startDate: string;
   endDate: string;
   order: number;
+  /** Nombre de tâches rattachées à cette phase. */
+  taskCount: number;
+  /** Nombre de ces tâches terminées. */
+  doneCount: number;
+  /** Toujours en nombre de tâches : une phase peut couvrir plusieurs
+   * sprints à l'usage des points hétérogène. */
+  progressPercent: number;
+  /** Échéance dépassée avec du travail restant. Jamais vrai pour une phase
+   * sans aucune tâche rattachée. */
+  isLate: boolean;
 }
 
 export interface GanttData {
