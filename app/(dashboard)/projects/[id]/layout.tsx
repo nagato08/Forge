@@ -23,6 +23,7 @@ import {
   Repeat,
   MessageSquare,
   FileText,
+  AlertOctagon,
   Settings,
   Users,
   Clock,
@@ -54,6 +55,7 @@ const tabs: Tab[] = [
   { href: '/workload', label: 'Charge', icon: Zap },
   { href: '/chat', label: 'Chat', icon: MessageSquare },
   { href: '/documents', label: 'Documents', icon: FileText },
+  { href: '/difficultes', label: 'Difficultés', icon: AlertOctagon },
   { href: '/settings', label: 'Paramètres', icon: Settings, managerOnly: true },
 ];
 
