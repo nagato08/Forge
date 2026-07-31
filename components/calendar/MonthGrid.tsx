@@ -127,15 +127,24 @@ export default function MonthGrid({
               </span>
 
               <div className="space-y-0.5">
-                {dayEvents.slice(0, 3).map((event) => (
-                  <div
-                    key={`${event.kind}-${event.id}`}
-                    className={`text-[11px] leading-tight px-1.5 py-0.5 rounded truncate ${KIND_STYLES[event.kind]}`}
-                    title={event.title}
-                  >
-                    {event.title}
-                  </div>
-                ))}
+                {dayEvents.slice(0, 3).map((event) => {
+                  // Une demande d'absence encore en attente n'est pas acquise :
+                  // le pointillé le dit sans compter sur la seule couleur.
+                  const isPending = event.absenceStatus === 'PENDING';
+                  return (
+                    <div
+                      key={`${event.kind}-${event.id}`}
+                      className={`
+                        text-[11px] leading-tight px-1.5 py-0.5 rounded truncate
+                        ${KIND_STYLES[event.kind]}
+                        ${isPending ? 'border border-dashed border-current opacity-80' : ''}
+                      `}
+                      title={isPending ? `${event.title} — en attente de validation` : event.title}
+                    >
+                      {isPending ? `${event.title} ?` : event.title}
+                    </div>
+                  );
+                })}
                 {dayEvents.length > 3 && (
                   <div className="text-[11px] text-text-secondary px-1.5">
                     +{dayEvents.length - 3}

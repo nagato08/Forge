@@ -4,6 +4,8 @@ export type AbsenceType = 'LEAVE' | 'SICK' | 'REMOTE' | 'TRAINING' | 'OTHER';
 
 export type CalendarEventKind = 'TASK' | 'MILESTONE' | 'SPRINT' | 'ABSENCE';
 
+export type AbsenceStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
 /**
  * Événement d'agenda, toutes origines confondues. La grille se contente de
  * poser des pastilles sur des jours : elle n'a pas à distinguer une échéance
@@ -21,6 +23,8 @@ export interface CalendarEvent {
   status: 'TODO' | 'DOING' | 'DONE' | null;
   userName: string | null;
   absenceType: AbsenceType | null;
+  /** Une demande en attente ne vaut pas une absence acquise. */
+  absenceStatus: AbsenceStatus | null;
 }
 
 /** Disponibilité déclarée par l'utilisateur courant, motif compris. */
@@ -31,8 +35,35 @@ export interface Absence {
   startDate: string;
   endDate: string;
   reason: string | null;
+  status: AbsenceStatus;
+  approverId: string | null;
+  decidedAt: string | null;
+  /** Motif du refus, ou remarque accompagnant l'accord. */
+  decisionNote: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Demande en attente, telle que la voit celui qui doit trancher. */
+export interface PendingAbsence {
+  id: string;
+  userId: string;
+  type: AbsenceType;
+  status: AbsenceStatus;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatar: string | null;
+  };
+}
+
+export interface DecideAbsenceRequest {
+  status: Extract<AbsenceStatus, 'APPROVED' | 'REJECTED'>;
+  decisionNote?: string;
 }
 
 export interface CreateAbsenceRequest {
@@ -105,6 +136,32 @@ export const calendarApi = {
   ): Promise<Absence> => {
     const response = await api.patch<Absence>(
       `${BASE_URL}/absences/${absenceId}`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Demandes en attente de décision (chefs de projet et administrateurs).
+   * GET /calendar/absences/pending (JWT requis)
+   */
+  listPendingAbsences: async (): Promise<PendingAbsence[]> => {
+    const response = await api.get<PendingAbsence[]>(
+      `${BASE_URL}/absences/pending`
+    );
+    return response.data;
+  },
+
+  /**
+   * Approuver ou refuser une demande — jamais la sienne.
+   * PATCH /calendar/absences/:absenceId/decision (JWT requis)
+   */
+  decideAbsence: async (
+    absenceId: string,
+    data: DecideAbsenceRequest
+  ): Promise<Absence> => {
+    const response = await api.patch<Absence>(
+      `${BASE_URL}/absences/${absenceId}/decision`,
       data
     );
     return response.data;

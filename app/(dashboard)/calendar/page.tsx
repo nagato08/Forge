@@ -15,8 +15,16 @@ import {
   useOrganisationCalendar,
   useMyAbsences,
   useDeleteAbsence,
+  usePendingAbsences,
+  useDecideAbsence,
 } from '@/lib/hooks/useCalendar';
-import { Absence, CalendarEvent, CalendarEventKind } from '@/lib/api/calendar.api';
+import {
+  Absence,
+  AbsenceStatus,
+  CalendarEvent,
+  CalendarEventKind,
+} from '@/lib/api/calendar.api';
+import { useAuthStore } from '@/lib/stores/auth.store';
 import { getApiError } from '@/lib/utils/api-error';
 import { toast } from '@/lib/stores/toast.store';
 import {
@@ -28,6 +36,9 @@ import {
   User as UserIcon,
   Pencil,
   Trash2,
+  Check,
+  X,
+  Inbox,
 } from 'lucide-react';
 
 type Scope = 'personal' | 'organisation';
@@ -51,6 +62,18 @@ const KIND_DOTS: Record<CalendarEventKind, string> = {
   MILESTONE: 'bg-ai',
   SPRINT: 'bg-info',
   ABSENCE: 'bg-warning',
+};
+
+const STATUS_LABELS: Record<AbsenceStatus, string> = {
+  PENDING: 'En attente',
+  APPROVED: 'Approuvée',
+  REJECTED: 'Refusée',
+};
+
+const STATUS_BADGES: Record<AbsenceStatus, BadgeVariant> = {
+  PENDING: 'warning',
+  APPROVED: 'success',
+  REJECTED: 'danger',
 };
 
 function formatLongDate(day: string) {
@@ -102,6 +125,33 @@ export default function CalendarPage() {
   const organisationQuery = useOrganisationCalendar(range, scope === 'organisation');
   const { data: myAbsences } = useMyAbsences(range);
   const deleteMutation = useDeleteAbsence();
+
+  // Seuls un chef de projet ou un administrateur tranchent une demande : les
+  // autres n'ont pas à voir la file d'attente, ni à la charger.
+  const myRole = useAuthStore((state) => state.role);
+  const canDecide = myRole === 'ADMIN' || myRole === 'PROJECT_MANAGER';
+  const { data: pendingAbsences } = usePendingAbsences(canDecide);
+  const decideMutation = useDecideAbsence();
+
+  const handleDecide = (
+    absenceId: string,
+    status: 'APPROVED' | 'REJECTED'
+  ) => {
+    const decisionNote =
+      status === 'REJECTED'
+        ? (prompt('Motif du refus (facultatif)') ?? undefined)
+        : undefined;
+
+    decideMutation.mutate(
+      { absenceId, status, decisionNote },
+      {
+        onSuccess: () =>
+          toast.success(status === 'APPROVED' ? 'Demande approuvée' : 'Demande refusée'),
+        onError: (err) =>
+          toast.error(getApiError(err), { title: 'Décision impossible' }),
+      }
+    );
+  };
 
   const activeQuery = scope === 'personal' ? personalQuery : organisationQuery;
   // Référence stable : sans cela, le tableau vide de repli serait recréé à
@@ -305,15 +355,26 @@ export default function CalendarPage() {
                   className="flex items-start justify-between gap-3 border-t border-border pt-2 first:border-0 first:pt-0"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm text-text-primary">
-                      {ABSENCE_TYPE_LABELS[absence.type]} ·{' '}
-                      {formatShortDate(absence.startDate)}
-                      {absence.startDate.split('T')[0] !== absence.endDate.split('T')[0] &&
-                        ` → ${formatShortDate(absence.endDate)}`}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm text-text-primary">
+                        {ABSENCE_TYPE_LABELS[absence.type]} ·{' '}
+                        {formatShortDate(absence.startDate)}
+                        {absence.startDate.split('T')[0] !==
+                          absence.endDate.split('T')[0] &&
+                          ` → ${formatShortDate(absence.endDate)}`}
+                      </p>
+                      <Badge variant={STATUS_BADGES[absence.status]} size="sm">
+                        {STATUS_LABELS[absence.status]}
+                      </Badge>
+                    </div>
                     {absence.reason && (
                       <p className="text-xs text-text-secondary truncate">
                         {absence.reason}
+                      </p>
+                    )}
+                    {absence.decisionNote && (
+                      <p className="text-xs text-text-secondary truncate">
+                        Réponse : {absence.decisionNote}
                       </p>
                     )}
                   </div>
@@ -339,6 +400,64 @@ export default function CalendarPage() {
           )}
         </Card>
       </div>
+
+      {/* File d'attente : visible des seuls chefs de projet et administrateurs */}
+      {canDecide && (
+        <Card className="p-5">
+          <h2 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
+            <Inbox className="w-4 h-4 text-text-secondary" />
+            Demandes à traiter
+            {(pendingAbsences ?? []).length > 0 && (
+              <Badge variant="warning" size="sm">
+                {(pendingAbsences ?? []).length}
+              </Badge>
+            )}
+          </h2>
+          {(pendingAbsences ?? []).length === 0 ? (
+            <p className="text-sm text-text-weak">Aucune demande en attente</p>
+          ) : (
+            <div className="space-y-2">
+              {(pendingAbsences ?? []).map((request) => (
+                <div
+                  key={request.id}
+                  className="flex items-center justify-between gap-3 border-t border-border pt-2 first:border-0 first:pt-0"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-text-primary truncate">
+                      {request.user.firstName} {request.user.lastName}
+                    </p>
+                    <p className="text-xs text-text-secondary">
+                      {ABSENCE_TYPE_LABELS[request.type]} ·{' '}
+                      {formatShortDate(request.startDate)}
+                      {request.startDate.split('T')[0] !==
+                        request.endDate.split('T')[0] &&
+                        ` → ${formatShortDate(request.endDate)}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleDecide(request.id, 'APPROVED')}
+                      disabled={decideMutation.isPending}
+                      aria-label={`Approuver la demande de ${request.user.firstName} ${request.user.lastName}`}
+                      className="p-1.5 rounded text-text-weak hover:text-success hover:bg-bg-surface-hover transition-colors disabled:opacity-50"
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDecide(request.id, 'REJECTED')}
+                      disabled={decideMutation.isPending}
+                      aria-label={`Refuser la demande de ${request.user.firstName} ${request.user.lastName}`}
+                      className="p-1.5 rounded text-text-weak hover:text-critical hover:bg-bg-surface-hover transition-colors disabled:opacity-50"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       <AbsenceModal
         isOpen={modalOpen}

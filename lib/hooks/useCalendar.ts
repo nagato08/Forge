@@ -5,6 +5,7 @@ import {
   calendarApi,
   CalendarRange,
   CreateAbsenceRequest,
+  DecideAbsenceRequest,
   UpdateAbsenceRequest,
 } from '@/lib/api/calendar.api';
 
@@ -68,6 +69,28 @@ export function useUpdateAbsence() {
       ...data
     }: UpdateAbsenceRequest & { absenceId: string }) =>
       calendarApi.updateAbsence(absenceId, data),
+    onSuccess: () => invalidateCalendar(queryClient),
+  });
+}
+
+/** Réservé aux chefs de projet et administrateurs : inutile de l'appeler ailleurs. */
+export function usePendingAbsences(enabled: boolean) {
+  return useQuery({
+    queryKey: ['calendar', 'absences', 'pending'],
+    queryFn: () => calendarApi.listPendingAbsences(),
+    enabled,
+  });
+}
+
+export function useDecideAbsence() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      absenceId,
+      ...data
+    }: DecideAbsenceRequest & { absenceId: string }) =>
+      calendarApi.decideAbsence(absenceId, data),
     onSuccess: () => invalidateCalendar(queryClient),
   });
 }
