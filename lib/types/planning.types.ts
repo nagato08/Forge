@@ -188,23 +188,23 @@ export interface WorkloadData {
 }
 
 export interface DashboardStatusDonut {
-  TODO: number;
-  DOING: number;
-  DONE: number;
+  labels: string[];
+  values: number[];
+  total: number;
 }
 
 export interface EisenhowerTask {
   id: string;
   title: string;
-  urgent: boolean;
-  important: boolean;
+  status: string;
+  deadline: string | null;
 }
 
 export interface EisenhowerData {
-  urgent_important: EisenhowerTask[];
-  urgent_not_important: EisenhowerTask[];
-  not_urgent_important: EisenhowerTask[];
-  not_urgent_not_important: EisenhowerTask[];
+  urgentImportant: EisenhowerTask[];
+  urgentNotImportant: EisenhowerTask[];
+  notUrgentImportant: EisenhowerTask[];
+  notUrgentNotImportant: EisenhowerTask[];
 }
 // --- Modèles de projet ---
 

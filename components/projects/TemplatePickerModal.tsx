@@ -66,7 +66,7 @@ export default function TemplatePickerModal({
             `Projet créé avec ${project.taskCount} tâche${project.taskCount > 1 ? 's' : ''}`
           );
           onClose();
-          router.push(`/projects/${project.id}/kanban`);
+          router.push(`/projects/${project.id}/dashboard`);
         },
         onError: (err) => toast.error(getApiError(err), { title: 'Échec' }),
       }

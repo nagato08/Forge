@@ -48,7 +48,7 @@ export default function InviteTokenPage() {
 
     acceptMutation.mutate(inviteToken, {
       onSuccess: (member) => {
-        router.replace(`/projects/${member.projectId}/kanban`);
+        router.replace(`/projects/${member.projectId}/dashboard`);
       },
       onError: (err) => setError(getApiError(err)),
     });

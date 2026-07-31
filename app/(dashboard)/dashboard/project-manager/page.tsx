@@ -136,7 +136,7 @@ export default function ProjectManagerDashboardPage() {
             recentProjects.map((project) => (
               <Link
                 key={project.id}
-                href={`/projects/${project.id}/kanban`}
+                href={`/projects/${project.id}/dashboard`}
               >
                 <div className="p-4 rounded-lg border border-border hover:border-primary hover:bg-bg-surface-hover transition-all cursor-pointer">
                   <div className="flex items-start justify-between">

@@ -14,6 +14,7 @@ import SprintBanner from '@/components/planning/SprintBanner';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { canManage, resolveMyRole } from '@/lib/utils/project-permissions';
 import {
+  LayoutDashboard,
   LayoutGrid,
   TrendingUp,
   Milestone,
@@ -46,6 +47,7 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
+  { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
   { href: '/kanban', label: 'Kanban', icon: LayoutGrid },
   { href: '/gantt', label: 'Gantt', icon: TrendingUp },
   { href: '/roadmap', label: 'Feuille de route', icon: Milestone },

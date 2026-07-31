@@ -103,7 +103,7 @@ export default function ProjectCard({ project }: ProjectCardProps) {
     <>
       <Card
         clickable
-        onClick={() => router.push(`/projects/${project.id}/kanban`)}
+        onClick={() => router.push(`/projects/${project.id}/dashboard`)}
         className="space-y-3 hover:border-primary/50 transition-all duration-200 h-full"
       >
         {/* Header: Name + Status */}
