@@ -169,6 +169,12 @@ export default function ProjectPlanningSettings({
               {settings.methodology === 'AGILE' ? 'Agile' : 'Classique'}
             </p>
           </div>
+          <div>
+            <p className="text-text-secondary">Unité de charge</p>
+            <p className="text-text-primary font-medium">
+              {settings.chargeUnit === 'PERSON_DAYS' ? 'Jours-homme' : 'Heures'}
+            </p>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -281,25 +287,48 @@ export default function ProjectPlanningSettings({
             </div>
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-text-primary block mb-1.5">
-              Méthodologie
-            </label>
-            <div className="flex gap-2">
-              {(['AGILE', 'CLASSIC'] as ProjectMethodology[]).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setForm((f) => ({ ...f, methodology: m }))}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                    form.methodology === m
-                      ? 'bg-primary/10 border-primary text-primary'
-                      : 'border-border text-text-secondary hover:bg-bg-surface-hover'
-                  }`}
-                >
-                  {m === 'AGILE' ? 'Agile' : 'Classique'}
-                </button>
-              ))}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-text-primary block mb-1.5">
+                Méthodologie
+              </label>
+              <div className="flex gap-2">
+                {(['AGILE', 'CLASSIC'] as ProjectMethodology[]).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, methodology: m }))}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                      form.methodology === m
+                        ? 'bg-primary/10 border-primary text-primary'
+                        : 'border-border text-text-secondary hover:bg-bg-surface-hover'
+                    }`}
+                  >
+                    {m === 'AGILE' ? 'Agile' : 'Classique'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-text-primary block mb-1.5">
+                Unité de charge
+              </label>
+              <div className="flex gap-2">
+                {(['HOURS', 'PERSON_DAYS'] as ChargeUnit[]).map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, chargeUnit: u }))}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                      form.chargeUnit === u
+                        ? 'bg-primary/10 border-primary text-primary'
+                        : 'border-border text-text-secondary hover:bg-bg-surface-hover'
+                    }`}
+                  >
+                    {u === 'HOURS' ? 'Heures' : 'Jours-homme'}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

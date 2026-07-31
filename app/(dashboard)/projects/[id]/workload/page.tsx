@@ -7,7 +7,7 @@ import Spinner from '@/components/ui/Spinner';
 import Alert from '@/components/ui/Alert';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { Activity, Clock, Users, AlertTriangle, Info } from 'lucide-react';
+import { Activity, Clock, Users, AlertTriangle, Info, Cpu } from 'lucide-react';
 
 export default function WorkloadPage() {
   const params = useParams();
@@ -58,15 +58,13 @@ export default function WorkloadPage() {
     );
   }
 
-  // Grouper par utilisateur
-  const userGroups = new Map<string, number>();
-  workloadData.entries.forEach((entry) => {
-    const current = userGroups.get(entry.userId) || 0;
-    userGroups.set(entry.userId, current + entry.hours);
-  });
-
-  const maxHours = Math.max(...Array.from(userGroups.values()), 40);
-  const overloadThreshold = 40;
+  // Le backend agrège déjà par utilisateur et calcule la surcharge — pas
+  // besoin de resommer côté client, ce qui avait fini par ignorer le vrai
+  // seuil (paramètres du projet) au profit d'une constante à 40h en dur.
+  const { entries, overloadThresholdHours, chargeUnit, machine } = workloadData;
+  const unitLabel = chargeUnit === 'PERSON_DAYS' ? 'j' : 'h';
+  const maxHours = Math.max(...entries.map((e) => e.hours), overloadThresholdHours);
+  const periodLabel = groupBy === 'week' ? 'semaine' : 'jour';
 
   return (
     <div className="space-y-6">
@@ -127,19 +125,18 @@ export default function WorkloadPage() {
           Charge par utilisateur
         </h2>
         <div className="space-y-4">
-          {Array.from(userGroups.entries()).map(([userId, hours]) => {
-            const isOverloaded = hours > overloadThreshold;
-            const percentage = (hours / maxHours) * 100;
+          {entries.map((entry) => {
+            const percentage = (entry.hours / maxHours) * 100;
 
             return (
-              <div key={userId} className="space-y-2">
+              <div key={entry.userId} className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-text-primary">
-                    {workloadData.entries.find((e) => e.userId === userId)?.userName}
-                  </p>
+                  <p className="text-sm font-medium text-text-primary">{entry.userName}</p>
                   <div className="flex items-center gap-3 text-sm">
-                    <span className="font-semibold text-text-primary">{hours}h</span>
-                    {isOverloaded && (
+                    <span className="font-semibold text-text-primary">
+                      {entry.hours}{unitLabel}
+                    </span>
+                    {entry.isOverloaded && (
                       <span className="text-critical font-medium flex items-center gap-1">
                         <AlertTriangle className="w-3 h-3" />
                         Surcharge
@@ -150,7 +147,7 @@ export default function WorkloadPage() {
                 <div className="w-full h-3 bg-bg-surface-hover rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all rounded-full ${
-                      isOverloaded ? 'bg-critical' : 'bg-success'
+                      entry.isOverloaded ? 'bg-critical' : 'bg-success'
                     }`}
                     style={{ width: `${Math.min(percentage, 100)}%` }}
                   />
@@ -161,15 +158,71 @@ export default function WorkloadPage() {
         </div>
       </Card>
 
+      {/* Capacité machine : un plafond collectif, pas un score individuel —
+          affichée séparément pour ne pas laisser croire qu'elle mesure une
+          personne. */}
+      {machine && (
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold text-text-primary mb-1 flex items-center gap-2">
+            <Cpu className="w-5 h-5 text-primary" />
+            Capacité machine
+          </h2>
+          <p className="text-xs text-text-secondary mb-6">
+            Plafond de l'équipe entière par {periodLabel} — {machine.capacityPerPeriod}
+            {unitLabel}, indépendant du nombre de personnes qui s'y relaient.
+          </p>
+          <div className="space-y-3">
+            {machine.byPeriod.map((period) => {
+              const percentage = (period.hours / Math.max(machine.capacityPerPeriod, period.hours)) * 100;
+              return (
+                <div key={period.date} className="space-y-1.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-text-secondary">
+                      {new Date(period.date).toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'short',
+                      })}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-text-primary">
+                        {period.hours}{unitLabel} / {machine.capacityPerPeriod}{unitLabel}
+                      </span>
+                      {period.overCapacity && (
+                        <span className="text-critical font-medium flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Dépassée
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="w-full h-2 bg-bg-surface-hover rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all rounded-full ${
+                        period.overCapacity ? 'bg-critical' : 'bg-primary'
+                      }`}
+                      style={{ width: `${Math.min(percentage, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-4 h-4 text-primary" />
-            <p className="text-sm text-text-secondary font-medium">Heures totales</p>
+            <p className="text-sm text-text-secondary font-medium">
+              {chargeUnit === 'PERSON_DAYS' ? 'Jours-homme totaux' : 'Heures totales'}
+            </p>
           </div>
-          <p className="text-3xl font-bold text-primary">{workloadData.totalHours}h</p>
+          <p className="text-3xl font-bold text-primary">
+            {workloadData.totalHours}{unitLabel}
+          </p>
           <p className="text-xs text-text-secondary mt-2">
-            Moyenne: {(workloadData.totalHours / userGroups.size).toFixed(1)}h/personne
+            Moyenne: {(workloadData.totalHours / entries.length).toFixed(1)}{unitLabel}/personne
           </p>
         </Card>
         <Card className="p-6">
@@ -177,7 +230,7 @@ export default function WorkloadPage() {
             <Users className="w-4 h-4 text-primary" />
             <p className="text-sm text-text-secondary font-medium">Personnes</p>
           </div>
-          <p className="text-3xl font-bold text-primary">{userGroups.size}</p>
+          <p className="text-3xl font-bold text-primary">{entries.length}</p>
         </Card>
       </div>
 
@@ -186,7 +239,7 @@ export default function WorkloadPage() {
         <div>
           <p className="text-sm text-text-primary font-medium mb-1">Seuil de surcharge</p>
           <p className="text-xs text-text-secondary">
-            Au-dela de {overloadThreshold}h par semaine, l'utilisateur est considere comme surcharge
+            Au-dela de {overloadThresholdHours}{unitLabel} par {periodLabel}, l'utilisateur est considere comme surcharge
           </p>
         </div>
       </div>

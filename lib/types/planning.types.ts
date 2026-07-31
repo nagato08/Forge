@@ -147,16 +147,44 @@ export interface BurndownData {
   } | null;
 }
 
+export interface WorkloadPeriod {
+  date: string;
+  hours: number;
+}
+
 export interface WorkloadEntry {
   userId: string;
   userName: string;
+  avatar: string | null;
   hours: number;
-  date: string;
+  isOverloaded: boolean;
+  byPeriod: WorkloadPeriod[];
+}
+
+export interface WorkloadMachinePeriod extends WorkloadPeriod {
+  /** Total de l'équipe sur la période, au-delà de la capacité machine. */
+  overCapacity: boolean;
+}
+
+/**
+ * Capacité collective d'une ressource machine, indépendante des individus :
+ * `null` quand elle n'est pas suivie sur ce projet (réglage à 0, le défaut).
+ */
+export interface WorkloadMachine {
+  capacityPerPeriod: number;
+  byPeriod: WorkloadMachinePeriod[];
 }
 
 export interface WorkloadData {
-  entries: WorkloadEntry[];
+  startDate: string;
+  endDate: string;
+  groupBy: 'day' | 'week';
+  /** Unité des nombres ci-dessous : heures brutes, ou jours-homme. */
+  chargeUnit: 'HOURS' | 'PERSON_DAYS';
+  overloadThresholdHours: number;
   totalHours: number;
+  machine: WorkloadMachine | null;
+  entries: WorkloadEntry[];
 }
 
 export interface DashboardStatusDonut {
