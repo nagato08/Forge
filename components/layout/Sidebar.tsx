@@ -6,6 +6,7 @@ import {
   LayoutGrid,
   FolderOpen,
   CheckSquare,
+  CalendarDays,
   Clock,
   Settings,
   Users,
@@ -33,6 +34,7 @@ const mainNavItems = [
   { href: '/dashboard', label: 'Tableau de bord', icon: LayoutGrid },
   { href: '/projects', label: 'Projets', icon: FolderOpen },
   { href: '/my-tasks', label: 'Mes tâches', icon: CheckSquare },
+  { href: '/calendar', label: 'Agenda', icon: CalendarDays },
   { href: '/time-tracking', label: 'Temps', icon: Clock },
 ];
 
