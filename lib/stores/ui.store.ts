@@ -3,13 +3,17 @@ import { persist } from 'zustand/middleware';
 
 interface UIState {
   theme: 'light' | 'dark';
+  /** Panneau off-canvas mobile : montré/caché, sans rapport avec le collapse desktop. */
   sidebarOpen: boolean;
+  /** Largeur réduite (icônes seules) sur desktop — préférence persistante. */
+  sidebarCollapsed: boolean;
 }
 
 interface UIActions {
   setTheme: (theme: 'light' | 'dark') => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
+  toggleSidebarCollapsed: () => void;
 }
 
 type UIStore = UIState & UIActions;
@@ -19,6 +23,7 @@ export const useUIStore = create<UIStore>()(
     (set, get) => ({
       theme: 'light', // défaut sombre
       sidebarOpen: true,
+      sidebarCollapsed: false,
 
       setTheme: (theme) => {
         set({ theme });
@@ -33,10 +38,18 @@ export const useUIStore = create<UIStore>()(
       setSidebarOpen: (open) => {
         set({ sidebarOpen: open });
       },
+
+      toggleSidebarCollapsed: () => {
+        set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed }));
+      },
     }),
     {
       name: 'ui-store',
-      partialize: (state) => ({ theme: state.theme, sidebarOpen: state.sidebarOpen }),
+      partialize: (state) => ({
+        theme: state.theme,
+        sidebarOpen: state.sidebarOpen,
+        sidebarCollapsed: state.sidebarCollapsed,
+      }),
     }
   )
 );

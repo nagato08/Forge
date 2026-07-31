@@ -11,10 +11,12 @@ import {
   Users,
   ShieldCheck,
   Trash2,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { useUIStore } from '@/lib/stores/ui.store';
-import { getRoleBadge } from '@/components/ui/Badge';
+import SidebarAccountMenu from '@/components/layout/SidebarAccountMenu';
 import { useEffect, useState } from 'react';
 
 /**
@@ -55,6 +57,8 @@ export default function Sidebar() {
   const sidebarOpen = useUIStore((state) => state.sidebarOpen);
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
   const setSidebarOpen = useUIStore((state) => state.setSidebarOpen);
+  const collapsed = useUIStore((state) => state.sidebarCollapsed);
+  const toggleCollapsed = useUIStore((state) => state.toggleSidebarCollapsed);
   const user = useAuthStore((state) => state.user);
   const role = useAuthStore((state) => state.role);
   const mounted = useMounted();
@@ -73,6 +77,36 @@ export default function Sidebar() {
     }
   };
 
+  const renderNavItem = (item: {
+    href: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }) => {
+    const Icon = item.icon;
+    const active = isActive(item.href);
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={handleNavClick}
+        title={collapsed ? item.label : undefined}
+        className={`
+          flex items-center gap-3 px-3 py-2.5 rounded-lg
+          transition-colors duration-200
+          ${collapsed ? 'justify-center' : ''}
+          ${
+            active
+              ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+          }
+        `}
+      >
+        <Icon className="w-5 h-5 shrink-0" />
+        {!collapsed && <span>{item.label}</span>}
+      </Link>
+    );
+  };
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -88,127 +122,65 @@ export default function Sidebar() {
         className={`
           fixed md:relative top-0 left-0 h-screen
           bg-[var(--bg-surface)] border-r border-[var(--border)]
-          w-64 z-40 transform transition-transform duration-300
+          z-40 transform transition-[transform,width] duration-300
+          w-64 ${collapsed ? 'md:w-[72px]' : 'md:w-64'}
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           flex flex-col
         `}
       >
         {/* Header */}
-        <div className="p-4 border-b border-[var(--border)]">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-[var(--text-primary)]">
-              Forge
-            </h1>
-            {/* Close button mobile */}
+        <div
+          className={`flex items-center border-b border-[var(--border)] h-16 shrink-0 ${
+            collapsed ? 'justify-center px-2' : 'justify-between px-4'
+          }`}
+        >
+          <h1 className="text-xl font-bold text-[var(--text-primary)]" title="Forge">
+            {collapsed ? 'F' : 'Forge'}
+          </h1>
+          {/* Close button mobile */}
+          {!collapsed && (
             <button
               onClick={toggleSidebar}
               className="md:hidden text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              aria-label="Fermer le menu"
             >
               ✕
             </button>
-          </div>
-
-          {/* User info */}
-          {user && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-[var(--text-primary)]">
-                {user.firstName} {user.lastName}
-              </p>
-              <div className="flex gap-2">
-                {role && getRoleBadge(role)}
-              </div>
-            </div>
           )}
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3 space-y-1">
           {/* Main navigation */}
-          {mainNavItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={handleNavClick}
-                className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-lg
-                  transition-colors duration-200
-                  ${
-                    active
-                      ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
-                  }
-                `}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+          {mainNavItems.map(renderNavItem)}
 
           {/* Admin items (only for admins) — direct links, no collapsible parent */}
-          {isAdmin &&
-            adminNavItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={handleNavClick}
-                  className={`
-                    flex items-center gap-3 px-3 py-2.5 rounded-lg
-                    transition-colors duration-200
-                    ${
-                      active
-                        ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
-                    }
-                  `}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+          {isAdmin && adminNavItems.map(renderNavItem)}
 
           {/* Settings section */}
           <div className="space-y-1 pt-3 border-t border-[var(--border)] mt-3">
             {[
               ...settingsNavItems,
               ...(canOwnProjects ? [trashNavItem] : []),
-            ].map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={handleNavClick}
-                  className={`
-                    flex items-center gap-3 px-3 py-2.5 rounded-lg
-                    transition-colors duration-200
-                    ${
-                      active
-                        ? 'bg-[var(--primary)]/15 text-[var(--primary)] font-medium'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
-                    }
-                  `}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+            ].map(renderNavItem)}
           </div>
         </nav>
 
-        {/* Footer */}
-        <div className="p-3 border-t border-[var(--border)] text-xs text-[var(--text-weak)]">
-          <p>v0.1.0</p>
-        </div>
+        {/* Collapse toggle — desktop uniquement, le mobile utilise déjà son propre panneau off-canvas */}
+        <button
+          onClick={toggleCollapsed}
+          className={`hidden md:flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors border-t border-[var(--border)] ${
+            collapsed ? 'justify-center' : ''
+          }`}
+          aria-label={collapsed ? 'Déplier la barre latérale' : 'Réduire la barre latérale'}
+          title={collapsed ? 'Déplier' : 'Réduire'}
+        >
+          {collapsed ? <ChevronsRight className="w-4 h-4" /> : <ChevronsLeft className="w-4 h-4" />}
+          {!collapsed && 'Réduire'}
+        </button>
+
+        {/* Compte utilisateur */}
+        {user && <SidebarAccountMenu user={user} role={role} collapsed={collapsed} />}
       </aside>
     </>
   );

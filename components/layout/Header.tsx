@@ -1,12 +1,8 @@
 'use client';
 
 import { useUIStore } from '@/lib/stores/ui.store';
-import { useAuthStore } from '@/lib/stores/auth.store';
-import { useLogout } from '@/lib/hooks/useAuth';
-import { useRouter } from 'next/navigation';
 import { NotificationBell } from './NotificationBell';
 import GlobalSearch from './GlobalSearch';
-import Button from '@/components/ui/Button';
 import { Moon, Sun } from 'lucide-react';
 
 type ViewTransitionDocument = Document & {
@@ -17,17 +13,6 @@ export default function Header() {
   const toggleSidebar = useUIStore((state) => state.toggleSidebar);
   const theme = useUIStore((state) => state.theme);
   const setTheme = useUIStore((state) => state.setTheme);
-  const user = useAuthStore((state) => state.user);
-  const logoutMutation = useLogout();
-  const router = useRouter();
-
-  const handleLogout = () => {
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        router.push('/login');
-      },
-    });
-  };
 
   const toggleTheme = (e: React.MouseEvent<HTMLButtonElement>) => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -75,7 +60,7 @@ export default function Header() {
   return (
     <header className="bg-[var(--bg-surface)] border-b border-[var(--border)] sticky top-0 z-20">
       <div className="flex items-center justify-between px-4 py-3 gap-4">
-        {/* Left: Menu button + Title */}
+        {/* Left: Menu button (mobile) */}
         <div className="flex items-center gap-4">
           <button
             onClick={toggleSidebar}
@@ -96,9 +81,6 @@ export default function Header() {
               />
             </svg>
           </button>
-          <h1 className="text-xl font-semibold text-[var(--text-primary)]">
-            Forge
-          </h1>
         </div>
 
         {/* Center: recherche transverse */}
@@ -123,41 +105,6 @@ export default function Header() {
 
           {/* Notifications */}
           <NotificationBell />
-
-          {/* User menu */}
-          <div className="flex items-center gap-3">
-            {user && (
-              <>
-                <div className="hidden sm:block text-right">
-                  <p className="text-sm font-medium text-[var(--text-primary)]">
-                    {user.firstName}
-                  </p>
-                  <p className="text-xs text-[var(--text-secondary)]">
-                    {user.email}
-                  </p>
-                </div>
-
-                {user.avatar && (
-                  <img
-                    src={user.avatar}
-                    alt={user.firstName}
-                    className="w-8 h-8 rounded-full"
-                  />
-                )}
-              </>
-            )}
-
-            {/* Logout button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              isLoading={logoutMutation.isPending}
-              aria-label="Logout"
-            >
-              Déconnexion
-            </Button>
-          </div>
         </div>
       </div>
     </header>
