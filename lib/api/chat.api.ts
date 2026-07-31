@@ -118,3 +118,93 @@ export const chatApi = {
     });
   },
 };
+
+// --- Messagerie directe ---
+
+/** Identité minimale d'un correspondant : ce qu'il faut pour le reconnaître. */
+export interface ChatPerson {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatar: string | null;
+  jobTitle: string | null;
+}
+
+export interface DirectMessage extends Omit<ChatMessage, 'projectId'> {
+  conversationId: string;
+}
+
+export interface DirectConversation {
+  id: string;
+  type: 'DIRECT';
+  participant: ChatPerson | null;
+  lastMessage: {
+    content: string;
+    createdAt: string;
+    senderId: string;
+  } | null;
+  lastMessageAt: string | null;
+}
+
+export const directChatApi = {
+  /**
+   * Mes conversations directes, la plus récemment active en tête.
+   * GET /chat/direct (JWT requis)
+   */
+  listConversations: async (): Promise<DirectConversation[]> => {
+    const response = await api.get<DirectConversation[]>(`${BASE_URL}/direct`);
+    return response.data;
+  },
+
+  /**
+   * Annuaire des personnes à qui écrire (identité seule).
+   * GET /chat/direct/directory (JWT requis)
+   */
+  listDirectory: async (): Promise<ChatPerson[]> => {
+    const response = await api.get<ChatPerson[]>(
+      `${BASE_URL}/direct/directory`
+    );
+    return response.data;
+  },
+
+  /**
+   * Ouvre — ou retrouve — la conversation avec quelqu'un.
+   * POST /chat/direct/with/:userId (JWT requis)
+   */
+  openWith: async (userId: string): Promise<DirectConversation> => {
+    const response = await api.post<DirectConversation>(
+      `${BASE_URL}/direct/with/${userId}`
+    );
+    return response.data;
+  },
+
+  /**
+   * Messages d'une conversation directe.
+   * GET /chat/direct/:conversationId (JWT requis, participant uniquement)
+   */
+  getMessages: async (
+    conversationId: string
+  ): Promise<{ messages: DirectMessage[]; total: number; hasMore: boolean }> => {
+    const response = await api.get<{
+      messages: DirectMessage[];
+      total: number;
+      hasMore: boolean;
+    }>(`${BASE_URL}/direct/${conversationId}`);
+    return response.data;
+  },
+
+  /**
+   * Envoyer un message direct.
+   * POST /chat/direct/:conversationId (JWT requis, participant uniquement)
+   */
+  sendMessage: async (
+    conversationId: string,
+    data: { content: string; attachments?: ChatAttachmentInput[] }
+  ): Promise<{ data: DirectMessage }> => {
+    const response = await api.post<{ data: DirectMessage }>(
+      `${BASE_URL}/direct/${conversationId}`,
+      data
+    );
+    return response.data;
+  },
+};

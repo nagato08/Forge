@@ -175,6 +175,29 @@ export type SocketEventMap = {
     createdAt: string;
   }) => void;
 
+  /** Message d'une conversation directe, diffusé aux deux participants. */
+  'dm:new': (data: {
+    id: string;
+    content: string;
+    conversationId: string;
+    userId: string;
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      avatar?: string;
+    };
+    mentions: string[];
+    attachments: {
+      id: string;
+      name: string;
+      url: string;
+      size: number;
+      mimeType: string;
+    }[];
+    createdAt: string;
+  }) => void;
+
   'project:message:new': (data: {
     id: string;
     content: string;

@@ -7,6 +7,7 @@ import {
   FolderOpen,
   CheckSquare,
   CalendarDays,
+  MessagesSquare,
   Clock,
   Settings,
   Users,
@@ -35,6 +36,7 @@ const mainNavItems = [
   { href: '/projects', label: 'Projets', icon: FolderOpen },
   { href: '/my-tasks', label: 'Mes tâches', icon: CheckSquare },
   { href: '/calendar', label: 'Agenda', icon: CalendarDays },
+  { href: '/chat', label: 'Messages', icon: MessagesSquare },
   { href: '/time-tracking', label: 'Temps', icon: Clock },
 ];
 

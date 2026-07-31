@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams } from 'next/navigation';
 import { useMessages, useSendMessage, useSendFileMessage } from '@/lib/hooks/useChat';
 import { ChatAttachment } from '@/lib/api/chat.api';
 import { useAuthStore } from '@/lib/stores/auth.store';
@@ -234,9 +233,18 @@ const ALLOWED_TYPES = [
   'text/plain', 'text/csv',
 ];
 
-export default function ChatPage() {
-  const params = useParams();
-  const projectId = params.id as string;
+interface ProjectChatProps {
+  projectId: string;
+}
+
+/**
+ * Canal de discussion d'un projet : mentions, présence, indicateur de saisie.
+ *
+ * Extrait de l'ancienne page `projects/[id]/chat` sans changement de
+ * comportement — le chat est désormais regroupé dans l'onglet Messages, où
+ * cette vue et la messagerie directe cohabitent.
+ */
+export default function ProjectChat({ projectId }: ProjectChatProps) {
 
   const currentUser = useAuthStore((state) => state.user);
   const { data: messages, isLoading, error } = useMessages(projectId);
@@ -506,7 +514,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)] bg-bg-surface rounded-lg border border-border">
+    <div className="flex flex-col h-full bg-bg-surface rounded-lg border border-border">
       {/* Header */}
       <div className="px-6 py-4 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-2">
