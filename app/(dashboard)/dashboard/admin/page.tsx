@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -30,6 +30,9 @@ import {
   ArrowUp,
   ArrowDown,
   Zap,
+  SlidersHorizontal,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import Spinner from '@/components/ui/Spinner';
 import Card from '@/components/ui/Card';
@@ -86,11 +89,143 @@ function inRange(dateStr: string | undefined, fromMs: number, toMs: number): boo
   return t >= fromMs && t < toMs;
 }
 
+/** Nombre de projets affichés par défaut dans le graphe « Métriques projets ». */
+const DEFAULT_METRICS_PROJECTS = 8;
+
+/**
+ * Sélecteur multiple de projets. Au-delà d'une poignée de projets, les barres
+ * groupées deviennent illisibles : l'admin choisit celles qu'il veut comparer.
+ */
+function ProjectPicker({
+  options,
+  selectedIds,
+  onChange,
+}: {
+  options: { id: string; name: string }[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) setIsOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  const visibleOptions = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return options;
+    return options.filter((option) => option.name.toLowerCase().includes(needle));
+  }, [options, query]);
+
+  const toggle = (id: string) => {
+    onChange(
+      selectedIds.includes(id)
+        ? selectedIds.filter((selected) => selected !== id)
+        : [...selectedIds, id]
+    );
+  };
+
+  return (
+    <div className="relative shrink-0" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border border-border bg-bg-surface-hover text-text-secondary hover:text-text-primary transition-colors"
+      >
+        <SlidersHorizontal className="w-4 h-4" />
+        <span>
+          {selectedIds.length}/{options.length} projets
+        </span>
+        <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 z-20 mt-2 w-72 rounded-lg border border-border bg-bg-surface shadow-lg">
+          <div className="p-2 border-b border-border">
+            <input
+              type="text"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Rechercher un projet..."
+              aria-label="Rechercher un projet"
+              className="w-full px-3 py-1.5 rounded-md border border-border bg-bg-surface text-sm text-text-primary placeholder:text-text-weak focus:outline-none focus:border-primary"
+            />
+          </div>
+
+          <div className="flex items-center justify-between px-3 py-2 border-b border-border text-xs">
+            <button
+              type="button"
+              onClick={() => onChange(options.map((option) => option.id))}
+              className="text-primary hover:underline"
+            >
+              Tout sélectionner
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="text-text-secondary hover:text-text-primary"
+            >
+              Tout désélectionner
+            </button>
+          </div>
+
+          <ul role="listbox" aria-multiselectable className="max-h-64 overflow-y-auto py-1">
+            {visibleOptions.length === 0 && (
+              <li className="px-3 py-3 text-sm text-text-secondary">Aucun projet trouvé</li>
+            )}
+            {visibleOptions.map((option) => {
+              const isSelected = selectedIds.includes(option.id);
+              return (
+                <li key={option.id}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => toggle(option.id)}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text-primary hover:bg-bg-surface-hover transition-colors"
+                  >
+                    <span
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                        isSelected ? 'border-primary bg-primary text-white' : 'border-border'
+                      }`}
+                    >
+                      {isSelected && <Check className="w-3 h-3" />}
+                    </span>
+                    <span className="truncate">{option.name}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboardPage() {
   const { data: users, isLoading: isLoadingUsers } = useUsers();
   const { data: projects, isLoading: isLoadingProjects } = useProjects();
   const { data: allTasks, isLoading: isLoadingTasks } = useMyTasks();
   const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+  // null = aucune sélection manuelle, on retombe sur les premiers projets.
+  const [metricsProjectIds, setMetricsProjectIds] = useState<string[] | null>(null);
 
   // All hooks BEFORE early returns and conditionals
   const totalUsers = users?.length || 0;
@@ -389,17 +524,32 @@ export default function AdminDashboardPage() {
     ]
   );
 
+  const projectOptions = useMemo(
+    () => (projects || []).map((p) => ({ id: p.id, name: p.name })),
+    [projects]
+  );
+
+  const selectedMetricsProjectIds = useMemo(
+    () =>
+      metricsProjectIds ??
+      projectOptions.slice(0, DEFAULT_METRICS_PROJECTS).map((option) => option.id),
+    [metricsProjectIds, projectOptions]
+  );
+
   const projectsWithMetrics = useMemo(() => {
-    return (projects || []).slice(0, 8).map((p) => {
-      const projectTasks = allTasks?.filter((t) => t.projectId === p.id) || [];
-      return {
-        name: p.name.substring(0, 12),
-        tasks: projectTasks.length,
-        completed: projectTasks.filter((t) => t.status === 'DONE').length,
-        members: p._count?.members ?? p.membersCount ?? p.members?.length ?? 0,
-      };
-    });
-  }, [projects, allTasks]);
+    const selected = new Set(selectedMetricsProjectIds);
+    return (projects || [])
+      .filter((p) => selected.has(p.id))
+      .map((p) => {
+        const projectTasks = allTasks?.filter((t) => t.projectId === p.id) || [];
+        return {
+          name: p.name.substring(0, 12),
+          tasks: projectTasks.length,
+          completed: projectTasks.filter((t) => t.status === 'DONE').length,
+          members: p._count?.members ?? p.membersCount ?? p.members?.length ?? 0,
+        };
+      });
+  }, [projects, allTasks, selectedMetricsProjectIds]);
 
   const projectStatusData = useMemo(
     () => [
@@ -813,25 +963,43 @@ export default function AdminDashboardPage() {
 
         {/* Project Metrics */}
         <Card className="p-6">
-          <h2 className="text-lg font-semibold text-text-primary mb-4">Métriques projets</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={projectsWithMetrics}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="name" stroke="var(--text-secondary)" style={{ fontSize: '11px' }} />
-              <YAxis stroke="var(--text-secondary)" style={{ fontSize: '12px' }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: 'var(--bg-surface)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--text-secondary)' }} />
-              <Bar dataKey="tasks" fill={COLORS.primary} name="Tâches" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="completed" fill={COLORS.success} name="Complétées" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="members" fill={COLORS.info} name="Membres" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <h2 className="text-lg font-semibold text-text-primary">Métriques projets</h2>
+            <ProjectPicker
+              options={projectOptions}
+              selectedIds={selectedMetricsProjectIds}
+              onChange={setMetricsProjectIds}
+            />
+          </div>
+          {projectsWithMetrics.length === 0 ? (
+            <div className="flex h-[300px] items-center justify-center text-sm text-text-secondary">
+              Sélectionnez au moins un projet pour afficher les métriques.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={projectsWithMetrics}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="name" stroke="var(--text-secondary)" style={{ fontSize: '11px' }} />
+                <YAxis stroke="var(--text-secondary)" style={{ fontSize: '12px' }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'var(--bg-surface)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '8px',
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--text-secondary)' }} />
+                <Bar dataKey="tasks" fill={COLORS.primary} name="Tâches" radius={[8, 8, 0, 0]} />
+                <Bar
+                  dataKey="completed"
+                  fill={COLORS.success}
+                  name="Complétées"
+                  radius={[8, 8, 0, 0]}
+                />
+                <Bar dataKey="members" fill={COLORS.info} name="Membres" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </Card>
       </div>
 
