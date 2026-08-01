@@ -11,6 +11,10 @@ export enum NotificationType {
   PROJECT_MEMBER_ADDED = 'PROJECT_MEMBER_ADDED',
   DEADLINE_APPROACHING = 'DEADLINE_APPROACHING',
   DEADLINE_PASSED = 'DEADLINE_PASSED',
+  /** Une demande d'absence attend une décision. */
+  ABSENCE_REQUESTED = 'ABSENCE_REQUESTED',
+  /** Une demande d'absence a été approuvée ou refusée. */
+  ABSENCE_DECIDED = 'ABSENCE_DECIDED',
 }
 
 export interface Notification {

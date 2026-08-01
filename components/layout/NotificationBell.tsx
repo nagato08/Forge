@@ -16,6 +16,8 @@ import {
   Clock,
   AlertCircle,
   Bell,
+  CalendarClock,
+  CalendarCheck,
 } from 'lucide-react';
 
 export function NotificationBell() {
@@ -101,6 +103,8 @@ function NotificationItem({ notification }: { notification: any }) {
       PROJECT_MEMBER_ADDED: <User className={`${iconProps} ${baseColor}`} />,
       DEADLINE_APPROACHING: <Clock className={`${iconProps} ${baseColor}`} />,
       DEADLINE_PASSED: <AlertCircle className={`${iconProps} text-critical`} />,
+      ABSENCE_REQUESTED: <CalendarClock className={`${iconProps} ${baseColor}`} />,
+      ABSENCE_DECIDED: <CalendarCheck className={`${iconProps} ${baseColor}`} />,
     };
 
     return iconMap[type] || <Bell className={`${iconProps} ${baseColor}`} />;
