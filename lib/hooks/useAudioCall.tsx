@@ -81,6 +81,14 @@ export function AudioCallProvider({ children }: { children: React.ReactNode }) {
    * Les ajouter trop tôt fait échouer la négociation : on les met de côté.
    */
   const pendingCandidates = useRef<RTCIceCandidateInit[]>([]);
+  /**
+   * Offre reçue pendant la sonnerie.
+   *
+   * Elle n'est appliquée qu'au décrochage : y répondre plus tôt reviendrait à
+   * capter le micro et à ouvrir le flux audio avant que la personne ait
+   * accepté l'appel.
+   */
+  const pendingOffer = useRef<RTCSessionDescriptionInit | null>(null);
   /** Lu dans des abonnements socket qui ne doivent pas se réabonner. */
   const callRef = useRef<Call | null>(null);
 
@@ -111,6 +119,7 @@ export function AudioCallProvider({ children }: { children: React.ReactNode }) {
       remoteAudio.current.srcObject = null;
     }
     pendingCandidates.current = [];
+    pendingOffer.current = null;
 
     setPhase('idle');
     setCall(null);
@@ -159,6 +168,33 @@ export function AudioCallProvider({ children }: { children: React.ReactNode }) {
     [sendSignal]
   );
 
+  /** Applique les candidats mis de côté avant la description distante. */
+  async function drainCandidates(connection: RTCPeerConnection) {
+    const queued = pendingCandidates.current;
+    pendingCandidates.current = [];
+    for (const candidate of queued) {
+      await connection.addIceCandidate(candidate).catch(() => {
+        // Un candidat périmé n'empêche pas les autres d'aboutir.
+      });
+    }
+  }
+
+  /** Applique une offre et renvoie la réponse correspondante. */
+  const respondToOffer = useCallback(
+    async (
+      connection: RTCPeerConnection,
+      callId: string,
+      offer: RTCSessionDescriptionInit,
+    ) => {
+      await connection.setRemoteDescription(offer);
+      await drainCandidates(connection);
+      const answer = await connection.createAnswer();
+      await connection.setLocalDescription(answer);
+      sendSignal(callId, answer);
+    },
+    [sendSignal],
+  );
+
   // --- Actions ---
 
   const startCall = useCallback(
@@ -194,15 +230,23 @@ export function AudioCallProvider({ children }: { children: React.ReactNode }) {
 
     try {
       await callApi.answer(current.id);
-      // La connexion se prépare ici ; l'offre déjà reçue est appliquée par le
-      // gestionnaire de signalisation.
-      if (!peerConnection.current) await createPeerConnection(current.id);
+
+      // Le micro n'est capté qu'ici, une fois l'appel accepté — jamais
+      // pendant la sonnerie.
+      const connection =
+        peerConnection.current ?? (await createPeerConnection(current.id));
+
+      const offer = pendingOffer.current;
+      if (offer) {
+        pendingOffer.current = null;
+        await respondToOffer(connection, current.id, offer);
+      }
       setPhase('active');
     } catch (err) {
       toast.error(getApiError(err), { title: 'Impossible de décrocher' });
       teardown();
     }
-  }, [createPeerConnection, teardown]);
+  }, [createPeerConnection, respondToOffer, teardown]);
 
   const rejectCall = useCallback(async () => {
     const current = callRef.current;
@@ -238,17 +282,6 @@ export function AudioCallProvider({ children }: { children: React.ReactNode }) {
     });
     setMuted(next);
   }, [muted]);
-
-  /** Applique les candidats mis de côté avant la description distante. */
-  async function drainCandidates(connection: RTCPeerConnection) {
-    const queued = pendingCandidates.current;
-    pendingCandidates.current = [];
-    for (const candidate of queued) {
-      await connection.addIceCandidate(candidate).catch(() => {
-        // Un candidat périmé n'empêche pas les autres d'aboutir.
-      });
-    }
-  }
 
   // --- Événements serveur ---
 
@@ -293,14 +326,14 @@ export function AudioCallProvider({ children }: { children: React.ReactNode }) {
         const description = signal as RTCSessionDescriptionInit;
 
         if (description.type === 'offer') {
-          // L'offre arrive parfois avant le décrochage : la connexion n'existe
-          // pas encore, on la crée pour pouvoir répondre dès l'acceptation.
-          const target = connection ?? (await createPeerConnection(callId));
-          await target.setRemoteDescription(description);
-          await drainCandidates(target);
-          const answer = await target.createAnswer();
-          await target.setLocalDescription(answer);
-          sendSignal(callId, answer);
+          // Tant que l'appel n'est pas accepté, l'offre est mise de côté : la
+          // connexion — donc la capture du micro — n'est créée qu'au
+          // décrochage.
+          if (!connection) {
+            pendingOffer.current = description;
+            return;
+          }
+          await respondToOffer(connection, callId, description);
           return;
         }
 
