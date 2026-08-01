@@ -218,6 +218,10 @@ export function AudioCallProvider({ children }: { children: React.ReactNode }) {
         sendSignal(created.id, offer);
       } catch (err) {
         toast.error(getApiError(err), { title: 'Appel impossible' });
+        // L'appel existe peut-être déjà côté serveur : sans ce raccrochage,
+        // sa ligne resterait en sonnerie et bloquerait les appels suivants.
+        const orphan = callRef.current;
+        if (orphan) await callApi.end(orphan.id).catch(() => {});
         teardown();
       }
     },
@@ -368,6 +372,7 @@ export function AudioCallProvider({ children }: { children: React.ReactNode }) {
       peerConnection.current?.close();
     };
   }, []);
+
 
   return (
     <AudioCallContext.Provider
