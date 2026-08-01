@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/lib/stores/auth.store';
 import { usePresence } from '@/lib/hooks/usePresence';
 import { useSocketConnected } from '@/lib/hooks/useSocket';
+import { useAudioCall } from '@/lib/hooks/useAudioCall';
 import {
   useDirectMessages,
   useSendDirectMessage,
@@ -12,7 +13,7 @@ import { ChatPerson } from '@/lib/api/chat.api';
 import { getApiError } from '@/lib/utils/api-error';
 import { toast } from '@/lib/stores/toast.store';
 import Spinner from '@/components/ui/Spinner';
-import { MessageCircle, Send } from 'lucide-react';
+import { MessageCircle, Send, Phone } from 'lucide-react';
 
 interface DirectChatProps {
   conversationId: string;
@@ -35,6 +36,7 @@ export default function DirectChat({
   const sendMutation = useSendDirectMessage();
   const socketConnected = useSocketConnected();
   const { isOnline } = usePresence();
+  const { startCall, phase: callPhase } = useAudioCall();
 
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -106,8 +108,25 @@ export default function DirectChat({
           </div>
         </div>
 
+        <div className="flex items-center gap-3 shrink-0">
+          {participant && (
+            <button
+              onClick={() => void startCall(participant.id, conversationId)}
+              disabled={callPhase !== 'idle' || !socketConnected}
+              aria-label={`Appeler ${participantName}`}
+              title={
+                socketConnected
+                  ? `Appeler ${participantName}`
+                  : 'Connexion perdue : appel indisponible'
+              }
+              className="w-9 h-9 rounded-full bg-success/15 text-success flex items-center justify-center hover:bg-success/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Phone className="w-4 h-4" />
+            </button>
+          )}
+
         <div
-          className={`flex items-center gap-1.5 text-xs font-medium shrink-0 ${
+          className={`flex items-center gap-1.5 text-xs font-medium ${
             socketConnected ? 'text-success' : 'text-critical'
           }`}
         >
@@ -117,6 +136,7 @@ export default function DirectChat({
             }`}
           />
           {socketConnected ? 'Connecté' : 'Déconnecté'}
+          </div>
         </div>
       </div>
 

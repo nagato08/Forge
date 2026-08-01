@@ -160,6 +160,20 @@ export function emitSocketEvent(
 /**
  * Types d'événements socket disponibles
  */
+/** Appel tel que le serveur le diffuse sur les rooms personnelles. */
+export interface CallEventPayload {
+  id: string;
+  conversationId: string | null;
+  callerId: string;
+  calleeId: string;
+  caller: { id: string; firstName: string; lastName: string; avatar: string | null };
+  callee: { id: string; firstName: string; lastName: string; avatar: string | null };
+  status: 'RINGING' | 'ANSWERED' | 'MISSED' | 'REJECTED';
+  startedAt: string;
+  answeredAt: string | null;
+  endedAt: string | null;
+}
+
 export type SocketEventMap = {
   'message:new': (data: {
     id: string;
@@ -173,6 +187,26 @@ export type SocketEventMap = {
       avatar?: string;
     };
     createdAt: string;
+  }) => void;
+
+  /** Un appel entrant fait sonner le destinataire. */
+  'call:incoming': (data: CallEventPayload) => void;
+  /** Le destinataire a décroché. */
+  'call:answered': (data: CallEventPayload) => void;
+  /** Le destinataire a refusé. */
+  'call:rejected': (data: CallEventPayload) => void;
+  /** L'un des deux a raccroché. */
+  'call:ended': (data: CallEventPayload) => void;
+  /**
+   * Négociation WebRTC relayée par le serveur.
+   *
+   * `signal` transporte une description de session ou un candidat réseau ;
+   * le serveur ne l'interprète pas, il le transmet à l'autre participant.
+   */
+  'call:signal': (data: {
+    callId: string;
+    fromUserId: string;
+    signal: RTCSessionDescriptionInit | RTCIceCandidateInit;
   }) => void;
 
   /** Message d'une conversation directe, diffusé aux deux participants. */

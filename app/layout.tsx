@@ -6,6 +6,8 @@ import { useEffect } from 'react';
 import { useUIStore } from '@/lib/stores/ui.store';
 import { Toaster } from '@/components/ui';
 import SocketProvider from '@/components/providers/SocketProvider';
+import { AudioCallProvider } from '@/lib/hooks/useAudioCall';
+import CallOverlay from '@/components/call/CallOverlay';
 import './globals.css';
 
 // Créer client QueryClient (stable entre re-renders)
@@ -43,7 +45,12 @@ export default function RootLayout({
         <QueryClientProvider client={queryClient}>
           <ThemeHydrator />
           <SocketProvider />
-          {children}
+          {/* Au-dessus de toute l'application : un appel doit sonner quelle
+              que soit la page ouverte, et survivre a la navigation. */}
+          <AudioCallProvider>
+            {children}
+            <CallOverlay />
+          </AudioCallProvider>
           <Toaster />
         </QueryClientProvider>
       </body>
