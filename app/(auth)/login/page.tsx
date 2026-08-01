@@ -37,9 +37,6 @@ function LoginPageContent() {
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const loginMutation = useLogin();
-  // Propagé vers "S'inscrire" pour ne pas perdre la destination (ex. invitation)
-  // si le visiteur n'a pas encore de compte.
-  const registerCallbackUrl = getSafeCallbackUrl(searchParams.get('callbackUrl'));
 
   const {
     register,
@@ -165,28 +162,13 @@ function LoginPageContent() {
           </div>
 
           {/* Links */}
-          <div className="space-y-2 text-center text-sm">
-            <div>
-              <Link
-                href="/reset-password"
-                className="text-[var(--primary)] hover:text-[var(--primary)]/80 font-medium transition-colors"
-              >
-                Mot de passe oublié?
-              </Link>
-            </div>
-            <p className="text-[var(--text-secondary)]">
-              Pas encore de compte?{' '}
-              <Link
-                href={
-                  registerCallbackUrl
-                    ? `/register?callbackUrl=${encodeURIComponent(registerCallbackUrl)}`
-                    : '/register'
-                }
-                className="text-[var(--primary)] hover:text-[var(--primary)]/80 font-medium transition-colors"
-              >
-                S&apos;inscrire
-              </Link>
-            </p>
+          <div className="text-center text-sm">
+            <Link
+              href="/reset-password"
+              className="text-[var(--primary)] hover:text-[var(--primary)]/80 font-medium transition-colors"
+            >
+              Mot de passe oublié?
+            </Link>
           </div>
         </Card>
 
