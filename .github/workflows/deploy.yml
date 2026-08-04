@@ -8,6 +8,8 @@ on:
 env:
   IMAGE: ghcr.io/nagato08/forge
   NEXT_PUBLIC_API_URL: https://api.forge.tadjo.dev
+  # Instance de demonstration : la page de connexion affiche les comptes de test.
+  NEXT_PUBLIC_DEMO_MODE: "true"
 
 jobs:
   # ───────────────────────────────
@@ -41,6 +43,7 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: ${{ env.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_DEMO_MODE: ${{ env.NEXT_PUBLIC_DEMO_MODE }}
           NEXT_TELEMETRY_DISABLED: "1"
 
   # ───────────────────────────────
@@ -71,6 +74,7 @@ jobs:
           push: true
           build-args: |
             NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_DEMO_MODE=${{ env.NEXT_PUBLIC_DEMO_MODE }}
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.sha }}

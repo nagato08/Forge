@@ -25,6 +25,11 @@ COPY . .
 # NEXT_PUBLIC_* est injecté au BUILD (pas au runtime) pour Next.js
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Affiche les comptes de demonstration sur la page de connexion. A laisser a
+# "false" sur une instance portant de vraies donnees : ces comptes incluent un
+# administrateur.
+ARG NEXT_PUBLIC_DEMO_MODE=false
+ENV NEXT_PUBLIC_DEMO_MODE=$NEXT_PUBLIC_DEMO_MODE
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
