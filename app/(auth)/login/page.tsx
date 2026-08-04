@@ -11,8 +11,39 @@ import { useAuthStore } from '@/lib/stores/auth.store';
 import { Button, Input, Card } from '@/components/ui';
 import { getApiError } from '@/lib/utils/api-error';
 import { toast } from '@/lib/stores/toast.store';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, Briefcase, User } from 'lucide-react';
 import { ROLE_ROUTES, getSafeCallbackUrl } from '@/lib/utils/auth-routes';
+
+/**
+ * Comptes de démonstration, alignés sur `prisma/seed-demo.ts`.
+ *
+ * Affichés uniquement quand `NEXT_PUBLIC_DEMO_MODE` vaut « true » : sur une
+ * instance portant de vraies données, publier des identifiants
+ * d'administration sur la page de connexion serait une faille béante.
+ */
+const DEMO_ACCOUNTS = [
+  {
+    role: 'Administrateur',
+    email: 'admin@forge.dev',
+    description: 'Comptes, habilitations, journal d’audit',
+    icon: ShieldCheck,
+  },
+  {
+    role: 'Chef de projet',
+    email: 'chef@forge.dev',
+    description: 'Pilotage, planning, validation des absences',
+    icon: Briefcase,
+  },
+  {
+    role: 'Employé',
+    email: 'employe@forge.dev',
+    description: 'Tâches assignées, pointage, signalements',
+    icon: User,
+  },
+] as const;
+
+const DEMO_PASSWORD = 'Demo1234!';
+const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 const loginSchema = z.object({
   email: z.string().email('Email invalide'),
@@ -41,10 +72,17 @@ function LoginPageContent() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
+
+  /** Remplit le formulaire sans le soumettre : on voit ce avec quoi on entre. */
+  const fillDemoAccount = (email: string) => {
+    setValue('email', email, { shouldValidate: true });
+    setValue('password', DEMO_PASSWORD, { shouldValidate: true });
+  };
 
   const onSubmit = async (data: LoginForm) => {
     loginMutation.mutate(
@@ -171,6 +209,56 @@ function LoginPageContent() {
             </Link>
           </div>
         </Card>
+
+        {/* Comptes de démonstration */}
+        {DEMO_MODE && (
+          <Card className="space-y-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+                Comptes de démonstration
+              </h2>
+              <span className="text-xs text-[var(--text-weak)]">
+                Cliquez pour remplir
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {DEMO_ACCOUNTS.map((account) => {
+                const Icon = account.icon;
+                return (
+                  <button
+                    key={account.email}
+                    type="button"
+                    onClick={() => fillDemoAccount(account.email)}
+                    className="w-full flex items-center gap-3 p-2.5 rounded-lg border border-[var(--border)] text-left hover:border-[var(--primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+                  >
+                    <span className="w-8 h-8 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center shrink-0">
+                      <Icon className="w-4 h-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-[var(--text-primary)]">
+                        {account.role}
+                      </span>
+                      <span className="block text-xs text-[var(--text-secondary)] truncate">
+                        {account.description}
+                      </span>
+                    </span>
+                    <span className="text-xs font-mono text-[var(--text-weak)] hidden sm:block shrink-0">
+                      {account.email}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="text-xs text-[var(--text-secondary)] pt-1 border-t border-[var(--border)]">
+              Mot de passe commun :{' '}
+              <code className="font-mono text-[var(--text-primary)]">
+                {DEMO_PASSWORD}
+              </code>
+            </p>
+          </Card>
+        )}
 
         {/* Footer */}
         <p className="text-xs text-center text-[var(--text-weak)]">
